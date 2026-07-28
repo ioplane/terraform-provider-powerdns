@@ -1,16 +1,17 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Provider+practices&subtitle=Design+and+Definition+of+Done&logo=terraform&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="Provider practices" src="https://shieldcn.dev/header/graph.svg?title=Provider+practices&subtitle=Design+and+Definition+of+Done&logo=terraform&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
 [![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
-[![framework v1.19](https://shieldcn.dev/badge/framework-v1.19-0969da.svg?variant=secondary)](#)
-[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+![framework v1.19](https://shieldcn.dev/badge/framework-v1.19-0969da.svg?variant=secondary)
+![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)
 
 </div>
 
@@ -75,7 +76,7 @@ surfaces at `apply` instead of `plan` — see the sibling `powerdns-capability-m
 where that knowledge belongs.**
 
 | Situation | Where it must fail |
-|---|---|
+| --- | --- |
 | Value outside the API's accepted set (recursor config name) | `plan`, via `ValidateFunc` |
 | Malformed input the provider itself parses (IPv6 in `masters`) | `plan`, via a validator |
 | Capability absent from the server's backend (views on gpgsql) | `apply` — but the diagnostic must name the requirement |

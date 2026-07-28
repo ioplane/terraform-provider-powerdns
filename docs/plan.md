@@ -1,16 +1,17 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Delivery+plan&subtitle=Live+execution+record&logo=githubactions&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="Delivery plan" src="https://shieldcn.dev/header/graph.svg?title=Delivery+plan&subtitle=Live+execution+record&logo=githubactions&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
-[![phase 1_of_8](https://shieldcn.dev/badge/phase-1_of_8-0969da.svg?variant=secondary)](#phase-1--transport--)
-[![phase_0 closed](https://shieldcn.dev/badge/phase_0-closed-3fb950.svg?variant=secondary)](#phase-0--foundation--closed-2026-07-28)
-[![tasks_done 22](https://shieldcn.dev/badge/tasks_done-22-3fb950.svg?variant=secondary)](#)
+![phase 2_of_8](https://shieldcn.dev/badge/phase-2_of_8-0969da.svg?variant=secondary)
+![phases_closed 2](https://shieldcn.dev/badge/phases_closed-2-3fb950.svg?variant=secondary)
+![tasks_done 30](https://shieldcn.dev/badge/tasks_done-30-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -22,13 +23,13 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 1 (transport) in progress — classifier and client landed
+**Status:** phase 1 (transport) closed; phase 2 (clients) next
 **Last updated:** 2026-07-28
 
 ## Legend
 
 | Mark | Meaning |
-|---|---|
+| --- | --- |
 | `[x]` | done, gate green, evidence in the commit body |
 | `[~]` | in progress |
 | `[ ]` | not started |
@@ -49,7 +50,7 @@ across five services.
 ### Sprint S0 — Repository and toolchain
 
 | ID | Task | Role | Depends | Status |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | S0-01 | Repository `ioplane/terraform-provider-powerdns`, Apache-2.0 | PM | — | `[x]` |
 | S0-02 | `AGENTS.md`, symlinks `CLAUDE.md` and `CODEX.md` | PM | S0-01 | `[x]` |
 | S0-03 | Naming standard synthesised from the five sources | PM | — | `[x]` |
@@ -119,20 +120,23 @@ no packet cache. Neither is in the documentation. Recorded in
 
 ---
 
-## Phase 1 — Transport · `[~]` in progress
+## Phase 1 — Transport · `[x]` closed 2026-07-28
 
 **Exit gate:** contract tests pass against fixtures recorded from all three
-products.
+products. **Met** — ten fixtures recorded from the five-service lab, replayed
+without containers, and cross-checked against the vendored specification.
 
 | ID | Task | Role | Depends | Status |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | S1-01 | ARC: error taxonomy and capability classification, signed | ARC | — | `[x]` |
 | S1-02 | `transport.Client`: HTTP, `X-Api-Key`, TLS floor, timeouts | DEV | S1-01 | `[x]` |
 | S1-03 | Retry: `5xx` and transport errors back off; `4xx` fails fast | DEV | S1-02 | `[x]` |
 | S1-04 | `transport.APIError`: status, server message, capability class | DEV | S1-01 | `[x]` |
 | S1-05 | Capability classifier: LMDB-only, `api_dir` unset, `setAPIWritable` unset, no packet cache | DEV | S1-04 | `[x]` |
-| S1-06 | Fixture recorder — capture real responses from the lab into `testutil` | QA | S0-08 | `[~]` live capability check landed; recorder next |
-| S1-07 | Contract tests for every error class | QA | S1-05, S1-06 | `[~]` unit coverage complete; fixtures pending |
+| S1-06 | Fixture recorder — capture real responses from the lab into `testutil` | QA | S0-08 | `[x]` |
+| S1-07 | Contract tests for every error class | QA | S1-05, S1-06 | `[x]` |
+| S1-08 | `compose.dev.yml` — the file every `task` target already assumed | OPS | S0-04 | `[x]` |
+| S1-09 | Make `task all` pass end to end: six latent gate failures | OPS | S1-08 | `[x]` |
 
 The classifier is verified twice over. `classify_test.go` asserts the mapping,
 including the cases that must **not** fire — a rule that classifies too eagerly
@@ -146,6 +150,68 @@ cannot do that" conditions exist across the three products; each surfaces as a
 bare `4xx`. Classifying them once means every resource reports the same
 actionable diagnostic.
 
+### The gate had never run
+
+S1-08 is a correction, not a feature. `Taskfile.yml` referenced
+`deployments/compose/compose.dev.yml` from `DC`, `EXEC` and the `_dev-running`
+precondition, and the file did not exist — so every containerised target was
+unreachable and phase 0's work had only ever been verified by running the tools
+by hand on the host.
+
+Writing it turned `task all` green for the first time, and in doing so exposed
+six failures the gate had been unable to report: a `test:contract` target
+matching no files, `terraform fmt` failing on a directory that arrives in phase
+7, three markdownlint rules failing repo-wide, and `cspell` running an American
+dictionary over British prose. All are listed in the changelog.
+
+The lesson is in [`docs/standards/verified-identifiers.md`](standards/verified-identifiers.md):
+a gate that has not been observed to fail is not known to run.
+
+### The test scaffolding
+
+Three pieces, in `internal/testutil`:
+
+- **`fixture.go`** — a recorded request and response, carrying
+  `recorded_against` so a stale fixture is visible rather than merely old.
+  Recording is manual (`task fixtures:record`) by design: a fixture that
+  re-records itself is not a fixture, because the value is that a change in
+  what PowerDNS sends arrives as a diff somebody reads.
+- **`mock.go`** — replays fixtures over HTTP. It **fails the test** on an
+  unmatched request rather than answering 404, because a 404 would be
+  indistinguishable from a genuine not-found fixture and would quietly pass.
+- **`spec.go`** — cross-checks recorded responses against the vendored
+  Authoritative specification with `kin-openapi`.
+
+Ten fixtures: five Authoritative, three Recursor, two dnsdist. The contract
+layer needs no containers, so it runs on every commit; the lab is needed to
+*record* a fixture, not to use one.
+
+### The specification is a cross-check, never a source of code
+
+The vendored OpenAPI document exists to catch drift in the shapes we use. It
+does not decide whether an endpoint exists, and no code is generated from it.
+It cannot be trusted for either, as this project has now demonstrated four
+times:
+
+| # | Defect | Found by | Status |
+| --- | --- | --- | --- |
+| 1 | `GET /config/{name}` documented, no handler — the server answers 404 | reading `ws-auth.cc` | [pdns#17807](https://github.com/PowerDNS/pdns/issues/17807) |
+| 2 | `POST cryptokeys/{id}` implemented at `ws-auth.cc:3361`, undocumented | reading `ws-auth.cc` | [pdns#17807](https://github.com/PowerDNS/pdns/issues/17807) |
+| 3 | `Record.modified_at` indented one level too far out — a stray sibling of `properties`, so the property is simultaneously missing and the schema structurally invalid | `kin-openapi` refusing to load the file | to report |
+| 4 | `autoprimaries_url` sent by every `Server` object, absent from a schema declaring `additionalProperties: false` — a generated client would reject a real response | this cross-check, on a recorded fixture | to report |
+
+Defects 3 and 4 were found by the machinery in this phase, which is the
+argument for it: neither is visible to a human reading the specification.
+
+Both are tolerated rather than failed — listed in `KnownDivergences` and
+`knownSpecDefects`, reported once per run. A check that is permanently red is a
+check nobody reads. **Removing an entry when PowerDNS fixes it is the point:**
+the list shrinking is how upstream progress becomes visible here.
+
+Recursor and dnsdist publish no specification at all. Their fixtures are
+checked for well-formedness and nothing more; that is a property of PowerDNS,
+not a gap here.
+
 ---
 
 ## Phase 2 — Clients · `[ ]`
@@ -153,7 +219,7 @@ actionable diagnostic.
 **Exit gate:** all 68 targeted operations implemented and contract-tested.
 
 | ID | Task | Role | Depends | Status |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | S2-01 | `api/auth`: zones, rrsets | DEV | S1-07 | `[ ]` |
 | S2-02 | `api/auth`: metadata, cryptokeys, tsigkeys, autoprimaries | DEV | S2-01 | `[ ]` |
 | S2-03 | `api/auth`: views, networks, server, search, cache, zone actions | DEV | S2-01 | `[ ]` |
@@ -168,7 +234,7 @@ actionable diagnostic.
 **Exit gate:** acceptance green on both authoritative backends.
 
 | ID | Task | Role | Depends | Status |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | S3-01 | ARC: zone and record schemas, identity, signed | ARC | S2-06 | `[ ]` |
 | S3-02 | `powerdns_zone` | DEV | S3-01 | `[ ]` |
 | S3-03 | `powerdns_record` | DEV | S3-02 | `[ ]` |
@@ -188,7 +254,7 @@ produces a permanent diff if compared as a string.
 **Exit gate:** a zone signed through Terraform validates under `dig +dnssec`.
 
 | ID | Task | Role | Depends | Status |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | S4-01 | ARC: key-material handling — ephemeral versus write-only, signed | ARC | S3-07 | `[ ]` |
 | S4-02 | `powerdns_zone_cryptokey` | DEV | S4-01 | `[ ]` |
 | S4-03 | Zone DNSSEC attributes: `dnssec`, `nsec3param`, `nsec3narrow`, `presigned`, `api_rectify` | DEV | S4-02 | `[ ]` |
@@ -205,7 +271,7 @@ reads the state file and fails if it finds key material.
 ## Phase 5 — Family surface · `[ ]`
 
 | ID | Task | Role | Depends | Status |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | S5-01 | `powerdns_view_zone`, `powerdns_network` — LMDB only | DEV | S3-07 | `[ ]` |
 | S5-02 | `powerdns_autoprimary` | DEV | S3-07 | `[ ]` |
 | S5-03 | `powerdns_recursor_zone`, `powerdns_recursor_acl` | DEV | S2-04 | `[ ]` |
@@ -221,7 +287,7 @@ the defect this provider exists to avoid.
 ## Phase 6 — Beyond resources · `[ ]`
 
 | ID | Task | Role | Depends | Status |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | S6-01 | Actions: `notify_zone`, `axfr_retrieve`, `rectify_zone`, `flush_cache` | DEV | S2-03 | `[ ]` |
 | S6-02 | Actions: `recursor_flush_cache`, `dnsdist_flush_cache` | DEV | S2-04, S2-05 | `[ ]` |
 | S6-03 | Functions: `fqdn`, `is_fqdn`, `reverse_zone_name`, `ptr_name`, `soa_serial` | DEV | — | `[ ]` |
@@ -237,7 +303,7 @@ providers smear into resources.
 ## Phase 7 — Release · `[ ]`
 
 | ID | Task | Role | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | S7-01 | Examples for every resource, action and function | DEV | `[ ]` |
 | S7-02 | Registry documentation generated and validated | DEV | `[ ]` |
 | S7-03 | Version matrix: acceptance against auth 5.0.x as well as 5.1.3 | QA | `[ ]` |
@@ -249,7 +315,7 @@ providers smear into resources.
 ## Risk register
 
 | Risk | Effect | Response |
-|---|---|---|
+| --- | --- | --- |
 | Server-side normalisation not caught | Permanent diff for the user | S3-06; every resource gets an `ExpectEmptyPlan` check |
 | Key material reaches state | Secret exposure | S4-01 decides before implementation; S4-07 tests the state file |
 | Capability conditions handled per resource | Divergent diagnostics | S1-05 classifies once in the transport |

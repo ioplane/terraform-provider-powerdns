@@ -126,7 +126,10 @@ tasks:
   test:contract:
     desc: Contract tests against recorded fixtures — no containers needed
     deps: [_dev-running]
-    cmds: ['{{.EXEC}} go test -tags contract ./internal/api/... -race -count=1']
+    # No build tag: these are ordinary tests and belong in the default run too.
+    # The target names the fast feedback loop — replay the recorded responses
+    # and cross-check them against the specification, without starting the lab.
+    cmds: ['{{.EXEC}} go test ./internal/testutil/... -race -count=1 -v']
 
   test:run:
     desc: Run one test — task test:run RUN=TestX PKG=./internal/x
@@ -134,6 +137,17 @@ tasks:
     requires:
       vars: [RUN]
     cmds: ['{{.EXEC}} go test -run "{{.RUN}}" {{.PKG | default "./..."}} -race -count=1 -v']
+
+  fixtures:record:
+    desc: Re-record the HTTP fixtures against the running lab
+    deps: [_dev-running, _lab-running]
+    cmds:
+      # Deliberately manual, and deliberately not part of any gate. A fixture
+      # that re-records itself is not a fixture: the value is that a change in
+      # what PowerDNS sends arrives as a diff somebody reads.
+      - '{{.EXEC}} env RECORD_FIXTURES=1 go test -tags acceptance ./internal/testutil -run TestRecordFixtures -count=1 -v'
+      - cmd: echo 'fixtures recorded — review `git diff internal/testutil/testdata/fixtures`'
+        silent: true
 
   testacc:
     desc: Acceptance tests against the lab
@@ -207,11 +221,15 @@ tasks:
   tf:fmt:
     desc: terraform fmt on examples
     deps: [_dev-running]
+    # `examples/` arrives in phase 7. Until then there is nothing to format,
+    # which is not a gate failure.
+    status: ['test ! -d examples']
     cmds: ['{{.EXEC}} terraform fmt -recursive examples']
 
   tf:fmt:check:
     desc: terraform fmt -check on examples
     deps: [_dev-running]
+    status: ['test ! -d examples']
     cmds: ['{{.EXEC}} terraform fmt -check -recursive examples']
 
   # === Docs ===

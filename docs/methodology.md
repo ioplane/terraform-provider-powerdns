@@ -1,10 +1,11 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Methodology&subtitle=Gated-iterative+delivery&logo=target&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="Methodology" src="https://shieldcn.dev/header/graph.svg?title=Methodology&subtitle=Gated-iterative+delivery&logo=target&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
@@ -46,7 +47,7 @@ One person may wear several hats. The separation exists so the same person does
 not silently approve their own contract decisions.
 
 | Role | Owns |
-|---|---|
+| --- | --- |
 | **PM** | Scope, sprint goals, phase gates, changelog and release cadence, the risk register |
 | **ARC** (architect) | Provider, schema, state and identity contract; ADRs; transport and error design; non-goals |
 | **DEV** | Implementation, tests, documentation, gates green |
@@ -63,7 +64,7 @@ Hard rules:
 ## Macro-phases
 
 | Phase | Output | Exit gate |
-|---|---|---|
+| --- | --- | --- |
 | 0. Foundation | Repository, standards, dev image, lab, pipelines | `task all` green on an empty provider; `task lab:verify` green on five services |
 | 1. Transport | `internal/api/transport` — HTTP, auth, retry, typed errors, capability classification | Contract tests pass against recorded fixtures from all three products |
 | 2. Clients | `auth`, `rec`, `dnsdist` clients | All 68 targeted operations implemented and contract-tested |

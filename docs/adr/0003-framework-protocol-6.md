@@ -1,15 +1,16 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=ADR+0003&subtitle=terraform-plugin-framework%2C+protocol+6%2C+from+scratch&logo=checkmarx&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="ADR 0003" src="https://shieldcn.dev/header/graph.svg?title=ADR+0003&subtitle=terraform-plugin-framework%2C+protocol+6%2C+from+scratch&logo=checkmarx&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
-[![status accepted](https://shieldcn.dev/badge/status-accepted-3fb950.svg?variant=secondary)](#)
-[![date 2026-07-28](https://shieldcn.dev/badge/date-2026--07--28-0969da.svg?variant=secondary)](#)
+![status accepted](https://shieldcn.dev/badge/status-accepted-3fb950.svg?variant=secondary)
+![date 2026-07-28](https://shieldcn.dev/badge/date-2026--07--28-0969da.svg?variant=secondary)
 [![adr 0003](https://shieldcn.dev/badge/adr-0003-6e7781.svg?variant=secondary)](../README.md)
 
 </div>
@@ -37,7 +38,7 @@ Protocol 6 and the framework are not merely newer; four capabilities this
 provider needs exist only there:
 
 | Capability | Needed for |
-|---|---|
+| --- | --- |
 | Write-only attributes (TF 1.11) | TSIG secrets that must not persist |
 | Ephemeral resources (TF 1.10) | DNSSEC private key material |
 | Resource identity (TF 1.12) | Stable identity for zones and records |

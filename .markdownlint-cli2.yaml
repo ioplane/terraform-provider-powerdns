@@ -18,6 +18,9 @@ globs:
 ignores:
   - "vendor/**"
   - "node_modules/**"
+  # uv materialises this in the working tree when a task runs `uv run`. The
+  # packages inside it carry their own documentation; it is not ours to lint.
+  - ".venv/**"
   - "bin/**"
   - "dist/**"
   - ".worktrees/**"

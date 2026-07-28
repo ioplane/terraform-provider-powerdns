@@ -1,16 +1,17 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Naming+conventions&subtitle=Files%2C+branches%2C+commits%2C+versions&logo=abstract&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="Naming conventions" src="https://shieldcn.dev/header/graph.svg?title=Naming+conventions&subtitle=Files%2C+branches%2C+commits%2C+versions&logo=abstract&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
 [![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
-[![the synthesis 5 sources](https://shieldcn.dev/badge/the_synthesis-5_sources-0969da.svg?variant=secondary)](#)
-[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+![the synthesis 5 sources](https://shieldcn.dev/badge/the_synthesis-5_sources-0969da.svg?variant=secondary)
+![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)
 
 </div>
 
@@ -23,7 +24,7 @@ It is a **synthesis** of five sources rather than a restatement of any one of
 them:
 
 | Source | What it contributes |
-|---|---|
+| --- | --- |
 | [Harvard HMS file-naming conventions](https://datamanagement.hms.harvard.edu/plan-design/file-naming-conventions) | Machine-readable file names: no spaces, ISO dates, most significant token first |
 | [IT Glue naming best practices](https://www.itglue.com/blog/naming-conventions-examples-formats-best-practices/) | Consistency as an operational property: one scheme, documented, enforced |
 | [Semantic Versioning 2.0.0](https://semver.org/) | The version is a name, and it makes a promise |
@@ -46,7 +47,7 @@ version     MINOR
 ```
 
 | Commit type | Changelog section | SemVer effect |
-|---|---|---|
+| --- | --- | --- |
 | `feat` | `Added` | MINOR |
 | `fix` | `Fixed` | PATCH |
 | `feat!` / `BREAKING CHANGE:` | `Changed`, prefixed `BREAKING:` | MAJOR (MINOR while `0.x`) |
@@ -83,7 +84,7 @@ checked — see §8.
 ## 3. Case by context
 
 | Context | Case | Example |
-|---|---|---|
+| --- | --- | --- |
 | Go files | `snake_case.go` | `zone_metadata.go`, `transport_test.go` |
 | Go packages | short, lowercase, no underscores | `dnsdist`, `testutil` |
 | Go exported identifiers | `PascalCase` | `ZoneResource`, `APIError` |
@@ -107,7 +108,7 @@ These names **are** the provider's public API. Changing one is breaking
 accident of history:
 
 | Product | Prefix | Example |
-|---|---|---|
+| --- | --- | --- |
 | Authoritative | none | `powerdns_zone`, `powerdns_tsigkey` |
 | Recursor | `recursor_` | `powerdns_recursor_zone` |
 | dnsdist | `dnsdist_` | `powerdns_dnsdist_acl` |
@@ -136,7 +137,7 @@ documentation and a user reading ours must find the same word.
 ## 5. Git branches
 
 | Kind | Pattern | Example |
-|---|---|---|
+| --- | --- | --- |
 | Sprint | `sprint/<id>-<scope>` | `sprint/S2-auth-client` |
 | Feature | `feat/<scope>/<name>` | `feat/dnssec/cryptokey-resource` |
 | Fix | `fix/<scope>/<name>` | `fix/zone/ipv6-masters` |
@@ -162,7 +163,7 @@ predicts the changelog section, which predicts the version bump — §1.
 ## 7. Glossary of accepted abbreviations
 
 | Abbreviation | Meaning |
-|---|---|
+| --- | --- |
 | `pdns` | PowerDNS |
 | `auth` | PowerDNS Authoritative Server |
 | `rec` | PowerDNS Recursor |
@@ -184,7 +185,7 @@ Add entries here and to `.cspell.json` in the same commit that introduces them.
 IT Glue's point, made operational. A rule nobody checks is a preference:
 
 | Rule | Enforced by |
-|---|---|
+| --- | --- |
 | Commit subject shape and type | `commitlint`, in the `commit-msg` hook and on MR titles |
 | Scope is from the closed list | `.commitlintrc.yaml` `scope-enum` |
 | Go identifier and file case | `golangci-lint` (`revive`, `gofumpt`) |

@@ -1,16 +1,17 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Versioning&subtitle=SemVer+2.0.0&logo=semver&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="Versioning" src="https://shieldcn.dev/header/graph.svg?title=Versioning&subtitle=SemVer+2.0.0&logo=semver&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
 [![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
-[![semver 2.0.0](https://shieldcn.dev/badge/semver-2.0.0-0969da.svg?variant=secondary)](#)
-[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+![semver 2.0.0](https://shieldcn.dev/badge/semver-2.0.0-0969da.svg?variant=secondary)
+![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)
 
 </div>
 
@@ -53,7 +54,7 @@ refusing at plan time what the PowerDNS API would refuse at apply time.
 ## Rules
 
 | Component | Bumps when |
-|---|---|
+| --- | --- |
 | MAJOR | Breaking change, **after 1.0.0** |
 | MINOR | Backward-compatible feature; **also breaking changes while `0.x`** (SemVer §4) |
 | PATCH | Backward-compatible bug fix |
@@ -80,7 +81,7 @@ Track newest releases; pin exactly; pin by content hash wherever the ecosystem
 offers one:
 
 | Kind | Pinned by | Verified by |
-|---|---|---|
+| --- | --- | --- |
 | Go modules | exact version | `go.sum` |
 | Container base images | `sha256:` digest | `scripts/check-pins.sh` |
 | GitHub Actions | commit SHA | `scripts/check-pins.sh` |

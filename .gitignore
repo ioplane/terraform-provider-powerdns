@@ -10,3 +10,9 @@ __pycache__/
 *.tfstate
 *.tfstate.backup
 .terraform/
+
+# uv creates this in the working tree when a task runs `uv run`.
+.venv/
+
+# Task's local checksum cache for `sources`/`generates`.
+.task/

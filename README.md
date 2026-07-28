@@ -1,10 +1,11 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=terraform-provider-powerdns&subtitle=Authoritative+%2B+Recursor+%2B+dnsdist&logo=terraform&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="terraform-provider-powerdns" src="https://shieldcn.dev/header/graph.svg?title=terraform-provider-powerdns&subtitle=Authoritative+%2B+Recursor+%2B+dnsdist&logo=terraform&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
@@ -60,7 +61,7 @@ Configure only the products you use.
 ## Planned surface
 
 | Product | API operations | Resources | Data sources | Actions |
-|---|---:|---:|---:|---:|
+| --- | ---: | ---: | ---: | ---: |
 | Authoritative 5.1.3 | 42 | 9 | 9 | 4 |
 | Recursor 5.4.4 | 16 | 2 | 3 | 1 |
 | dnsdist 2.1.0 | 10 | 1 | 4 | 1 |

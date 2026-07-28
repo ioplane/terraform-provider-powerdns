@@ -1,15 +1,16 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=AGENTS.md&subtitle=Read+this+before+touching+code&logo=github&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="AGENTS.md" src="https://shieldcn.dev/header/graph.svg?title=AGENTS.md&subtitle=Read+this+before+touching+code&logo=github&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
 [![status binding](https://shieldcn.dev/badge/status-binding-cf222e.svg?variant=secondary)](#golden-rules)
-[![audience human_+_agent](https://shieldcn.dev/badge/audience-human_+_agent-0969da.svg?variant=secondary)](#)
+![audience human_+_agent](https://shieldcn.dev/badge/audience-human_+_agent-0969da.svg?variant=secondary)
 [![standards 11](https://shieldcn.dev/badge/standards-11-3fb950.svg?variant=secondary)](docs/README.md)
 [![gates 11](https://shieldcn.dev/badge/gates-11-3fb950.svg?variant=secondary)](#quality-gates)
 
@@ -27,7 +28,7 @@ A Terraform provider for the **PowerDNS family**, written from scratch on
 `terraform-plugin-framework` (protocol 6):
 
 | Product | Version targeted | API operations | Provider surface |
-|---|---|---:|---|
+| --- | --- | ---: | --- |
 | Authoritative Server | 5.1.3 | 42 | 9 resources, 9 data sources, 4 actions |
 | Recursor | 5.4.4 | 16 | 2 resources, 3 data sources, 1 action |
 | dnsdist | 2.1.0 | 10 | 1 resource, 4 data sources, 1 action |
@@ -82,7 +83,7 @@ This is not a fork. Prior analysis of the ecosystem lives in the sibling
 Normative. Read the standard before changing the thing it governs.
 
 | Area | Document |
-|---|---|
+| --- | --- |
 | Naming — files, branches, resources, attributes | [`docs/standards/naming-conventions.md`](docs/standards/naming-conventions.md) |
 | Versioning — SemVer 2.0.0 | [`docs/standards/versioning.md`](docs/standards/versioning.md) |
 | Commits — Conventional Commits 1.0.0 | [`docs/standards/commits.md`](docs/standards/commits.md) |
@@ -145,7 +146,7 @@ Four rules, each earned from a defect observed in an existing provider:
 Unprefixed means **Authoritative**. This is a rule, not an accident:
 
 | Product | Prefix | Example |
-|---|---|---|
+| --- | --- | --- |
 | Authoritative | none | `powerdns_zone`, `powerdns_tsigkey` |
 | Recursor | `recursor_` | `powerdns_recursor_zone` |
 | dnsdist | `dnsdist_` | `powerdns_dnsdist_acl` |
@@ -157,7 +158,7 @@ convenience.
 ## Tooling you must use
 
 | Tool | Why |
-|---|---|
+| --- | --- |
 | **`gopls` LSP** | Navigate, rename, find references, read diagnostics — instead of grepping. |
 | **`uv` / `ruff` / `ty`** | The Python gate for everything under `scripts/`. `task py`. |
 | **`context7` MCP** | Current library documentation before writing code against it. Never training-data recall for a signature. |
@@ -169,7 +170,7 @@ convenience.
 Five services. The count is the design, not thoroughness:
 
 | Endpoint | What | Why it exists |
-|---|---|---|
+| --- | --- | --- |
 | `:18081` | Authoritative on PostgreSQL 17 | the common deployment |
 | `:18091` | Authoritative on LMDB | **views and networks are unimplemented by gpgsql** — without this they are untestable |
 | `:18082` | Recursor with `api_dir` set | without it every recursor write returns 422 |
@@ -203,7 +204,7 @@ worktree and merges by pull request.
 Two, with a deliberate split:
 
 | System | File | Owns |
-|---|---|---|
+| --- | --- | --- |
 | **GitLab CI** | `.gitlab-ci.yml` | The quality gate: build, unit, contract, acceptance matrix, lint, security, docs |
 | **GitHub Actions** | `.github/workflows/release.yml` | Release only — goreleaser, GPG signing, Terraform Registry publication |
 
@@ -214,7 +215,7 @@ overlap, so they cannot drift into disagreement.
 ## Quality gates
 
 | Gate | Command |
-|---|---|
+| --- | --- |
 | Build | `task build` |
 | Unit + race | `task test` |
 | Contract (recorded fixtures) | `task test:contract` |

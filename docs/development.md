@@ -26,7 +26,7 @@ task lab:down     # remove, including volumes
 ```
 
 | Service | Endpoint | Why it exists |
-|---|---|---|
+| --- | --- | --- |
 | `pdns-lab-auth-pg` | `:18081` | Authoritative on PostgreSQL — the common deployment |
 | `pdns-lab-auth-lmdb` | `:18091` | Authoritative on LMDB — the **only** backend implementing views and networks |
 | `pdns-lab-rec` | `:18082` | Recursor with `api_dir` — without it every write returns 422 |

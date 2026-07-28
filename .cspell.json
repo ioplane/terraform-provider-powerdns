@@ -1,7 +1,11 @@
 {
   "version": "0.2",
-  "language": "en",
-  "ignorePaths": ["bin/**", "dist/**", ".cache/**", "go.sum", "test/lab/schema.pgsql.sql"],
+  // British English throughout — "behaviour", "licence", "synthesised".
+  "language": "en,en-GB",
+  "ignorePaths": [
+    "bin/**", "dist/**", ".cache/**", ".venv/**", "node_modules/**",
+    "go.sum", "test/lab/schema.pgsql.sql"
+  ],
   "words": [
     "autoprimaries", "autoprimary", "autosecondary", "axfr", "cryptokey",
     "cryptokeys", "dnsdist", "dnskey", "dnssec", "dnsutils", "gopls", "gpgsql",
@@ -10,7 +14,30 @@
     "rpzstatistics", "semgrep", "skopeo", "supermasters", "terragrunt",
     "tfplugindocs", "tflog", "tofu", "trixie", "tsig", "tsigkey", "tsigkeys",
     "vulncheck", "buildvcs", "gotestsum", "goreleaser", "gofumpt", "podman",
-    "buildah", "ioplane", "nameservers", "recursor", "webserver"
+    "buildah", "ioplane", "nameservers", "recursor", "webserver",
+
+    // Go identifiers, standard library and terraform-plugin-framework.
+    "Errorf", "Println", "Godoc", "Docstrings", "gofmt", "goimports", "iface",
+    "netip", "stdlib", "tfsdk", "providerserver", "knownvalue", "plancheck",
+    "statecheck", "cerr", "verr", "upgrader", "changetype", "codegen",
+    "diffable", "unparseable", "formedness", "misindented", "webservice",
+
+    // golangci-lint linter names.
+    "golangci", "gosec", "gocritic", "bodyclose", "containedctx", "depguard",
+    "errorlint", "forbidigo", "interfacebloat", "nakedret", "nolint",
+    "paralleltest", "recvcheck",
+
+    // Tooling and configuration file names.
+    "Containerfile", "Taskfile", "taskfile", "commitlintrc", "pyproject",
+    "pathlib", "isort", "pyupgrade", "govulncheck", "shieldcn", "venv",
+    "worktree", "getkin", "gorillamux",
+
+    // This repository's own test identifiers and container names.
+    "testutil", "testacc", "testkey", "labapikey", "capprobe", "fixtureview",
+    "ddist", "dnsdistdist", "recursordist", "pgsql",
+
+    // Methodology.
+    "Scrumban"
   ],
   "ignoreRegExpList": ["/[a-f0-9]{7,64}/", "/https?:\\/\\/\\S+/"]
 }

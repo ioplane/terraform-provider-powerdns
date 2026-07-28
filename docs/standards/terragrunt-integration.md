@@ -1,16 +1,17 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Terragrunt&subtitle=How+consumers+orchestrate+this+provider&logo=terraform&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="Terragrunt" src="https://shieldcn.dev/header/graph.svg?title=Terragrunt&subtitle=How+consumers+orchestrate+this+provider&logo=terraform&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
 [![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
-[![terragrunt 1.1.1](https://shieldcn.dev/badge/terragrunt-1.1.1-0969da.svg?variant=secondary)](#)
-[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+![terragrunt 1.1.1](https://shieldcn.dev/badge/terragrunt-1.1.1-0969da.svg?variant=secondary)
+![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)
 
 </div>
 
@@ -101,7 +102,7 @@ hand. Keep `mock_outputs` so `plan` works against a not-yet-applied dependency.
 The dependency edges worth declaring for DNS:
 
 | Downstream unit | Depends on | Because |
-|---|---|---|
+| --- | --- | --- |
 | zone records | the zone | the zone must exist before an RRset is patched into it |
 | secondary zone | TSIG keys | `slave_tsig_key_ids` references a key by id |
 | signed zone | cryptokeys | publishing before the key exists yields an unsigned interval |

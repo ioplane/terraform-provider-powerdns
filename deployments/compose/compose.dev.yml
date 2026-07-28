@@ -1,0 +1,58 @@
+# compose.dev.yml — development container, Compose Specification.
+# https://github.com/compose-spec/compose-spec/blob/main/spec.md
+#
+# One service. Every `task` target except the lab ones runs inside it, so the
+# toolchain a contributor uses is the toolchain CI uses — the version pins live
+# in Containerfile.dev and nowhere else.
+#
+# The lab is a separate Compose project on purpose (ADR 0005): it is started
+# and stopped independently of the tools that talk to it.
+
+name: terraform-provider-powerdns-dev
+
+services:
+  dev:
+    container_name: terraform-provider-powerdns-dev
+    build:
+      context: ../..
+      dockerfile: deployments/containers/Containerfile.dev
+    image: terraform-provider-powerdns-dev:local
+
+    # Host networking, so that PDNS_SERVER_URL means the same thing inside the
+    # container and out. The lab publishes on 127.0.0.1:1808x; joining the lab
+    # network instead would make the in-container address 8081 and the host
+    # address 18081, and every endpoint would need two spellings.
+    network_mode: host
+
+    working_dir: /app
+    volumes:
+      # Short form with :z — the long syntax cannot request SELinux
+      # relabelling, and without it the container cannot read the tree.
+      - ../..:/app:z
+      # Named volumes for the caches, so a rebuild does not re-download the
+      # module graph and the host tree stays free of root-owned artefacts.
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/tmp/go-cache
+
+    environment:
+      GOFLAGS: -buildvcs=false
+      # The uv cache and the bind-mounted tree are on different filesystems, so
+      # hardlinking cannot work; say so rather than warn on every run.
+      UV_LINK_MODE: copy
+      CGO_ENABLED: '1'
+      # The lab endpoints, repeated from the Taskfile so `task shell` lands in
+      # an environment where the acceptance tests can simply be run.
+      PDNS_SERVER_URL: http://127.0.0.1:18081
+      PDNS_SERVER_URL_LMDB: http://127.0.0.1:18091
+      PDNS_RECURSOR_SERVER_URL: http://127.0.0.1:18082
+      PDNS_DNSDIST_SERVER_URL: http://127.0.0.1:18083
+      PDNS_API_KEY: labapikey
+
+    # The container is a toolbox, not a service: it holds itself open and the
+    # work arrives over `exec`.
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+
+volumes:
+  go-mod-cache:
+  go-build-cache:

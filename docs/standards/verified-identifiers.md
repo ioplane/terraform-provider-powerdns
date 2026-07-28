@@ -1,16 +1,17 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Verified+identifiers&subtitle=Never+write+a+hash+from+memory&logo=keycdn&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="Verified identifiers" src="https://shieldcn.dev/header/graph.svg?title=Verified+identifiers&subtitle=Never+write+a+hash+from+memory&logo=keycdn&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
 [![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
-[![enforced check-pins.sh](https://shieldcn.dev/badge/enforced-check--pins.sh-0969da.svg?variant=secondary)](#)
-[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+![enforced check-pins.sh](https://shieldcn.dev/badge/enforced-check--pins.sh-0969da.svg?variant=secondary)
+![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)
 
 </div>
 
@@ -31,7 +32,7 @@ Anything where a plausible-looking wrong value is indistinguishable from the
 right one by inspection:
 
 | Kind | Example | Where it comes from |
-|---|---|---|
+| --- | --- | --- |
 | Git commit SHA | `01a4adf9db2d…` | `gh api repos/<r>/git/ref/tags/<tag> --jq .object.sha` |
 | Release tag | `v3.52.0` | `gh api repos/<r>/releases/latest --jq .tag_name` |
 | Module version | `v1.19.0` | `curl -s https://proxy.golang.org/<mod>/@latest \| jq -r .Version` |
@@ -58,7 +59,7 @@ state in which this goes wrong.
 ## 3. Enforcement
 
 | Identifier | Gate |
-|---|---|
+| --- | --- |
 | Action pins in workflows | `scripts/check-action-pins.sh` — pre-commit hook, `task lint:pins`, and a CI job |
 | Go module versions | `go.sum`, and `go mod tidy` in the gate |
 | Container images | pinned tags in `Containerfile.dev`, mirrored into `compose.dev.yml`; `task lab:verify` asserts the running versions |

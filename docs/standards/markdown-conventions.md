@@ -1,10 +1,11 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Markdown+conventions&subtitle=Structure%2C+badges%2C+diagrams&logo=markdown&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="Markdown conventions" src="https://shieldcn.dev/header/graph.svg?title=Markdown+conventions&subtitle=Structure%2C+badges%2C+diagrams&logo=markdown&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
@@ -46,7 +47,7 @@ The template fixes the **classification problem**, not the prose. It answers
 four questions above the fold:
 
 | Question | Answered by |
-|---|---|
+| --- | --- |
 | What kind of document is this? | the header banner and the status badge row |
 | Is it binding? | the callout under the title |
 | Is it current? | the status badge, and `last-commit` where relevant |
@@ -102,9 +103,29 @@ flowchart TD
 …
 ````
 
-`MD033` and `MD041` are disabled per file because the header is inline HTML and
-precedes the H1. That is the only permitted disable, and it goes at the top of
-the file rather than scattered through it.
+`MD033` and `MD041` are off repo-wide in `.markdownlint-cli2.yaml`, because
+every document opens with an inline-HTML header that precedes the H1.
+
+`MD013` is the one per-file disable, and it is **scoped to the header block**
+rather than to the file:
+
+````markdown
+<!-- markdownlint-disable MD013 -->
+<p align="center">
+  …
+</p>
+<!-- markdownlint-enable MD013 -->
+````
+
+The two `<source>` and `<img>` lines carry long URLs that cannot be wrapped.
+Disabling the rule for the whole file would silently exempt the prose, which is
+the part the 100-column limit exists for.
+
+### Tables
+
+Delimiter rows are spaced — `| --- | --- |`, not `|---|---|` — because `MD060`
+infers the table's style from its content rows and a compact delimiter row
+against spaced content is an inconsistency it reports on every cell.
 
 ---
 
@@ -133,9 +154,12 @@ keeps a documentation set visually coherent.
 5. **`variant=secondary` by default**, `branded` for at most one accent badge.
    Single-surface — do not use `split=true`, which produces the two-tone
    shields.io look this project does not use.
-6. **Clickable, in markdown syntax.** `[![alt](badge)](target)`. A licence
-   badge links to `LICENSE`, a version badge to that version's release notes,
-   a convention badge to the specification.
+6. **A badge with a destination is a link; a badge without one is an image.**
+   Use `[![alt](badge)](target)` where a target exists — a licence badge to
+   `LICENSE`, a version badge to that version's release notes, a convention
+   badge to the specification. Where none does, write `![alt](badge)` and stop.
+   **Never `](#)`**: it renders as clickable, leads nowhere, and jumps the
+   reader to the top of the page. `MD042` rejects it.
 7. **Colour carries meaning**: `00ADD8` Go, `7B42BC` Terraform, `FE5196`
    Conventional Commits, `3fb950` a satisfied convention, `cf222e` binding,
    `0969da` structural.
@@ -147,7 +171,7 @@ so GitHub renders the links rather than the raw HTML.
 ### The rows this repository uses
 
 | Document type | Rows |
-|---|---|
+| --- | --- |
 | `README.md` | state (dynamic) · stack · conventions |
 | `AGENTS.md` | binding · audience · standards · gates |
 | Standards | scope · what it governs · how it is enforced |
@@ -220,7 +244,7 @@ flowchart LR
 ## Extended markup
 
 | Device | Use |
-|---|---|
+| --- | --- |
 | **Tables** | Any comparison of three or more things. Prefer a table to a prose list. |
 | **Blockquote callouts** | The classification line under the title, and warnings that change what a reader should do. |
 | **Collapsible `<details>`** | Long output, full command transcripts, superseded text kept for the record. |
@@ -237,7 +261,7 @@ to those and nothing else.
 ## Per-document-type requirements
 
 | Type | Header | Badges | Mermaid | Contents |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `README.md` | required | required | required — the surface or architecture | required |
 | `AGENTS.md` | required | required | required — the architecture | required |
 | Standards | required | required | where a relationship is non-linear | over 80 lines |
@@ -254,7 +278,7 @@ decoration.
 ## What is enforced
 
 | Rule | Enforced by |
-|---|---|
+| --- | --- |
 | Heading structure, list style, line length | `markdownlint-cli2` against `.markdownlint-cli2.yaml` |
 | Spelling and accepted abbreviations | `cspell` against `.cspell.json` |
 | Front-matter and code-fence languages | `markdownlint-cli2` |

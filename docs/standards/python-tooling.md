@@ -1,16 +1,17 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Python+tooling&subtitle=uv%2C+ruff%2C+ty&logo=python&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="Python tooling" src="https://shieldcn.dev/header/graph.svg?title=Python+tooling&subtitle=uv%2C+ruff%2C+ty&logo=python&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
 [![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
-[![ruff 0.16.0](https://shieldcn.dev/badge/ruff-0.16.0-0969da.svg?variant=secondary)](#)
-[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+![ruff 0.16.0](https://shieldcn.dev/badge/ruff-0.16.0-0969da.svg?variant=secondary)
+![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)
 
 </div>
 
@@ -27,7 +28,7 @@ flags.
 ## The toolchain
 
 | Tool | Version | Role |
-|---|---|---|
+| --- | --- | --- |
 | [`uv`](https://docs.astral.sh/uv/) | 0.11.33 | Environment and tool installation. Not `pip`, not `venv` by hand. |
 | [`ruff`](https://docs.astral.sh/ruff/) | 0.16.0 | Linter **and** formatter. Replaces flake8, isort, black, pyupgrade, bandit. |
 | [`ty`](https://docs.astral.sh/ty/) | 0.0.64 | Type checker. |
@@ -59,7 +60,7 @@ which is the same argument that makes `.golangci.yml` an allowlist.
 Four suppressions, each with a reason:
 
 | Rule | Why suppressed |
-|---|---|
+| --- | --- |
 | `T201` (`print` found) | The scripts are operator-facing command-line tools; stdout is their output, not a debugging leftover. |
 | `D203`, `D213` | Mutually exclusive with the Google docstring convention selected below. |
 | `ISC001` | Conflicts with the formatter. |
@@ -85,7 +86,7 @@ decision would be an ADR, not a quiet edit.
 ## Conventions
 
 | Area | Rule |
-|---|---|
+| --- | --- |
 | Python version | 3.12 minimum (`requires-python = ">=3.12"`). |
 | Annotations | Every function annotated, parameters and return. Enforced by `ANN`. |
 | Docstrings | Google convention, every public function. Enforced by `D`. |

@@ -1,16 +1,17 @@
-<!-- markdownlint-disable MD033 MD041 -->
+<!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Go+1.26+style&subtitle=Patterns%2C+antipatterns%2C+tooling&logo=go&mode=dark&align=left&font=geist-mono&border=false" />
     <img alt="Go 1.26 style" src="https://shieldcn.dev/header/graph.svg?title=Go+1.26+style&subtitle=Patterns%2C+antipatterns%2C+tooling&logo=go&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
+<!-- markdownlint-enable MD013 -->
 
 <div align="center">
 
 [![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
-[![go 1.26.5](https://shieldcn.dev/badge/go-1.26.5-0969da.svg?variant=secondary)](#)
-[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+![go 1.26.5](https://shieldcn.dev/badge/go-1.26.5-0969da.svg?variant=secondary)
+![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)
 
 </div>
 
@@ -26,7 +27,7 @@ Before writing Go, consult the current API through the `gopls` LSP and the
 ## 1. Language and stdlib features adopted
 
 | Feature (Go 1.26) | Pattern here | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | `new(expr)` accepting an expression | `new("Native")` for `*string` schema defaults | Drops the `v := …; &v` ceremony. Flagged by `modernize`. |
 | `errors.AsType[T]()` | `if e, ok := errors.AsType[*APIError](err); ok {…}` | Type-safe matching on the PowerDNS error type without an out-parameter. |
 | `reflect.Type.Fields()` / `.Methods()` iterators | schema and codegen tooling only | Never in CRUD hot paths. |
@@ -41,7 +42,7 @@ API-payload fields are pointer-typed everywhere.
 ## 2. Provider-specific conventions
 
 | Area | Rule |
-|---|---|
+| --- | --- |
 | Logging | `github.com/hashicorp/terraform-plugin-log/tflog` only. `depguard` denies `^log$`; `forbidigo` denies `fmt.Print*` outside `main.go` and `scripts/`. |
 | Errors surfaced to Terraform | `resp.Diagnostics.AddError` / `AddAttributeError`. Never `panic`, never a bare returned string. |
 | Internal errors | Package-level sentinels `var ErrXxx = errors.New("…")`; wrap with `fmt.Errorf("…: %w", err)` (`err113`, `errorlint`). |
@@ -56,7 +57,7 @@ API-payload fields are pointer-typed everywhere.
 ## 3. Antipatterns banned
 
 | Antipattern | Replacement | Enforced by |
-|---|---|---|
+| --- | --- | --- |
 | `v := "x"; p := &v` | `p := new("x")` | `modernize` |
 | `var e *E; errors.As(err, &e)` | `errors.AsType[*E](err)` | review |
 | `json.NewDecoder(resp.Body).Decode(&v)` without checking `resp.StatusCode` | check status, then decode | review; this is D-08 |
@@ -77,7 +78,7 @@ issue. They are listed because they are the mistakes this domain invites.
 ## 4. Mandatory standards
 
 | Area | Standard |
-|---|---|
+| --- | --- |
 | Module path | `github.com/ioplane/terraform-provider-powerdns`. |
 | Go directive | `go 1.26.5`. |
 | Layout | `internal/provider`, `internal/resources/<area>`, `internal/client/pdns`. Framework resources are unexported under `internal/`. |
@@ -92,7 +93,7 @@ issue. They are listed because they are the mistakes this domain invites.
 ## 5. Tooling
 
 | Tool | Version | Use |
-|---|---|---|
+| --- | --- | --- |
 | `go` | 1.26.5 | language and build |
 | `gofmt` / `gofumpt` / `goimports` | bundled | format gate |
 | `golangci-lint` | v2.12.2 | aggregate linter, allowlist mode |
