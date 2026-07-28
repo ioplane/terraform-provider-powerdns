@@ -25,13 +25,29 @@ if [ ${#urls[@]} -eq 0 ]; then
 else
   for url in "${urls[@]}"; do
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$url" || echo 000)
-    if [ "$code" = "200" ]; then
-      printf 'ok    %s\n' "${url#https://shieldcn.dev}"
-      badges_ok+=1
-    else
+    if [ "$code" != "200" ]; then
       printf 'FAIL  %s  (HTTP %s)\n' "${url#https://shieldcn.dev}" "$code" >&2
       badges_bad+=1
+      continue
     fi
+
+    # A 200 is not enough. shieldcn renders an error card rather than failing,
+    # so github/ci for a repository with no GitHub Actions CI answers 200 and
+    # displays "not found". Ask the .json for the resolved value.
+    case "$url" in
+      *shieldcn.dev/github/*)
+        json_url="${url%%\?*}"
+        json_url="${json_url%.svg}.json"
+        if curl -s --max-time 15 "$json_url" | grep -q '"error"'; then
+          printf 'FAIL  %s  (endpoint resolves to an error)\n' "${url#https://shieldcn.dev}" >&2
+          badges_bad+=1
+          continue
+        fi
+        ;;
+    esac
+
+    printf 'ok    %s\n' "${url#https://shieldcn.dev}"
+    badges_ok+=1
   done
 fi
 

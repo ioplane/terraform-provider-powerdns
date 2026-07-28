@@ -6,12 +6,14 @@
   </picture>
 </p>
 
-<p align="center">
-  <img alt="scope: every .md" src="https://shieldcn.dev/badge/scope-every_.md.svg?variant=branded&size=xs" />
-  <img alt="badges: shieldcn" src="https://shieldcn.dev/badge/badges-shieldcn.svg?variant=branded&size=xs" />
-  <img alt="diagrams: mermaid" src="https://shieldcn.dev/badge/diagrams-mermaid.svg?variant=branded&size=xs" />
-  <img alt="lint: markdownlint-cli2" src="https://shieldcn.dev/badge/lint-markdownlint--cli2.svg?variant=branded&size=xs" />
-</p>
+<div align="center">
+
+[![scope every_.md](https://shieldcn.dev/badge/scope-every_.md-0969da.svg?variant=secondary&size=lg)](#per-document-type-requirements)
+[![badges shieldcn](https://shieldcn.dev/badge/badges-shieldcn-000000.svg?variant=secondary&size=lg)](https://shieldcn.dev)
+[![diagrams mermaid](https://shieldcn.dev/badge/diagrams-mermaid-FF3670.svg?variant=secondary&size=lg&logo=mermaid&logoColor=white)](#diagrams)
+[![enforced check-badges](https://shieldcn.dev/badge/enforced-check--badges-3fb950.svg?variant=secondary&size=lg)](#what-is-enforced)
+
+</div>
 
 # Markdown conventions
 
@@ -83,9 +85,12 @@ flowchart TD
   </picture>
 </p>
 
-<p align="center">
-  <img alt="…" src="https://shieldcn.dev/badge/….svg?variant=branded&size=xs" />
-</p>
+<div align="center">
+
+[![alt](https://shieldcn.dev/github/license/OWNER/REPO.svg?variant=secondary&size=lg)](LICENSE)
+[![alt](https://shieldcn.dev/badge/LABEL-VALUE-HEX.svg?variant=secondary&size=lg)](TARGET)
+
+</div>
 
 # Title
 
@@ -111,37 +116,57 @@ keeps a documentation set visually coherent.
 
 ### Rules
 
-1. **Three to six.** More is decoration and stops being read.
-2. **High signal only.** A badge earns its place by answering a question a
-   reader actually has.
-3. **Adaptive.** Use `<picture>` with `mode=dark` and `mode=light` sources
-   wherever the badge is not already neutral.
-4. **Clickable when it represents a page.** Wrap in `<a>`; a licence badge
-   links to `LICENSE`, a CI badge to the pipeline.
-5. **No placeholders.** A badge pointing at a repository that does not exist is
-   worse than no badge.
-6. **SVG, not PNG.** PNG only where the host blocks SVG.
+1. **Prefer a dynamic endpoint to a static label.** `github/license` reads the
+   real licence; `badge/license-Apache--2.0` is a claim that rots. A static
+   badge is for a fact with no endpoint behind it — a language version, a
+   convention adopted.
+2. **Never ship a badge whose endpoint errors.** `github/ci` returns
+   `{"error":"not found"}` for this repository, because the quality pipeline is
+   GitLab and GitHub holds only the release workflow. A broken image on the
+   front page is worse than an absent one. Check with `.json` before adding.
+3. **Three to six per row, at most three rows.** Group them by meaning —
+   repository state, stack, conventions — and separate rows with `<br>`.
+4. **`size=lg`.** The default is `sm`, which is too small to read beside a
+   heading. `xs` is for nothing in this repository.
+5. **`variant=secondary` by default**, `branded` for at most one accent badge.
+   Single-surface — do not use `split=true`, which produces the two-tone
+   shields.io look this project does not use.
+6. **Clickable, in markdown syntax.** `[![alt](badge)](target)`. A licence
+   badge links to `LICENSE`, a version badge to that version's release notes,
+   a convention badge to the specification.
+7. **Colour carries meaning**: `00ADD8` Go, `7B42BC` Terraform, `FE5196`
+   Conventional Commits, `3fb950` a satisfied convention, `cf222e` binding,
+   `0969da` structural.
+8. **SVG, not PNG.** PNG only where the host blocks SVG.
+
+Wrap the rows in `<div align="center">` with blank lines around the markdown,
+so GitHub renders the links rather than the raw HTML.
 
 ### The rows this repository uses
 
-| Document type | Row |
+| Document type | Rows |
 |---|---|
-| `README.md` | status · licence · Terraform version · Go version · last commit |
-| Standards | scope · what it governs · enforcement |
-| ADRs | status (`accepted`/`superseded`) · date · deciders |
-| `plan.md` | current phase · tasks done · gate state |
+| `README.md` | state (dynamic) · stack · conventions |
+| `AGENTS.md` | binding · audience · standards · gates |
+| Standards | scope · what it governs · how it is enforced |
+| ADRs | status · date · deciders |
+| `plan.md` | current phase · phase 0 state · tasks done · last commit |
 
 ### Endpoints in use
 
 ```text
-https://shieldcn.dev/github/license/{owner}/{repo}.svg
-https://shieldcn.dev/github/last-commit/{owner}/{repo}.svg
-https://shieldcn.dev/github/ci/{owner}/{repo}.svg?workflow=…&branch=main
-https://shieldcn.dev/badge/{label}-{message}.svg?variant=branded&size=xs&logo=…
+https://shieldcn.dev/github/{topic}/{owner}/{repo}.svg?variant=secondary&size=lg
+https://shieldcn.dev/badge/{label}-{value}-{hex}.svg?variant=secondary&size=lg&logo=…
 https://shieldcn.dev/header/graph.svg?title=…&subtitle=…&mode=…
 ```
 
-Underscores become spaces in a static badge; a literal hyphen is `--`.
+Verified dynamic topics for this repository: `license`, `last-commit`,
+`contributors`, `issues`, `open-prs`, `stars`, `release`. `ci` is **not**
+available here — see rule 2.
+
+Append `.json` to any badge URL to see the value it will render. That is how
+rule 2 is checked, and `scripts/check-badges.sh` does it for every badge in the
+tree.
 
 ---
 

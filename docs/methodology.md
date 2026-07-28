@@ -6,12 +6,14 @@
   </picture>
 </p>
 
-<p align="center">
-  <img alt="method" src="https://shieldcn.dev/badge/method-gated_iterative.svg?variant=branded&size=xs" />
-  <img alt="phases" src="https://shieldcn.dev/badge/phases-8.svg?variant=branded&size=xs" />
-  <img alt="roles" src="https://shieldcn.dev/badge/roles-5.svg?variant=branded&size=xs" />
-  <img alt="sprint" src="https://shieldcn.dev/badge/sprint-2_weeks.svg?variant=branded&size=xs" />
-</p>
+<div align="center">
+
+[![method gated_iterative](https://shieldcn.dev/badge/method-gated_iterative-0969da.svg?variant=secondary&size=lg)](#the-choice-gated-iterative-delivery)
+[![phases 8](https://shieldcn.dev/badge/phases-8-3fb950.svg?variant=secondary&size=lg)](#macro-phases)
+[![roles 5](https://shieldcn.dev/badge/roles-5-3fb950.svg?variant=secondary&size=lg)](#roles)
+[![sprint 2_weeks](https://shieldcn.dev/badge/sprint-2_weeks-3fb950.svg?variant=secondary&size=lg)](#iteration-mechanics)
+
+</div>
 
 # Development methodology
 
