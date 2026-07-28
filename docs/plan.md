@@ -11,7 +11,7 @@
 
 ![phase 7_of_8](https://shieldcn.dev/badge/phase-7_of_8-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 67](https://shieldcn.dev/badge/tasks_done-67-3fb950.svg?variant=secondary)
+![tasks_done 62](https://shieldcn.dev/badge/tasks_done-62-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -634,7 +634,7 @@ three keys in the zone and did not generalise.
 
 ---
 
-## Phase 5 — Family surface · `[~]` in progress
+## Phase 5 — Family surface · `[~]` all resources landed; S5-05 deferred to S7-00
 
 | ID | Task | Role | Depends | Status |
 | --- | --- | --- | --- | --- |
@@ -823,6 +823,7 @@ says nothing about the cause.
 
 | ID | Task | Role | Status |
 | --- | --- | --- | --- |
+| S7-00 | Data sources for recursor and dnsdist — deferred from S5-05 | DEV | `[ ]` |
 | S7-01 | Examples for every resource, action and function | DEV | `[ ]` |
 | S7-02 | Registry documentation generated and validated | DEV | `[ ]` |
 | S7-03 | Version matrix: acceptance against auth 5.0.x as well as 5.1.3 | QA | `[ ]` |
@@ -830,6 +831,54 @@ says nothing about the cause.
 | S7-05 | Terraform Registry submission | PM | `[ ]` |
 
 ---
+
+## Audit, 2026-07-29
+
+A full re-check of the project against itself before phase 7: contract against
+code, plan against its own tables, changelog against the surface, and the whole
+tree through semgrep, the gate and the acceptance suite.
+
+### What was verified mechanically
+
+| Check | Result |
+| --- | --- |
+| Resource, data source, ephemeral, action and function type names | 27 in code, 27 in the contract, no difference either way |
+| Identity schemas versus the contract's table | 9 resources, attributes identical |
+| `ResourceWithIdentity` assertions versus `IdentitySchema` methods | the same 9, no resource declaring one without the other |
+| `RequiresReplace` versus the contract's "replacement forced by" | matched for all 11 resources |
+| Provider arguments and their environment variables | 12 and 12, matched |
+| Changelog against every registered type | all present |
+| `semgrep` — 1369 rules including OWASP Top Ten | 1 finding, addressed below |
+| `task all` | green |
+| `task testacc` | 129 assertions, 0 failures, 2 skips with recorded reasons |
+
+### What it found
+
+**The task counter had drifted.** The badge read 67 against 62 tasks actually
+marked `[x]`. It was hand-incremented each sprint, which is exactly the sort of
+number that rots; it is now derived from the tables.
+
+**A deferred task had gone missing.** S5-05 was deferred "to phase 7" and never
+added there, so it existed only as a note on a row nobody would look at again.
+It is now S7-00.
+
+**Phase 5 is `[~]`, and I described it as closed.** The plan was right and the
+sentence was wrong. The heading now names the reason rather than leaving a
+reader to find the one incomplete row.
+
+**semgrep: no dependency cooldown for `uv`.** Real, and knowingly not applied —
+`exclude-newer` makes this project's exact pins unsatisfiable, because
+`ruff==0.16.0` was published inside the window and resolution fails rather than
+falling back. The reasoning sits beside the setting in `pyproject.toml`.
+
+### What it did not find
+
+No divergence between the contract and the code. That is the check worth
+repeating before every release, because the contract is the thing a user's
+state file is written against — and it is also the check most likely to pass
+for the wrong reason, since both sides were written by the same hand on the
+same day. The mechanical comparison above is what makes it more than an
+opinion.
 
 ## Risk register
 

@@ -93,7 +93,7 @@ come.
 | `powerdns_tsigkey` | One TSIG key | `name`, `algorithm` — see below |
 | `powerdns_view_zone` | A zone's membership of a view (LMDB only) | `view`, `zone` |
 | `powerdns_network` | A subnet-to-view mapping (LMDB only) | `network` |
-| `powerdns_autoprimary` | An autoprimary entry | every attribute |
+| `powerdns_autoprimary` | An autoprimary entry | `ip`, `nameserver`, `account` — every settable attribute |
 | `powerdns_recursor_zone` | A Recursor zone | `name` |
 | `powerdns_recursor_acl` | One of two Recursor netmask settings | — |
 | `powerdns_dnsdist_acl` | dnsdist's `allow-from` | — |

@@ -29,6 +29,24 @@ dev = [
 # without trying to build one.
 package = false
 
+# No exclude-newer, deliberately.
+#
+# semgrep's uv-missing-dependency-cooldown rule wants a cooldown so a release
+# published minutes ago cannot be resolved. The reasoning is sound and the
+# setting is incompatible with this project: every tool here is pinned to its
+# current release, and a seven-day cooldown makes those pins unsatisfiable —
+# `ruff==0.16.0` was published inside the window, and resolution fails outright
+# rather than falling back.
+#
+# What replaces it: exact version pins rather than ranges, `uv.lock` with
+# hashes committed, and a container image whose base is pinned by digest. Those
+# make the resolution reproducible. They do not protect against a release that
+# was compromised before it was pinned here, which is the gap the rule names
+# and this project accepts.
+#
+# Revisit if the pins ever loosen to ranges, where a cooldown would cost
+# nothing.
+
 # --- ruff -------------------------------------------------------------------
 # https://docs.astral.sh/ruff/
 [tool.ruff]
