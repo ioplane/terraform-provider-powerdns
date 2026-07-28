@@ -11,7 +11,7 @@
 
 ![phase 3_of_8](https://shieldcn.dev/badge/phase-3_of_8-0969da.svg?variant=secondary)
 ![phases_closed 3](https://shieldcn.dev/badge/phases_closed-3-3fb950.svg?variant=secondary)
-![tasks_done 41](https://shieldcn.dev/badge/tasks_done-41-3fb950.svg?variant=secondary)
+![tasks_done 42](https://shieldcn.dev/badge/tasks_done-42-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -23,8 +23,8 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 3 — `powerdns_zone` and the plan modifiers landed;
-`powerdns_record` next
+**Status:** phase 3 — `powerdns_zone` and `powerdns_record` landed;
+`powerdns_zone_metadata` and the data sources next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -407,7 +407,7 @@ a count declared as an int fails to decode a successful flush.
 | --- | --- | --- | --- | --- |
 | S3-01 | ARC: zone and record schemas, identity, signed | ARC | S2-06 | `[x]` |
 | S3-02 | `powerdns_zone` | DEV | S3-01 | `[x]` |
-| S3-03 | `powerdns_record` | DEV | S3-02 | `[ ]` |
+| S3-03 | `powerdns_record` — one RRSet, not one record | DEV | S3-02 | `[x]` |
 | S3-04 | `powerdns_zone_metadata` | DEV | S3-02 | `[ ]` |
 | S3-05 | Data sources: zone, zones, record, zone_metadata, zone_export | DEV | S3-03 | `[ ]` |
 | S3-06 | Semantic-normalisation plan modifiers: case, IPv6, server defaults | DEV | S3-02 | `[x]` |
@@ -424,6 +424,29 @@ and a modifier that suppresses too much hides a real change, which is worse
 than a spurious diff because no plan ever shows it. So every case has its
 `differ` twin: a substituted master, a different port, a duplicate that must
 not satisfy two slots.
+
+### `powerdns_record` is an RRSet, and that is not a design preference
+
+PowerDNS has no per-record identity. The addressable unit is the RRSet — every
+record sharing an owner name and a type — and a PATCH replaces it wholesale.
+There is no way to add one A record to a name without sending every A record
+that name should end up with.
+
+A resource modelling a single record would therefore have to read the set,
+splice itself in, and write it back on every change. Two such resources on the
+same name would race: each reads a set without the other's record, and
+whichever applies second deletes the first. That failure is silent, survives a
+plan, and surfaces as a record that vanished.
+
+Modelling the set makes ownership explicit, and Terraform's own graph then
+prevents two resources from claiming the same name-and-type pair.
+
+The content comparison could not go in `planmodify`, because it depends on a
+sibling attribute: an `A` value is an address and compares numerically, a `TXT`
+value is a string whose quoting is significant and compares exactly. The
+modifier reads `type` from the plan to choose. Three more normalisations were
+measured for it — the owner name is lowercased, `AAAA` content is compressed,
+and `disabled` survives a round trip.
 
 ### Two framework contracts the acceptance tests found
 

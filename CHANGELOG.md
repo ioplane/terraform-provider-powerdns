@@ -92,6 +92,12 @@ The mapping between commit type, changelog section and version bump is in
   a diagnostic naming the missing argument when a product is unconfigured. It
   had carried a `TODO(phase-1)` in `Configure` since phase 0.
 
+- `powerdns_record` — an RRSet rather than a single record, because PowerDNS
+  has no per-record identity and two resources on one name would silently
+  overwrite each other. Acceptance covers address normalisation, multi-value
+  sets, ordering, `disabled` surviving a round trip, and exact comparison for
+  `TXT`.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every

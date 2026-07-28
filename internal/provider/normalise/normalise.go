@@ -144,3 +144,33 @@ func StringSet(configured, actual []string, cmp func(a, b string) bool) bool {
 	}
 	return true
 }
+
+// RecordContent compares two record values, using whatever equivalence the
+// record type actually has.
+//
+// PowerDNS rewrites the content of address records: an AAAA given as
+// `2001:0db8:0000:0000:0000:0000:0000:0001` reads back `2001:db8::1`. Verified
+// against auth-5.1.3. For every other type the content is compared exactly —
+// a TXT record's quoting and whitespace are significant, and treating two
+// spellings as equal there would hide a real edit.
+func RecordContent(recordType, configured, actual string) bool {
+	switch strings.ToUpper(recordType) {
+	case "A", "AAAA":
+		return IPAddress(configured, actual)
+	case "CNAME", "NS", "PTR", "DNAME":
+		// Target names: case-insensitive, and PowerDNS stores them
+		// canonicalised with a trailing dot.
+		return DNSName(configured, actual)
+	default:
+		return configured == actual
+	}
+}
+
+// RecordName compares two record names.
+//
+// PowerDNS lowercases the owner name it is given: an rrset created as
+// `TxT.example.com.` reads back `txt.example.com.`. Verified against
+// auth-5.1.3.
+func RecordName(configured, actual string) bool {
+	return DNSName(configured, actual)
+}

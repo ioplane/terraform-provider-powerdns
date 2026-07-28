@@ -192,6 +192,7 @@ func (p *powerdnsProvider) Configure(
 func (p *powerdnsProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewZoneResource,
+		NewRecordResource,
 	}
 }
 
