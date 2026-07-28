@@ -8,10 +8,10 @@
 
 <div align="center">
 
-[![phase 1_of_8](https://shieldcn.dev/badge/phase-1_of_8-0969da.svg?variant=secondary&size=lg)](#phase-1--transport--)
-[![phase_0 closed](https://shieldcn.dev/badge/phase_0-closed-3fb950.svg?variant=secondary&size=lg)](#phase-0--foundation--closed-2026-07-28)
-[![tasks_done 22](https://shieldcn.dev/badge/tasks_done-22-3fb950.svg?variant=secondary&size=lg)](#)
-[![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary&size=lg)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
+[![phase 1_of_8](https://shieldcn.dev/badge/phase-1_of_8-0969da.svg?variant=secondary)](#phase-1--transport--)
+[![phase_0 closed](https://shieldcn.dev/badge/phase_0-closed-3fb950.svg?variant=secondary)](#phase-0--foundation--closed-2026-07-28)
+[![tasks_done 22](https://shieldcn.dev/badge/tasks_done-22-3fb950.svg?variant=secondary)](#)
+[![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
 
@@ -69,7 +69,7 @@ across five services.
 | S0-17 | `main.go` + empty framework provider, protocol 6, three-product schema | DEV | S0-10 | `[x]` |
 | S0-18 | `CHANGELOG.md`, `VERSION`, README, CONTRIBUTING, SECURITY, docs index | PM | — | `[x]` |
 | S0-19 | **Added.** Markdown standard: template, shieldcn badges, mermaid; `check-badges.sh` | PM | S0-18 | `[x]` |
-| S0-21 | **Added.** Badges corrected: dynamic over static, `size=lg`, clickable, no erroring endpoint | PM | S0-19 | `[x]` |
+| S0-21 | **Added.** Badges corrected: dynamic over static, default size, clickable, no erroring endpoint | PM | S0-19 | `[x]` |
 | S0-20 | **Added.** Correct commit authorship to the `gh auth` identity | OPS | — | `[x]` |
 
 **Exit gate met.** `go build` clean, `golangci-lint` 0 issues with **no path
@@ -83,9 +83,12 @@ carrying both a tag and a digest, which skopeo rejects, so five valid digests
 reported as not found. Both fixed; the checker is now verified against a
 fixture containing one fabricated digest and one floating tag.
 
-**S0-21** corrected the first attempt. The badges went in small (`size=xs`),
-as bare `<img>` rather than links, and static where a dynamic endpoint existed —
+**S0-21** corrected the first attempt, twice. The badges went in as bare
+`<img>` rather than links, and static where a dynamic endpoint existed —
 `status-phase_1_of_8` is a claim that rots, `github/last-commit` is a fact.
+Sizing then overshot: `xs` was unreadable, `lg` dominated the heading it
+followed. The answer was to set no size at all and take the `sm` default, which
+is what the sibling renders.
 
 It also removed a CI badge that would have shipped broken. `github/ci` answers
 `200` for this repository but renders "not found", because the quality pipeline

@@ -8,10 +8,10 @@
 
 <div align="center">
 
-[![scope every_.md](https://shieldcn.dev/badge/scope-every_.md-0969da.svg?variant=secondary&size=lg)](#per-document-type-requirements)
-[![badges shieldcn](https://shieldcn.dev/badge/badges-shieldcn-000000.svg?variant=secondary&size=lg)](https://shieldcn.dev)
-[![diagrams mermaid](https://shieldcn.dev/badge/diagrams-mermaid-FF3670.svg?variant=secondary&size=lg&logo=mermaid&logoColor=white)](#diagrams)
-[![enforced check-badges](https://shieldcn.dev/badge/enforced-check--badges-3fb950.svg?variant=secondary&size=lg)](#what-is-enforced)
+[![scope every_.md](https://shieldcn.dev/badge/scope-every_.md-0969da.svg?variant=secondary)](#per-document-type-requirements)
+[![badges shieldcn](https://shieldcn.dev/badge/badges-shieldcn-000000.svg?variant=secondary)](https://shieldcn.dev)
+[![diagrams mermaid](https://shieldcn.dev/badge/diagrams-mermaid-FF3670.svg?variant=secondary&logo=mermaid&logoColor=white)](#diagrams)
+[![enforced check-badges](https://shieldcn.dev/badge/enforced-check--badges-3fb950.svg?variant=secondary)](#what-is-enforced)
 
 </div>
 
@@ -87,8 +87,8 @@ flowchart TD
 
 <div align="center">
 
-[![alt](https://shieldcn.dev/github/license/OWNER/REPO.svg?variant=secondary&size=lg)](LICENSE)
-[![alt](https://shieldcn.dev/badge/LABEL-VALUE-HEX.svg?variant=secondary&size=lg)](TARGET)
+[![alt](https://shieldcn.dev/github/license/OWNER/REPO.svg?variant=secondary)](LICENSE)
+[![alt](https://shieldcn.dev/badge/LABEL-VALUE-HEX.svg?variant=secondary)](TARGET)
 
 </div>
 
@@ -126,8 +126,10 @@ keeps a documentation set visually coherent.
    front page is worse than an absent one. Check with `.json` before adding.
 3. **Three to six per row, at most three rows.** Group them by meaning —
    repository state, stack, conventions — and separate rows with `<br>`.
-4. **`size=lg`.** The default is `sm`, which is too small to read beside a
-   heading. `xs` is for nothing in this repository.
+4. **Do not set `size`.** The shieldcn default is `sm` (184×32), which is what
+   the sibling `terraform-provider-cvp` renders and what sits correctly beside
+   body text. `xs` is unreadable; `lg` is oversized and dominates the heading it
+   follows. Both were tried here before landing on the default.
 5. **`variant=secondary` by default**, `branded` for at most one accent badge.
    Single-surface — do not use `split=true`, which produces the two-tone
    shields.io look this project does not use.
@@ -155,8 +157,8 @@ so GitHub renders the links rather than the raw HTML.
 ### Endpoints in use
 
 ```text
-https://shieldcn.dev/github/{topic}/{owner}/{repo}.svg?variant=secondary&size=lg
-https://shieldcn.dev/badge/{label}-{value}-{hex}.svg?variant=secondary&size=lg&logo=…
+https://shieldcn.dev/github/{topic}/{owner}/{repo}.svg?variant=secondary
+https://shieldcn.dev/badge/{label}-{value}-{hex}.svg?variant=secondary&logo=…
 https://shieldcn.dev/header/graph.svg?title=…&subtitle=…&mode=…
 ```
 

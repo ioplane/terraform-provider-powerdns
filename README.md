@@ -8,20 +8,20 @@
 
 <div align="center">
 
-[![license](https://shieldcn.dev/github/license/ioplane/terraform-provider-powerdns.svg?variant=secondary&size=lg)](LICENSE)
-[![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary&size=lg)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
-[![contributors](https://shieldcn.dev/github/contributors/ioplane/terraform-provider-powerdns.svg?variant=secondary&size=lg)](https://github.com/ioplane/terraform-provider-powerdns/graphs/contributors)
-[![issues](https://shieldcn.dev/github/issues/ioplane/terraform-provider-powerdns.svg?variant=secondary&size=lg)](https://github.com/ioplane/terraform-provider-powerdns/issues)
+[![license](https://shieldcn.dev/github/license/ioplane/terraform-provider-powerdns.svg?variant=secondary)](LICENSE)
+[![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
+[![contributors](https://shieldcn.dev/github/contributors/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/graphs/contributors)
+[![issues](https://shieldcn.dev/github/issues/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/issues)
 <br>
-[![go 1.26.5](https://shieldcn.dev/badge/go-1.26.5-00ADD8.svg?variant=branded&size=lg&logo=go&logoColor=white)](https://go.dev/doc/go1.26)
-[![framework v1.19](https://shieldcn.dev/badge/framework-v1.19-7B42BC.svg?variant=secondary&size=lg&logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform/plugin/framework)
-[![terraform 1.11+](https://shieldcn.dev/badge/terraform-1.11+-7B42BC.svg?variant=secondary&size=lg&logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform)
-[![protocol 6.0](https://shieldcn.dev/badge/protocol-6.0-7B42BC.svg?variant=secondary&size=lg)](docs/adr/0003-framework-protocol-6.md)
+[![go 1.26.5](https://shieldcn.dev/badge/go-1.26.5-00ADD8.svg?variant=branded&logo=go&logoColor=white)](https://go.dev/doc/go1.26)
+[![framework v1.19](https://shieldcn.dev/badge/framework-v1.19-7B42BC.svg?variant=secondary&logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform/plugin/framework)
+[![terraform 1.11+](https://shieldcn.dev/badge/terraform-1.11+-7B42BC.svg?variant=secondary&logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform)
+[![protocol 6.0](https://shieldcn.dev/badge/protocol-6.0-7B42BC.svg?variant=secondary)](docs/adr/0003-framework-protocol-6.md)
 <br>
-[![commits conventional](https://shieldcn.dev/badge/commits-conventional-FE5196.svg?variant=secondary&size=lg&logo=conventionalcommits&logoColor=white)](https://www.conventionalcommits.org/en/v1.0.0/)
-[![semver 2.0.0](https://shieldcn.dev/badge/semver-2.0.0-3fb950.svg?variant=secondary&size=lg)](https://semver.org/spec/v2.0.0.html)
-[![changelog keep_a_changelog](https://shieldcn.dev/badge/changelog-keep_a_changelog-3fb950.svg?variant=secondary&size=lg)](https://keepachangelog.com/en/1.1.0/)
-[![PRs welcome](https://shieldcn.dev/badge/PRs-welcome-3fb950.svg?variant=secondary&size=lg)](CONTRIBUTING.md)
+[![commits conventional](https://shieldcn.dev/badge/commits-conventional-FE5196.svg?variant=secondary&logo=conventionalcommits&logoColor=white)](https://www.conventionalcommits.org/en/v1.0.0/)
+[![semver 2.0.0](https://shieldcn.dev/badge/semver-2.0.0-3fb950.svg?variant=secondary)](https://semver.org/spec/v2.0.0.html)
+[![changelog keep_a_changelog](https://shieldcn.dev/badge/changelog-keep_a_changelog-3fb950.svg?variant=secondary)](https://keepachangelog.com/en/1.1.0/)
+[![PRs welcome](https://shieldcn.dev/badge/PRs-welcome-3fb950.svg?variant=secondary)](CONTRIBUTING.md)
 
 </div>
 

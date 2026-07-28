@@ -8,10 +8,10 @@
 
 <div align="center">
 
-[![method gated_iterative](https://shieldcn.dev/badge/method-gated_iterative-0969da.svg?variant=secondary&size=lg)](#the-choice-gated-iterative-delivery)
-[![phases 8](https://shieldcn.dev/badge/phases-8-3fb950.svg?variant=secondary&size=lg)](#macro-phases)
-[![roles 5](https://shieldcn.dev/badge/roles-5-3fb950.svg?variant=secondary&size=lg)](#roles)
-[![sprint 2_weeks](https://shieldcn.dev/badge/sprint-2_weeks-3fb950.svg?variant=secondary&size=lg)](#iteration-mechanics)
+[![method gated_iterative](https://shieldcn.dev/badge/method-gated_iterative-0969da.svg?variant=secondary)](#the-choice-gated-iterative-delivery)
+[![phases 8](https://shieldcn.dev/badge/phases-8-3fb950.svg?variant=secondary)](#macro-phases)
+[![roles 5](https://shieldcn.dev/badge/roles-5-3fb950.svg?variant=secondary)](#roles)
+[![sprint 2_weeks](https://shieldcn.dev/badge/sprint-2_weeks-3fb950.svg?variant=secondary)](#iteration-mechanics)
 
 </div>
 

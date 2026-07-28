@@ -8,10 +8,10 @@
 
 <div align="center">
 
-[![status binding](https://shieldcn.dev/badge/status-binding-cf222e.svg?variant=secondary&size=lg)](#golden-rules)
-[![audience human_+_agent](https://shieldcn.dev/badge/audience-human_+_agent-0969da.svg?variant=secondary&size=lg)](#)
-[![standards 11](https://shieldcn.dev/badge/standards-11-3fb950.svg?variant=secondary&size=lg)](docs/README.md)
-[![gates 11](https://shieldcn.dev/badge/gates-11-3fb950.svg?variant=secondary&size=lg)](#quality-gates)
+[![status binding](https://shieldcn.dev/badge/status-binding-cf222e.svg?variant=secondary)](#golden-rules)
+[![audience human_+_agent](https://shieldcn.dev/badge/audience-human_+_agent-0969da.svg?variant=secondary)](#)
+[![standards 11](https://shieldcn.dev/badge/standards-11-3fb950.svg?variant=secondary)](docs/README.md)
+[![gates 11](https://shieldcn.dev/badge/gates-11-3fb950.svg?variant=secondary)](#quality-gates)
 
 </div>
 
