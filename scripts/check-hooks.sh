@@ -16,8 +16,14 @@ cd "$REPO_ROOT"
 
 fail() { printf 'check-hooks: %s\n' "$*" >&2; exit 1; }
 
+# --git-common-dir, not ".git": in a worktree .git is a file pointing at the
+# main checkout, and the hooks live with the main checkout. Looking in ".git"
+# reports every worktree as unprotected.
+readonly GIT_DIR="$(git rev-parse --git-common-dir)"
+
 for hook in commit-msg pre-commit; do
-    [[ -f ".git/hooks/${hook}" ]] || fail "${hook} hook is not installed — run: task hooks"
+    [[ -f "${GIT_DIR}/hooks/${hook}" ]] || \
+        fail "${hook} hook is not installed — run: task hooks"
 done
 
 readonly TMP="$(mktemp -d)"

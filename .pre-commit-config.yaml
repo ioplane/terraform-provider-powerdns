@@ -21,8 +21,12 @@ repos:
         name: commitlint
         language: system
         stages: [commit-msg]
-        entry: podman-compose -f deployments/compose/compose.dev.yml exec -T dev
-               npx --no-install commitlint --config .commitlintrc.yaml --edit
+        # The message arrives on stdin rather than through --edit. commitlint
+        # would otherwise resolve the path itself, and in a worktree that is an
+        # absolute path into the main checkout's .git — which does not exist
+        # inside the container. Reading the file on the host and piping it in
+        # works from any checkout.
+        entry: scripts/commitlint.sh
 
       # golangci-lint fmt, not gofumpt directly: .golangci.yml already
       # enables gofmt, gofumpt and goimports with the local-prefixes setting,

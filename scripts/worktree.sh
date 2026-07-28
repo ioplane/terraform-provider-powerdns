@@ -31,7 +31,7 @@ cmd_new() {
 
   echo
   echo "worktree: ${path}"
-  echo "cd ${path} && make up && make shell"
+  echo "cd ${path} && task up && task shell"
 }
 
 cmd_rm() {
