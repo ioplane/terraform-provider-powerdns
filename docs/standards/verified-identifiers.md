@@ -1,3 +1,19 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Verified+identifiers&subtitle=Never+write+a+hash+from+memory&logo=keycdn&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="Verified identifiers" src="https://shieldcn.dev/header/graph.svg?title=Verified+identifiers&subtitle=Never+write+a+hash+from+memory&logo=keycdn&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<div align="center">
+
+[![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
+[![enforced check-pins.sh](https://shieldcn.dev/badge/enforced-check--pins.sh-0969da.svg?variant=secondary)](#)
+[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+
+</div>
+
 # Verified identifiers
 
 An identifier that must be exact is never written from memory. It is looked up,

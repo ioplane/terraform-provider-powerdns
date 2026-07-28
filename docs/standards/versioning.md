@@ -1,3 +1,19 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Versioning&subtitle=SemVer+2.0.0&logo=semver&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="Versioning" src="https://shieldcn.dev/header/graph.svg?title=Versioning&subtitle=SemVer+2.0.0&logo=semver&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<div align="center">
+
+[![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
+[![semver 2.0.0](https://shieldcn.dev/badge/semver-2.0.0-0969da.svg?variant=secondary)](#)
+[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+
+</div>
+
 # Versioning
 
 [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html). The binary,

@@ -1,3 +1,19 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Commits&subtitle=Conventional+Commits+1.0.0&logo=conventionalcommits&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="Commits" src="https://shieldcn.dev/header/graph.svg?title=Commits&subtitle=Conventional+Commits+1.0.0&logo=conventionalcommits&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<div align="center">
+
+[![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
+[![conventional 1.0.0](https://shieldcn.dev/badge/conventional-1.0.0-0969da.svg?variant=secondary)](#)
+[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+
+</div>
+
 # Commit conventions
 
 [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/),

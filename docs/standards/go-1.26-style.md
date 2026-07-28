@@ -1,3 +1,19 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Go+1.26+style&subtitle=Patterns%2C+antipatterns%2C+tooling&logo=go&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="Go 1.26 style" src="https://shieldcn.dev/header/graph.svg?title=Go+1.26+style&subtitle=Patterns%2C+antipatterns%2C+tooling&logo=go&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<div align="center">
+
+[![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
+[![go 1.26.5](https://shieldcn.dev/badge/go-1.26.5-0969da.svg?variant=secondary)](#)
+[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+
+</div>
+
 # Go 1.26 patterns, antipatterns, standards
 
 Project Go standard, pinned to **Go 1.26.5** (dev container

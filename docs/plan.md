@@ -22,7 +22,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 0 **closed**; phase 1 (transport) next
+**Status:** phase 1 (transport) in progress — classifier and client landed
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -119,20 +119,27 @@ no packet cache. Neither is in the documentation. Recorded in
 
 ---
 
-## Phase 1 — Transport · `[ ]`
+## Phase 1 — Transport · `[~]` in progress
 
 **Exit gate:** contract tests pass against fixtures recorded from all three
 products.
 
 | ID | Task | Role | Depends | Status |
 |---|---|---|---|---|
-| S1-01 | ARC: error taxonomy and capability classification, signed | ARC | — | `[ ]` |
-| S1-02 | `transport.Client`: HTTP, `X-API-Key`, timeouts | DEV | S1-01 | `[ ]` |
-| S1-03 | Retry: `5xx` and transport errors back off; `4xx` fails fast | DEV | S1-02 | `[ ]` |
-| S1-04 | `transport.APIError`: status, server message, capability class | DEV | S1-01 | `[ ]` |
-| S1-05 | Capability classifier: LMDB-only, `api_dir` unset, `setAPIWritable` unset, no packet cache | DEV | S1-04 | `[ ]` |
-| S1-06 | Fixture recorder — capture real responses from the lab into `testutil` | QA | S0-08 | `[ ]` |
-| S1-07 | Contract tests for every error class | QA | S1-05, S1-06 | `[ ]` |
+| S1-01 | ARC: error taxonomy and capability classification, signed | ARC | — | `[x]` |
+| S1-02 | `transport.Client`: HTTP, `X-Api-Key`, TLS floor, timeouts | DEV | S1-01 | `[x]` |
+| S1-03 | Retry: `5xx` and transport errors back off; `4xx` fails fast | DEV | S1-02 | `[x]` |
+| S1-04 | `transport.APIError`: status, server message, capability class | DEV | S1-01 | `[x]` |
+| S1-05 | Capability classifier: LMDB-only, `api_dir` unset, `setAPIWritable` unset, no packet cache | DEV | S1-04 | `[x]` |
+| S1-06 | Fixture recorder — capture real responses from the lab into `testutil` | QA | S0-08 | `[~]` live capability check landed; recorder next |
+| S1-07 | Contract tests for every error class | QA | S1-05, S1-06 | `[~]` unit coverage complete; fixtures pending |
+
+The classifier is verified twice over. `classify_test.go` asserts the mapping,
+including the cases that must **not** fire — a rule that classifies too eagerly
+tells an operator to change a backend setting when the real problem is a typo.
+`live_acc_test.go` asserts the premise against real servers: if PowerDNS
+changes a status code, the unit tests keep passing while the provider silently
+stops explaining itself.
 
 S1-05 is the piece the whole design turns on. Four different "this installation
 cannot do that" conditions exist across the three products; each surfaces as a

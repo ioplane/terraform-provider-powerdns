@@ -1,3 +1,19 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Provider+practices&subtitle=Design+and+Definition+of+Done&logo=terraform&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="Provider practices" src="https://shieldcn.dev/header/graph.svg?title=Provider+practices&subtitle=Design+and+Definition+of+Done&logo=terraform&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<div align="center">
+
+[![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
+[![framework v1.19](https://shieldcn.dev/badge/framework-v1.19-0969da.svg?variant=secondary)](#)
+[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+
+</div>
+
 # Terraform provider best practices
 
 The rules this provider is held to, distilled from HashiCorp's

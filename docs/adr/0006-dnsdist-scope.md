@@ -1,3 +1,19 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=ADR+0006&subtitle=dnsdist+is+in+scope%2C+sized+by+what+its+API+permits&logo=checkmarx&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="ADR 0006" src="https://shieldcn.dev/header/graph.svg?title=ADR+0006&subtitle=dnsdist+is+in+scope%2C+sized+by+what+its+API+permits&logo=checkmarx&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<div align="center">
+
+[![status accepted](https://shieldcn.dev/badge/status-accepted-3fb950.svg?variant=secondary)](#)
+[![date 2026-07-28](https://shieldcn.dev/badge/date-2026--07--28-0969da.svg?variant=secondary)](#)
+[![adr 0006](https://shieldcn.dev/badge/adr-0006-6e7781.svg?variant=secondary)](../README.md)
+
+</div>
+
 # ADR 0006 — dnsdist is in scope, sized by what its API permits
 
 - **Status:** accepted

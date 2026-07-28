@@ -1,3 +1,19 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Naming+conventions&subtitle=Files%2C+branches%2C+commits%2C+versions&logo=abstract&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="Naming conventions" src="https://shieldcn.dev/header/graph.svg?title=Naming+conventions&subtitle=Files%2C+branches%2C+commits%2C+versions&logo=abstract&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<div align="center">
+
+[![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
+[![the synthesis 5 sources](https://shieldcn.dev/badge/the_synthesis-5_sources-0969da.svg?variant=secondary)](#)
+[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+
+</div>
+
 # Naming conventions
 
 One standard covering every name this project produces: files, identifiers,

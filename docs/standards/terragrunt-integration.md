@@ -1,3 +1,19 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Terragrunt&subtitle=How+consumers+orchestrate+this+provider&logo=terraform&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="Terragrunt" src="https://shieldcn.dev/header/graph.svg?title=Terragrunt&subtitle=How+consumers+orchestrate+this+provider&logo=terraform&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<div align="center">
+
+[![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
+[![terragrunt 1.1.1](https://shieldcn.dev/badge/terragrunt-1.1.1-0969da.svg?variant=secondary)](#)
+[![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)](#)
+
+</div>
+
 # Terragrunt integration
 
 How consumers drive this provider with
