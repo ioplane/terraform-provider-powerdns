@@ -120,6 +120,36 @@ something downstream storing it.
 | `powerdns_cryptokey_material` | A DNSSEC private key | Terraform 1.10 |
 | `powerdns_tsigkey_secret` | A TSIG shared secret | Terraform 1.10 |
 
+### Actions
+
+Imperative operations, needing Terraform 1.14. They have no state: running one
+twice does no harm, and none can be undone, which is why none is a resource.
+
+| Type | Does |
+| --- | --- |
+| `powerdns_notify_zone` | Sends a NOTIFY to a zone's secondaries |
+| `powerdns_axfr_retrieve` | Triggers a transfer from a zone's primary |
+| `powerdns_rectify_zone` | Recomputes DNSSEC ordering and NSEC records |
+| `powerdns_flush_cache` | Drops a name from a cache, on any of the three products |
+
+### Functions
+
+Pure and offline: no client, no request, no state.
+
+| Function | Returns |
+| --- | --- |
+| `fqdn(name)` | The name with a trailing dot |
+| `is_fqdn(name)` | Whether it already has one |
+| `reverse_zone_name(cidr)` | The `in-addr.arpa` or `ip6.arpa` zone for a prefix |
+| `ptr_name(address)` | The name an address's PTR sits at |
+| `soa_serial(date, revision)` | A serial in `YYYYMMDDnn` form |
+
+`reverse_zone_name` errors for a prefix off an octet boundary (IPv4) or a
+nibble boundary (IPv6): such a prefix spans several reverse zones and has no
+single name. `soa_serial` takes the date as an argument rather than reading the
+clock, so a plan converges, and bounds the revision at 99 because the
+convention has two digits for it.
+
 ### Provider arguments
 
 Each takes its value from the argument, then the environment variable, then

@@ -11,7 +11,7 @@
 
 ![phase 5_of_8](https://shieldcn.dev/badge/phase-5_of_8-0969da.svg?variant=secondary)
 ![phases_closed 5](https://shieldcn.dev/badge/phases_closed-5-3fb950.svg?variant=secondary)
-![tasks_done 62](https://shieldcn.dev/badge/tasks_done-62-3fb950.svg?variant=secondary)
+![tasks_done 66](https://shieldcn.dev/badge/tasks_done-66-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,8 +24,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 5 — the family surface is complete;
-phase 6 (actions and functions) next
+**Status:** phase 6 — actions and functions landed; resource identity next
 **Last updated:** 2026-07-28
 
 ## How a sprint runs
@@ -725,19 +724,59 @@ container is mounted on the worktree.
 
 ---
 
-## Phase 6 — Beyond resources · `[ ]`
+## Phase 6 — Beyond resources · `[~]` in progress
 
 | ID | Task | Role | Depends | Status |
 | --- | --- | --- | --- | --- |
-| S6-01 | Actions: `notify_zone`, `axfr_retrieve`, `rectify_zone`, `flush_cache` | DEV | S2-03 | `[ ]` |
-| S6-02 | Actions: `recursor_flush_cache`, `dnsdist_flush_cache` | DEV | S2-04, S2-05 | `[ ]` |
-| S6-03 | Functions: `fqdn`, `is_fqdn`, `reverse_zone_name`, `ptr_name`, `soa_serial` | DEV | — | `[ ]` |
+| S6-01 | Actions: `notify_zone`, `axfr_retrieve`, `rectify_zone`, `flush_cache` | DEV | S2-03 | `[x]` |
+| S6-02 | Recursor and dnsdist cache flush | DEV | S2-04, S2-05 | `[x]` folded into one `flush_cache` action |
+| S6-03 | Functions: `fqdn`, `is_fqdn`, `reverse_zone_name`, `ptr_name`, `soa_serial` | DEV | — | `[x]` |
 | S6-04 | Resource identity on every resource with a stable one | DEV | S3-07 | `[ ]` |
-| S6-05 | Gate actions at Terraform 1.14 via client capability | DEV | S6-01 | `[ ]` |
+| S6-05 | Gate actions at Terraform 1.14 via client capability | DEV | S6-01 | `[x]` the framework negotiates it; the tests skip below 1.14 |
 
 S6-03 has no dependency on the clients: the functions are pure and offline,
-which is why they are functions. They replace the name arithmetic that other
-providers smear into resources.
+which is why they are functions rather than data sources. A data source would
+make a plan depend on a server for an answer that is a string operation.
+
+They replace the name arithmetic other providers smear into a locals block —
+`join(".", reverse(split(".", var.subnet)))`, copied between modules and subtly
+wrong for IPv6 or for a prefix off a byte boundary.
+
+Two decisions in them are worth recording, because both refuse rather than
+guess:
+
+- **`reverse_zone_name` rejects a prefix off the boundary.** A /25 spans two
+  /24 reverse zones and a /20 spans sixteen, so there is no single name to
+  return. Returning the enclosing /24 would look right and put half the PTRs in
+  the wrong zone; RFC 2317 delegation is a different shape and not something a
+  name function can invent.
+- **`soa_serial` takes the date as an argument.** A function reading the clock
+  would change the plan every day and never converge. The revision is bounded
+  at 99 because the `YYYYMMDDnn` convention has two digits for it, and rolling
+  silently into the next day's serial would produce a number that looks fine
+  and sorts wrong.
+
+The first test run caught a real defect: `/0` produced `.in-addr.arpa.` with a
+leading dot, which is a different name and not a valid one.
+
+### One flush action, not three
+
+S6-02 asked for `recursor_flush_cache` and `dnsdist_flush_cache` beside the
+Authoritative one. They are folded into a single `powerdns_flush_cache` with a
+`product` argument instead.
+
+Flushing a name is one operation an operator wants and three endpoints that
+implement it. Three actions would make the caller work out which applies, and
+the answer is always "the product this name lives on" — which the configuration
+already knows.
+
+### S6-05 needed no gate
+
+The plan expected to gate actions behind a client capability check. The
+framework negotiates that itself: a Terraform below 1.14 never learns the
+provider has actions, and the configuration simply fails to parse the block.
+The acceptance tests skip below 1.14 rather than fail with a syntax error that
+says nothing about the cause.
 
 ---
 

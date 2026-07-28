@@ -13,8 +13,10 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
+	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -189,6 +191,7 @@ func (p *powerdnsProvider) Configure(
 	resp.ResourceData = clients
 	resp.DataSourceData = clients
 	resp.EphemeralResourceData = clients
+	resp.ActionData = clients
 }
 
 // Resources returns the managed resources.
@@ -219,6 +222,37 @@ func (p *powerdnsProvider) EphemeralResources(
 	return []func() ephemeral.EphemeralResource{
 		NewCryptoKeyMaterialEphemeral,
 		NewTSIGKeySecretEphemeral,
+	}
+}
+
+// Actions returns the imperative operations.
+//
+// Notifying, transferring, rectifying and flushing are things done *to* a zone
+// rather than stated about it. Before Terraform 1.14 there was nowhere to put
+// them, and the capability map listed 24 operations as uncoverable for that
+// reason; actions cover 19 of them.
+func (p *powerdnsProvider) Actions(_ context.Context) []func() action.Action {
+	return []func() action.Action{
+		NewNotifyZoneAction,
+		NewAXFRRetrieveAction,
+		NewRectifyZoneAction,
+		NewFlushCacheAction,
+	}
+}
+
+// Functions returns the provider functions.
+//
+// All five are pure and offline. They exist so the name arithmetic a DNS
+// configuration needs — qualifying a name, building a reverse zone, deriving a
+// PTR — is done once and correctly, rather than as a locals block copied
+// between modules and subtly wrong for IPv6.
+func (p *powerdnsProvider) Functions(_ context.Context) []func() function.Function {
+	return []func() function.Function{
+		NewFQDNFunction,
+		NewIsFQDNFunction,
+		NewReverseZoneNameFunction,
+		NewPTRNameFunction,
+		NewSOASerialFunction,
 	}
 }
 

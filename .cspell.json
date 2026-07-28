@@ -12,6 +12,7 @@
     "keyrings", "lmdb", "nosec", "nsec", "opentofu", "pdns", "pdnsutil",
     "prefixlen", "gmysql", "gsqlite", "bindbackend", "ECDSAP", "cryptokey",
     "RRSIG", "algprobe", "digprobe", "norecurse", "dnsutils",
+    "uncoverable", "YYYYMMD", "arpa", "nibble", "nibbles",
     "keysigning", "boolplanmodifier",
     "powerdns", "prealloc", "presigned", "rectify", "rrset", "rrsets",
     "rpzstatistics", "semgrep", "skopeo", "supermasters", "terragrunt",
