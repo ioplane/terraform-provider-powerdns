@@ -1,0 +1,8 @@
+{
+  "name": "zone-not-found",
+  "description": "the 404 shape for a zone that does not exist",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/zones/absent.test.",
+  "status": 404,
+  "recorded_against": "5.1.3"
+}

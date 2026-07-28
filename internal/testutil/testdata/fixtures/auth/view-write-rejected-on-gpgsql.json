@@ -1,0 +1,11 @@
+{
+  "name": "view-write-rejected-on-gpgsql",
+  "description": "the 422 that the capability classifier turns into the LMDB requirement",
+  "method": "POST",
+  "path": "/api/v1/servers/localhost/views/fixtureview",
+  "status": 422,
+  "body": {
+    "error": "Failed to add fixture.test. to view fixtureview"
+  },
+  "recorded_against": "5.1.3"
+}

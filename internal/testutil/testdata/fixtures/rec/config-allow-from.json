@@ -1,0 +1,14 @@
+{
+  "name": "config-allow-from",
+  "description": "one of exactly two settings the recursor API will read by name",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/config/allow-from",
+  "status": 200,
+  "body": {
+    "name": "allow-from",
+    "value": [
+      "0.0.0.0/0"
+    ]
+  },
+  "recorded_against": "5.4.4"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "config-unknown-setting",
+  "description": "every other setting name answers 404, which is why the resource validates the name",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/config/max-cache-entries",
+  "status": 404,
+  "recorded_against": "5.4.4"
+}

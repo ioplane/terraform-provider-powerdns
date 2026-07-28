@@ -1,0 +1,55 @@
+{
+  "name": "zone-create-native",
+  "description": "a Native zone as created; note soa_edit_api comes back DEFAULT unasked",
+  "method": "POST",
+  "path": "/api/v1/servers/localhost/zones",
+  "status": 201,
+  "body": {
+    "account": "",
+    "api_rectify": false,
+    "catalog": "",
+    "dnssec": false,
+    "edited_serial": 2026072801,
+    "id": "fixture.test.",
+    "kind": "Native",
+    "last_check": 0,
+    "master_tsig_key_ids": [],
+    "masters": [],
+    "name": "fixture.test.",
+    "notified_serial": 0,
+    "nsec3narrow": false,
+    "nsec3param": "",
+    "rrsets": [
+      {
+        "comments": [],
+        "name": "fixture.test.",
+        "records": [
+          {
+            "content": "a.misconfigured.dns.server.invalid. hostmaster.fixture.test. 2026072801 10800 3600 604800 3600",
+            "disabled": false
+          }
+        ],
+        "ttl": 60,
+        "type": "SOA"
+      },
+      {
+        "comments": [],
+        "name": "fixture.test.",
+        "records": [
+          {
+            "content": "ns1.fixture.test.",
+            "disabled": false
+          }
+        ],
+        "ttl": 60,
+        "type": "NS"
+      }
+    ],
+    "serial": 2026072801,
+    "slave_tsig_key_ids": [],
+    "soa_edit": "",
+    "soa_edit_api": "DEFAULT",
+    "url": "/api/v1/servers/localhost/zones/fixture.test."
+  },
+  "recorded_against": "5.1.3"
+}

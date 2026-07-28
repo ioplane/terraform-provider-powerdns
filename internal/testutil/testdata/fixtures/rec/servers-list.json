@@ -1,0 +1,19 @@
+{
+  "name": "servers-list",
+  "description": "the recursor server list",
+  "method": "GET",
+  "path": "/api/v1/servers",
+  "status": 200,
+  "body": [
+    {
+      "config_url": "/api/v1/servers/localhost/config{/config_setting}",
+      "daemon_type": "recursor",
+      "id": "localhost",
+      "type": "Server",
+      "url": "/api/v1/servers/localhost",
+      "version": "5.4.4",
+      "zones_url": "/api/v1/servers/localhost/zones{/zone}"
+    }
+  ],
+  "recorded_against": "5.4.4"
+}

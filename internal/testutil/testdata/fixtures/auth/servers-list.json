@@ -1,0 +1,20 @@
+{
+  "name": "servers-list",
+  "description": "the server list, which is how the provider learns the API is reachable",
+  "method": "GET",
+  "path": "/api/v1/servers",
+  "status": 200,
+  "body": [
+    {
+      "autoprimaries_url": "/api/v1/servers/localhost/autoprimaries{/autoprimary}",
+      "config_url": "/api/v1/servers/localhost/config{/config_setting}",
+      "daemon_type": "authoritative",
+      "id": "localhost",
+      "type": "Server",
+      "url": "/api/v1/servers/localhost",
+      "version": "5.1.3",
+      "zones_url": "/api/v1/servers/localhost/zones{/zone}"
+    }
+  ],
+  "recorded_against": "5.1.3"
+}

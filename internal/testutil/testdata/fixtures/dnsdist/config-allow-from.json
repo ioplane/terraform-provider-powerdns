@@ -1,0 +1,24 @@
+{
+  "name": "config-allow-from",
+  "description": "the one dnsdist setting the API can write",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/config/allow-from",
+  "status": 200,
+  "body": {
+    "name": "allow-from",
+    "type": "ConfigSetting",
+    "value": [
+      "10.0.0.0/8",
+      "100.64.0.0/10",
+      "127.0.0.0/8",
+      "0.0.0.0/0",
+      "169.254.0.0/16",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+      "::1/128",
+      "fc00::/7",
+      "fe80::/10"
+    ]
+  },
+  "recorded_against": "2.1.0"
+}
