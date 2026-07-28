@@ -109,6 +109,14 @@ The mapping between commit type, changelog section and version bump is in
   component. The methodology called this a hard external contract from the
   start; it had never been written down.
 
+- `powerdns_record`, `powerdns_zone_metadata` and `powerdns_zone_export` data
+  sources. Phase 3 closes with three resources, five data sources and fourteen
+  acceptance tests on both authoritative backends.
+- `SOA-EDIT-API` and `API-RECTIFY` are rejected before the request with a
+  diagnostic naming the zone attribute to use instead. Both appear in a zone's
+  metadata collection and answer 422 by name; the server's message does not
+  mention that the value is settable elsewhere.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every

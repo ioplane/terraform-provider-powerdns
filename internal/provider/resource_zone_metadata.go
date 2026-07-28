@@ -294,6 +294,12 @@ func (r *zoneMetadataResource) write(
 		return diags
 	}
 
+	kind := plan.Kind.ValueString()
+	diags.Append(checkMetadataKind(kind)...)
+	if diags.HasError() {
+		return diags
+	}
+
 	var values []string
 	diags.Append(elementsAs(ctx, plan.Values, &values)...)
 	if diags.HasError() {
@@ -301,7 +307,6 @@ func (r *zoneMetadataResource) write(
 	}
 
 	zoneID := canonicalName(plan.Zone.ValueString())
-	kind := plan.Kind.ValueString()
 
 	_, err := client.SetMetadata(ctx, zoneID, auth.Metadata{Kind: kind, Metadata: values})
 	if err != nil {

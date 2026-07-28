@@ -280,6 +280,14 @@ linters:
       - path: main\.go
         linters:
           - forbidigo
+      # Schema attribute names are the provider's public contract, written out
+      # where a reader looks for them. Hoisting "zone" and "name" into
+      # constants would put the contract one indirection away from the schema
+      # that declares it, and every attribute appears once per resource by
+      # design rather than by repetition.
+      - path: internal/provider/(resource|datasource)_.*\.go
+        linters:
+          - goconst
       - path: scripts/
         linters:
           - forbidigo

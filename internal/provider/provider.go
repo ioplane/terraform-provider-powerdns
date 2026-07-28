@@ -202,6 +202,9 @@ func (p *powerdnsProvider) DataSources(_ context.Context) []func() datasource.Da
 	return []func() datasource.DataSource{
 		NewZoneDataSource,
 		NewZonesDataSource,
+		NewRecordDataSource,
+		NewZoneMetadataDataSource,
+		NewZoneExportDataSource,
 	}
 }
 

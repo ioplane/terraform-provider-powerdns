@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -125,20 +124,7 @@ func (d *zoneDataSource) Configure(
 	req datasource.ConfigureRequest,
 	resp *datasource.ConfigureResponse,
 ) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clients, ok := req.ProviderData.(*Clients)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected provider data",
-			fmt.Sprintf("Expected *Clients, got %T. This is a bug in the provider.",
-				req.ProviderData),
-		)
-		return
-	}
-	d.clients = clients
+	d.clients = configureClients(req, resp)
 }
 
 func (d *zoneDataSource) Read(
@@ -269,20 +255,7 @@ func (d *zonesDataSource) Configure(
 	req datasource.ConfigureRequest,
 	resp *datasource.ConfigureResponse,
 ) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clients, ok := req.ProviderData.(*Clients)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected provider data",
-			fmt.Sprintf("Expected *Clients, got %T. This is a bug in the provider.",
-				req.ProviderData),
-		)
-		return
-	}
-	d.clients = clients
+	d.clients = configureClients(req, resp)
 }
 
 func (d *zonesDataSource) Read(

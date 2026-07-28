@@ -9,9 +9,9 @@
 
 <div align="center">
 
-![phase 3_of_8](https://shieldcn.dev/badge/phase-3_of_8-0969da.svg?variant=secondary)
-![phases_closed 3](https://shieldcn.dev/badge/phases_closed-3-3fb950.svg?variant=secondary)
-![tasks_done 44](https://shieldcn.dev/badge/tasks_done-44-3fb950.svg?variant=secondary)
+![phase 4_of_8](https://shieldcn.dev/badge/phase-4_of_8-0969da.svg?variant=secondary)
+![phases_closed 4](https://shieldcn.dev/badge/phases_closed-4-3fb950.svg?variant=secondary)
+![tasks_done 47](https://shieldcn.dev/badge/tasks_done-47-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,8 +24,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 3 — three resources and two data sources landed;
-the remaining data sources next
+**Status:** phase 3 closed; phase 4 (DNSSEC and the security surface) next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -400,9 +399,10 @@ a count declared as an int fails to decode a successful flush.
 
 ---
 
-## Phase 3 — Core resources · `[~]` in progress
+## Phase 3 — Core resources · `[x]` closed 2026-07-29
 
-**Exit gate:** acceptance green on both authoritative backends.
+**Exit gate:** acceptance green on both authoritative backends. **Met** —
+three resources, five data sources, fourteen acceptance tests.
 
 | ID | Task | Role | Depends | Status |
 | --- | --- | --- | --- | --- |
@@ -410,9 +410,9 @@ a count declared as an int fails to decode a successful flush.
 | S3-02 | `powerdns_zone` | DEV | S3-01 | `[x]` |
 | S3-03 | `powerdns_record` — one RRSet, not one record | DEV | S3-02 | `[x]` |
 | S3-04 | `powerdns_zone_metadata` — one kind, not the collection | DEV | S3-02 | `[x]` |
-| S3-05 | Data sources: `zone`, `zones` | DEV | S3-03 | `[~]` `record`, `zone_metadata` and `zone_export` remain |
+| S3-05 | Data sources: `zone`, `zones`, `record`, `zone_metadata`, `zone_export` | DEV | S3-03 | `[x]` |
 | S3-06 | Semantic-normalisation plan modifiers: case, IPv6, server defaults | DEV | S3-02 | `[x]` |
-| S3-07 | Acceptance on both backends for each | QA | S3-02…S3-05 | `[~]` zone, record and metadata covered |
+| S3-07 | Acceptance on both backends for each | QA | S3-02…S3-05 | `[x]` |
 
 S3-06 is not optional polish, and phase 2 raised the count from three to seven.
 Each produces a permanent diff if compared as a string, so
@@ -460,6 +460,22 @@ Owning one kind avoids it entirely, and gives the right answer for a server
 whose metadata was partly set by `pdnsutil` or another tool. The acceptance
 test asserts the server-assigned kind is still present after Terraform has
 finished — it fails if the resource ever grows to own the collection.
+
+### A metadata boundary the API draws and does not explain
+
+Two kinds appear in `GET /metadata` and answer **422 "Unsupported metadata
+kind"** when read or written by name: `SOA-EDIT-API` and `API-RECTIFY`. Both
+exist as attributes of the zone object, so the metadata endpoint reports them
+and refuses to address them.
+
+The boundary is not "every kind that is also a zone attribute". `NSEC3PARAM`
+and `PRESIGNED` are both, and both are addressable — which is why the provider
+enumerates the two rather than deriving the rule. Measured across ten kinds
+against auth-5.1.3.
+
+The provider rejects them before the request, naming the zone attribute that
+does work. The server's own message says only "Unsupported metadata kind" and
+never mentions the value is settable elsewhere.
 
 ### Two framework contracts the acceptance tests found
 

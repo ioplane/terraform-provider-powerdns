@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -179,4 +180,43 @@ func (recordValuesModifier) PlanModifyList(
 	if normalise.StringSet(planned, current, same) {
 		resp.PlanValue = req.StateValue
 	}
+}
+
+// metadataKindsOnlyOnTheZone are the kinds PowerDNS refuses to serve by name.
+//
+// Both appear in GET /metadata and both answer 422 "Unsupported metadata kind"
+// on GET /metadata/{kind}. Verified against auth-5.1.3. They are the two kinds
+// that exist only as attributes of the zone object — `soa_edit_api` and
+// `api_rectify` — so the metadata endpoint reports them and refuses to address
+// them.
+//
+// Note the boundary is not "every kind that is also a zone attribute":
+// NSEC3PARAM and PRESIGNED are both, and both are addressable. Only these two
+// are not, which is why the list is enumerated rather than derived.
+var metadataKindsOnlyOnTheZone = map[string]string{
+	"SOA-EDIT-API": "soa_edit_api",
+	"API-RECTIFY":  "api_rectify",
+}
+
+// checkMetadataKind rejects a kind the API will not address, naming the
+// attribute to use instead.
+//
+// Rejected before the request, because the server's 422 says only "Unsupported
+// metadata kind" and does not mention that the value is settable elsewhere.
+func checkMetadataKind(kind string) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	attribute, unsupported := metadataKindsOnlyOnTheZone[strings.ToUpper(kind)]
+	if !unsupported {
+		return diags
+	}
+
+	diags.AddError(
+		"Metadata kind "+kind+" is not addressable",
+		"PowerDNS lists this kind under a zone's metadata but answers 422 "+
+			"\"Unsupported metadata kind\" when it is read or written by name, "+
+			"because it exists as an attribute of the zone itself.\n\n"+
+			"Set powerdns_zone."+attribute+" instead.",
+	)
+	return diags
 }

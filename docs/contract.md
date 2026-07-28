@@ -88,6 +88,9 @@ come.
 | --- | --- |
 | `powerdns_zone` | One zone, including its RRSet count |
 | `powerdns_zones` | Every zone, without records |
+| `powerdns_record` | One RRSet |
+| `powerdns_zone_metadata` | One metadata kind |
+| `powerdns_zone_export` | A zone in presentation format |
 
 ### Provider arguments
 
@@ -154,7 +157,29 @@ not the collection; `powerdns_record` owns one RRSet, not the zone's records.
 Anything set by `pdnsutil`, by another tool, or by PowerDNS itself — such as
 the `SOA-EDIT-API` every zone is created with — is left alone.
 
-### 4.4 An impossible operation fails at plan or with a diagnostic that names the cause
+### 4.4 An absent object is an error for a data source, except where the API says otherwise
+
+A data source reading something that is not there fails. Returning an empty
+result would let a configuration proceed on values that do not exist and fail
+somewhere further along, with no mention of what was missing.
+
+The exception is `powerdns_zone_metadata`, and it comes from the API rather
+than from taste: PowerDNS answers an unset kind with `200` and an empty list,
+not `404`. Absence and emptiness are the same state there, so `values` is
+empty and a configuration can branch on it.
+
+### 4.5 Two metadata kinds are not addressable, and the provider says so
+
+`SOA-EDIT-API` and `API-RECTIFY` appear in a zone's metadata collection and
+answer `422 "Unsupported metadata kind"` when read or written by name, because
+they exist as attributes of the zone object. Both are rejected before the
+request with a diagnostic naming the attribute to use —
+`powerdns_zone.soa_edit_api` and `powerdns_zone.api_rectify`.
+
+The list is enumerated rather than derived: `NSEC3PARAM` and `PRESIGNED` are
+also zone attributes and are addressable as metadata.
+
+### 4.6 An impossible operation fails at plan or with a diagnostic that names the cause
 
 PowerDNS has four conditions under which an operation cannot succeed on a given
 installation, and each surfaces as a bare `4xx`:
