@@ -61,10 +61,30 @@ tasks:
       - sh: podman container exists pdns-lab-auth-pg
         msg: "lab is not running — run: task lab:up"
 
+  # === Git hooks ===
+
+  hooks:
+    desc: Install the pre-commit and commit-msg hooks
+    # `pre-commit install` is not idempotent-by-config: a fresh clone has an
+    # empty .git/hooks and no amount of committed configuration changes that.
+    # Hanging it off `up` means the first command anybody runs installs it,
+    # rather than leaving the AI-attribution ban to a step somebody remembers.
+    status:
+      - test -f .git/hooks/commit-msg
+      - test -f .git/hooks/pre-commit
+    cmds:
+      - pre-commit install --hook-type pre-commit --hook-type commit-msg
+
+  hooks:verify:
+    desc: Assert the commit-msg hook actually rejects AI attribution
+    cmds:
+      - scripts/check-hooks.sh
+
   # === Dev container ===
 
   up:
     desc: Build and start the dev container
+    deps: [hooks]
     cmds: ['{{.DC}} up -d --build']
 
   down:
@@ -145,7 +165,9 @@ tasks:
       # Deliberately manual, and deliberately not part of any gate. A fixture
       # that re-records itself is not a fixture: the value is that a change in
       # what PowerDNS sends arrives as a diff somebody reads.
-      - '{{.EXEC}} env RECORD_FIXTURES=1 go test -tags acceptance ./internal/testutil -run TestRecordFixtures -count=1 -v'
+      - >-
+        {{.EXEC}} env RECORD_FIXTURES=1 go test -tags acceptance
+        ./internal/testutil -run TestRecordFixtures -count=1 -v
       - cmd: echo 'fixtures recorded — review `git diff internal/testutil/testdata/fixtures`'
         silent: true
 
@@ -265,6 +287,7 @@ tasks:
   all:
     desc: Pre-merge gate — everything that does not need the lab
     cmds:
+      - {task: 'hooks:verify'}
       - {task: build}
       - {task: test}
       - {task: 'test:contract'}

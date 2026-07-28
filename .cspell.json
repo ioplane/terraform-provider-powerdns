@@ -25,7 +25,8 @@
     // golangci-lint linter names.
     "golangci", "gosec", "gocritic", "bodyclose", "containedctx", "depguard",
     "errorlint", "forbidigo", "interfacebloat", "nakedret", "nolint",
-    "paralleltest", "recvcheck",
+    "paralleltest", "recvcheck", "funlen", "maintidx", "nestif",
+    "forcetypeassert", "goconst", "godox", "nonamedreturns",
 
     // Tooling and configuration file names.
     "Containerfile", "Taskfile", "taskfile", "commitlintrc", "pyproject",
@@ -35,6 +36,9 @@
     // This repository's own test identifiers and container names.
     "testutil", "testacc", "testkey", "labapikey", "capprobe", "fixtureview",
     "ddist", "dnsdistdist", "recursordist", "pgsql",
+
+    // PowerDNS and DNS vocabulary.
+    "downstreams", "dynblocks", "dynblocklist",
 
     // Methodology.
     "Scrumban"

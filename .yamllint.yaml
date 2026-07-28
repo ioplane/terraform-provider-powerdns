@@ -5,6 +5,10 @@ ignore: |
   bin/
   dist/
   .worktrees/
+  .venv/
+  # Vendored verbatim from PowerDNS. Its formatting is theirs to fix, and
+  # reformatting it here would destroy the thing it is vendored to prove.
+  internal/testutil/testdata/spec/
 
 rules:
   line-length:

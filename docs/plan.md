@@ -11,7 +11,7 @@
 
 ![phase 2_of_8](https://shieldcn.dev/badge/phase-2_of_8-0969da.svg?variant=secondary)
 ![phases_closed 2](https://shieldcn.dev/badge/phases_closed-2-3fb950.svg?variant=secondary)
-![tasks_done 30](https://shieldcn.dev/badge/tasks_done-30-3fb950.svg?variant=secondary)
+![tasks_done 31](https://shieldcn.dev/badge/tasks_done-31-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -23,7 +23,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 1 (transport) closed; phase 2 (clients) next
+**Status:** phase 2 (clients) in progress — S2-01 next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -60,11 +60,11 @@ across five services.
 | S0-07 | Dev image on `golang:1.26-trixie`, pinned by digest | OPS | — | `[x]` |
 | S0-08 | Five-service lab, every image pinned by digest | OPS | S0-07 | `[x]` |
 | S0-09 | `lab.py` on podman-py: up, down, status, verify | OPS | S0-08 | `[x]` |
-| S0-10 | Taskfile — 37 tasks, guards on container and lab | OPS | S0-07 | `[x]` |
-| S0-11 | `golangci-lint` v2, allowlist of 82, **no path exclusions** | OPS | — | `[x]` |
+| S0-10 | Taskfile — 40 tasks, guards on container, lab and hooks | OPS | S0-07 | `[x]` |
+| S0-11 | `golangci-lint` v2, allowlist of 82, **no blanket path exclusions** | OPS | — | `[x]` |
 | S0-12 | Python gate: uv, ruff, ty, `pyproject.toml` | OPS | S0-07 | `[x]` |
 | S0-13 | `scripts/check-pins.sh` — digests and action SHAs resolve, none float | OPS | — | `[x]` |
-| S0-14 | `scripts/check-no-ai-attribution.sh` and the commit hook | OPS | — | `[x]` |
+| S0-14 | `scripts/check-no-ai-attribution.sh` and the `commit-msg` hook | OPS | — | `[x]` script written; **installation was not — see S1-10** |
 | S0-15 | GitLab CI: build, test, lint, security, acceptance matrix | OPS | S0-10 | `[x]` |
 | S0-16 | GitHub Actions: release only — goreleaser, GPG, registry | OPS | S0-10 | `[x]` |
 | S0-17 | `main.go` + empty framework provider, protocol 6, three-product schema | DEV | S0-10 | `[x]` |
@@ -73,9 +73,16 @@ across five services.
 | S0-21 | **Added.** Badges corrected: dynamic over static, default size, clickable, no erroring endpoint | PM | S0-19 | `[x]` |
 | S0-20 | **Added.** Correct commit authorship to the `gh auth` identity | OPS | — | `[x]` |
 
-**Exit gate met.** `go build` clean, `golangci-lint` 0 issues with **no path
-exclusions**, `check-pins.sh` verifies 10 references, `lab:verify` green across
-five services. The Taskfile parses with 37 tasks.
+**Exit gate met.** `go build` clean, `golangci-lint` 0 issues, `check-pins.sh`
+verifies 10 references, `lab:verify` green across five services. The Taskfile
+parses with 40 tasks.
+
+On S0-11: `exclusions.paths` is `["$^"]`, a pattern that matches nothing, so no
+file is exempt from the linter as a whole. What does exist is five enumerated
+per-rule exemptions — `funlen` off inside framework `Schema` methods, `gosec`
+and friends off in `_test.go`, `paralleltest` off in `_acc_test.go` — each
+naming both the path and the linters it relaxes. That is a weaker claim than
+"no exclusions" and the row now makes it.
 
 **Two of my own mistakes were caught by the gate I had just written.** The
 GitLab pipeline went in with placeholder digests of all zeros, and
@@ -137,6 +144,7 @@ without containers, and cross-checked against the vendored specification.
 | S1-07 | Contract tests for every error class | QA | S1-05, S1-06 | `[x]` |
 | S1-08 | `compose.dev.yml` — the file every `task` target already assumed | OPS | S0-04 | `[x]` |
 | S1-09 | Make `task all` pass end to end: six latent gate failures | OPS | S1-08 | `[x]` |
+| S1-10 | Install the git hooks S0-14 only configured; `check-hooks.sh` in the gate | OPS | S0-14 | `[x]` |
 
 The classifier is verified twice over. `classify_test.go` asserts the mapping,
 including the cases that must **not** fire — a rule that classifies too eagerly
@@ -166,6 +174,19 @@ dictionary over British prose. All are listed in the changelog.
 
 The lesson is in [`docs/standards/verified-identifiers.md`](standards/verified-identifiers.md):
 a gate that has not been observed to fail is not known to run.
+
+S1-10 is the same failure a second time, and it mattered more. S0-14 was marked
+done on the strength of `.pre-commit-config.yaml` and
+`scripts/check-no-ai-attribution.sh` both existing. Neither is a hook.
+`.git/hooks` is not tracked, so a fresh clone starts unprotected and this one
+always had been: the ban on AI attribution — a binding rule in `AGENTS.md`, and
+the one the author cares about most — was enforced by nothing at all.
+
+`task hooks` now installs them and hangs off `task up`, so the first command
+anybody runs arms the ban. `scripts/check-hooks.sh` asserts both halves in the
+gate: the hooks are present, **and** the checker rejects a message carrying an
+AI trailer while accepting an ordinary one. Testing only the rejection would
+pass for a checker that rejects everything.
 
 ### The test scaffolding
 
@@ -214,18 +235,40 @@ not a gap here.
 
 ---
 
-## Phase 2 — Clients · `[ ]`
+## Phase 2 — Clients · `[~]` in progress
 
-**Exit gate:** all 68 targeted operations implemented and contract-tested.
+**Exit gate:** all 68 operations implemented and contract-tested — 42
+Authoritative, 16 Recursor, 10 dnsdist, per the capability map.
 
-| ID | Task | Role | Depends | Status |
-| --- | --- | --- | --- | --- |
-| S2-01 | `api/auth`: zones, rrsets | DEV | S1-07 | `[ ]` |
-| S2-02 | `api/auth`: metadata, cryptokeys, tsigkeys, autoprimaries | DEV | S2-01 | `[ ]` |
-| S2-03 | `api/auth`: views, networks, server, search, cache, zone actions | DEV | S2-01 | `[ ]` |
-| S2-04 | `api/rec`: zones, the two writable settings, statistics | DEV | S1-07 | `[ ]` |
-| S2-05 | `api/dnsdist`: acl, cache, statistics, pool, rings, config | DEV | S1-07 | `[ ]` |
-| S2-06 | Contract tests per client | QA | S2-01…S2-05 | `[ ]` |
+The operation counts are in the table because the exit gate is a number: a
+phase that claims 68 and delivers 61 should be visible as such without anybody
+recounting. Each row's count is the sum of its domains in
+[`CM-03`](https://github.com/dantte-lp/powerdns-capability-map).
+
+| ID | Task | Role | Depends | Ops | Status |
+| --- | --- | --- | --- | --- | --- |
+| S2-01 | `api/auth`: zones and rrsets — including notify, axfr-retrieve, export, rectify | DEV | S1-07 | 10 | `[ ]` |
+| S2-02 | `api/auth`: metadata (5), cryptokeys (6), tsigkeys (5), autoprimaries (3) | DEV | S2-01 | 19 | `[ ]` |
+| S2-03 | `api/auth`: views (4), networks (3), servers (2), config (1), statistics (1), search (1), cache flush (1) | DEV | S2-01 | 13 | `[ ]` |
+| S2-04 | `api/rec`: zones (5), config (5), statistics (2), search (1), cache (1), servers (2) | DEV | S1-07 | 16 | `[ ]` |
+| S2-05 | `api/dnsdist`: all ten, of which two write | DEV | S1-07 | 10 | `[ ]` |
+| S2-06 | Contract tests per client, against recorded fixtures | QA | S2-01…S2-05 | — | `[ ]` |
+
+**42 + 16 + 10 = 68.** The previous version of this table listed neither
+`config` nor `statistics` for Authoritative, and gave Recursor as "zones, the
+two writable settings, statistics" — which is 8 of its 16. It also listed
+"zone actions" under S2-03 while S2-01 already owned them. Corrected by
+recounting against the capability map rather than against the earlier plan.
+
+Two notes that shape the clients rather than merely describe them:
+
+- **Recursor's `/config/{name}` is not a general handler.** Only `allow-from`
+  and `allow-notify-from` are registered; every other name answers `404` on
+  both read and write. The client exposes two settings, not a map.
+- **dnsdist has ten operations and two of them write** — `PUT
+  config/allow-from` and `DELETE /api/v1/cache`. Rules, pools, downstreams and
+  dynblocks are Lua or YAML, never HTTP. The client cannot be given a shape
+  that implies otherwise.
 
 ---
 

@@ -84,6 +84,24 @@ gate had been unable to report:
 - `markdownlint` and `cspell` both linted `.venv/`, which uv materialises in
   the working tree. Ignored, and added to `.gitignore`.
 
+- The `commit-msg` hook was configured but never installed. `.git/hooks` is not
+  tracked, so every clone of this repository — including the only one that
+  exists — started unprotected, and the ban on AI attribution in `AGENTS.md`
+  was enforced by nothing. `task hooks` now installs the hooks and hangs off
+  `task up`; `scripts/check-hooks.sh` asserts in the gate that they are present
+  and that the checker both rejects an AI trailer and accepts an ordinary
+  message.
+- The phase 2 table listed 40 of the 42 Authoritative operations and 8 of the
+  16 Recursor ones, and double-counted zone actions across two rows. Recounted
+  against the capability map; each row now carries its operation count so the
+  68-operation exit gate can be checked without recounting.
+- Plan corrections found by re-verifying it against the repository rather than
+  against itself: the Taskfile has 40 tasks, not 37; `golangci-lint` has no
+  *blanket* path exclusions but does carry five enumerated per-rule exemptions,
+  which is a weaker claim than the one the plan made.
+- `yamllint` reported 30 warnings against the vendored PowerDNS specification,
+  whose formatting is not ours to fix. Excluded, with `.venv/`.
+
 ### Security
 
 - Four reachable vulnerabilities, all reached through indirect dependencies of
