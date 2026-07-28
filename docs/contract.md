@@ -107,6 +107,8 @@ come.
 | `powerdns_record` | One RRSet |
 | `powerdns_zone_metadata` | One metadata kind |
 | `powerdns_zone_export` | A zone in presentation format |
+| `powerdns_recursor_zone` | A Recursor zone |
+| `powerdns_dnsdist_server` | dnsdist's version, ACL and downstream servers |
 
 ### Ephemeral resources
 
