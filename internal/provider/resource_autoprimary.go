@@ -23,6 +23,7 @@ import (
 
 var (
 	_ resource.Resource                = (*autoprimaryResource)(nil)
+	_ resource.ResourceWithIdentity    = (*autoprimaryResource)(nil)
 	_ resource.ResourceWithConfigure   = (*autoprimaryResource)(nil)
 	_ resource.ResourceWithImportState = (*autoprimaryResource)(nil)
 )
@@ -150,6 +151,8 @@ func (r *autoprimaryResource) Create(
 	}
 
 	plan.ID = types.StringValue(entry.IP + "/" + entry.Nameserver)
+	resp.Diagnostics.Append(setAutoprimaryIdentity(ctx, resp.Identity,
+		entry.IP, entry.Nameserver)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -188,6 +191,8 @@ func (r *autoprimaryResource) Read(
 			continue
 		}
 		state.Account = optionalString(entry.Account)
+		resp.Diagnostics.Append(setAutoprimaryIdentity(ctx, resp.Identity,
+			entry.IP, entry.Nameserver)...)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 		return
 	}

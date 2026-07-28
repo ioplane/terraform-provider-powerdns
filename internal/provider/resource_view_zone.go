@@ -22,6 +22,7 @@ import (
 
 var (
 	_ resource.Resource                = (*viewZoneResource)(nil)
+	_ resource.ResourceWithIdentity    = (*viewZoneResource)(nil)
 	_ resource.ResourceWithConfigure   = (*viewZoneResource)(nil)
 	_ resource.ResourceWithImportState = (*viewZoneResource)(nil)
 )
@@ -147,6 +148,7 @@ func (r *viewZoneResource) Create(
 	}
 
 	plan.ID = types.StringValue(view + "/" + zoneID)
+	resp.Diagnostics.Append(setViewZoneIdentity(ctx, resp.Identity, view, zoneID)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -183,6 +185,8 @@ func (r *viewZoneResource) Read(
 	wanted := state.Zone.ValueString()
 	for _, zone := range zones {
 		if normalise.DNSName(wanted, zone) {
+			resp.Diagnostics.Append(setViewZoneIdentity(ctx, resp.Identity,
+				state.View.ValueString(), canonicalName(wanted))...)
 			resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 			return
 		}

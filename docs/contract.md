@@ -120,6 +120,42 @@ something downstream storing it.
 | `powerdns_cryptokey_material` | A DNSSEC private key | Terraform 1.10 |
 | `powerdns_tsigkey_secret` | A TSIG shared secret | Terraform 1.10 |
 
+### Resource identity
+
+Every resource with a stable natural key declares one, so Terraform can
+recognise a remote object without parsing an id string.
+
+| Resource | Identity |
+| --- | --- |
+| `powerdns_zone`, `powerdns_recursor_zone` | `zone_name` |
+| `powerdns_record` | `zone_name`, `record_name`, `record_type` |
+| `powerdns_zone_metadata` | `zone_name`, `kind` |
+| `powerdns_zone_cryptokey` | `zone_name`, `key_id` |
+| `powerdns_tsigkey` | `key_id` |
+| `powerdns_view_zone` | `view`, `zone_name` |
+| `powerdns_network` | `network` |
+| `powerdns_autoprimary` | `ip`, `nameserver` |
+
+**The scope is one PowerDNS installation.** Terraform asks that an identity
+address at most one object across every instance of the provider; PowerDNS
+offers no server identifier to compose in — `/servers/{id}` answers only for
+`localhost` — and the endpoint URL cannot serve, because a server that moves
+would change identity while remaining the same object. Within one installation
+an identity is unique; across two, `example.com.` is ambiguous in exactly the
+way the zone name itself is.
+
+`powerdns_recursor_acl` and `powerdns_dnsdist_acl` have **no** identity. Their
+natural key is the setting name, which is the same on every installation, so
+any identity they declared would be false.
+
+#### `nameservers` and import blocks
+
+A zone created with `nameservers` cannot be imported by an import block without
+planning a replacement. PowerDNS consumes the attribute once at creation and
+never reports it, so the imported object has none while the configuration has
+some. Import such a zone with `terraform import`, or omit `nameservers` and
+manage the NS records with `powerdns_record`.
+
 ### Actions
 
 Imperative operations, needing Terraform 1.14. They have no state: running one

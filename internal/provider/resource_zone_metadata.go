@@ -25,6 +25,7 @@ import (
 
 var (
 	_ resource.Resource                = (*zoneMetadataResource)(nil)
+	_ resource.ResourceWithIdentity    = (*zoneMetadataResource)(nil)
 	_ resource.ResourceWithConfigure   = (*zoneMetadataResource)(nil)
 	_ resource.ResourceWithImportState = (*zoneMetadataResource)(nil)
 )
@@ -155,6 +156,8 @@ func (r *zoneMetadataResource) Create(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	resp.Diagnostics.Append(setMetadataIdentity(ctx, resp.Identity,
+		canonicalName(plan.Zone.ValueString()), plan.Kind.ValueString())...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -205,6 +208,8 @@ func (r *zoneMetadataResource) Read(
 	}
 	state.Values = values
 
+	resp.Diagnostics.Append(setMetadataIdentity(ctx, resp.Identity,
+		zoneID, state.Kind.ValueString())...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 

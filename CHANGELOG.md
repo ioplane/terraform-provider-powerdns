@@ -165,6 +165,11 @@ The mapping between commit type, changelog section and version bump is in
   `soa_serial`. Pure and offline — a data source would make a plan depend on a
   server for an answer that is a string operation.
 
+- Resource identity on the nine resources with a stable natural key, and
+  import by identity for zones and records. The two ACL resources deliberately
+  have none: their key is the same on every installation, so any identity would
+  be false.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
@@ -267,6 +272,11 @@ gate had been unable to report:
 - Removing an ACL resource leaves the setting on the server and warns. There is
   no unset state for an ACL, and writing an empty list would refuse every
   client.
+
+- A zone created with `nameservers` cannot round-trip through an import block:
+  the attribute is create-only and never read back, so the difference forces a
+  replacement. Use `terraform import`, or manage NS records with
+  `powerdns_record`.
 
 ### Notes
 

@@ -285,7 +285,7 @@ linters:
       # constants would put the contract one indirection away from the schema
       # that declares it, and every attribute appears once per resource by
       # design rather than by repetition.
-      - path: internal/provider/(resource|datasource|ephemeral)_.*\.go|internal/provider/(actions|functions)\.go
+      - path: internal/provider/(resource|datasource|ephemeral)_.*\.go|internal/provider/(actions|functions|identity)\.go
         linters:
           - goconst
       - path: scripts/

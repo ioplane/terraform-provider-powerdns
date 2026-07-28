@@ -22,6 +22,7 @@ import (
 
 var (
 	_ resource.Resource                = (*tsigKeyResource)(nil)
+	_ resource.ResourceWithIdentity    = (*tsigKeyResource)(nil)
 	_ resource.ResourceWithConfigure   = (*tsigKeyResource)(nil)
 	_ resource.ResourceWithImportState = (*tsigKeyResource)(nil)
 )
@@ -206,6 +207,7 @@ func (r *tsigKeyResource) Create(
 	plan.ID = types.StringValue(created.ID)
 	plan.Secret = types.StringNull()
 
+	resp.Diagnostics.Append(setTSIGKeyIdentity(ctx, resp.Identity, created.ID)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -253,6 +255,7 @@ func (r *tsigKeyResource) Read(
 		state.Algorithm = types.StringValue(key.Algorithm)
 		// secret_wo is write-only and has no value in state, ever.
 		state.Secret = types.StringNull()
+		resp.Diagnostics.Append(setTSIGKeyIdentity(ctx, resp.Identity, key.ID)...)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 		return
 	}

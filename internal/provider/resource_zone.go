@@ -26,6 +26,7 @@ import (
 
 var (
 	_ resource.Resource                = (*zoneResource)(nil)
+	_ resource.ResourceWithIdentity    = (*zoneResource)(nil)
 	_ resource.ResourceWithConfigure   = (*zoneResource)(nil)
 	_ resource.ResourceWithImportState = (*zoneResource)(nil)
 )
@@ -358,6 +359,7 @@ func (r *zoneResource) Create(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	resp.Diagnostics.Append(setZoneIdentity(ctx, resp.Identity, plan.ID.ValueString())...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -394,6 +396,9 @@ func (r *zoneResource) Read(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// Set on Read as well as Create: a resource created before this provider
+	// grew identities has none until something writes one.
+	resp.Diagnostics.Append(setZoneIdentity(ctx, resp.Identity, state.ID.ValueString())...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -487,7 +492,21 @@ func (r *zoneResource) ImportState(
 	req resource.ImportStateRequest,
 	resp *resource.ImportStateResponse,
 ) {
-	id := canonicalName(req.ID)
+	// Either spelling: `terraform import` with a zone name, or an import block
+	// carrying the identity. The helper picks whichever was used.
+	id := req.ID
+	if id == "" {
+		var identity types.String
+		resp.Diagnostics.Append(
+			req.Identity.GetAttribute(ctx, path.Root("zone_name"), &identity)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		id = identity.ValueString()
+	}
+	id = canonicalName(id)
+
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), id)...)
+	resp.Diagnostics.Append(setZoneIdentity(ctx, resp.Identity, id)...)
 }
