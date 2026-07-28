@@ -11,7 +11,7 @@
 
 ![phase 5_of_8](https://shieldcn.dev/badge/phase-5_of_8-0969da.svg?variant=secondary)
 ![phases_closed 5](https://shieldcn.dev/badge/phases_closed-5-3fb950.svg?variant=secondary)
-![tasks_done 55](https://shieldcn.dev/badge/tasks_done-55-3fb950.svg?variant=secondary)
+![tasks_done 58](https://shieldcn.dev/badge/tasks_done-58-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,7 +24,8 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 4 closed; phase 5 (the family surface) next
+**Status:** phase 5 — views, networks and autoprimaries landed;
+Recursor and dnsdist resources next
 **Last updated:** 2026-07-28
 
 ## How a sprint runs
@@ -634,19 +635,50 @@ three keys in the zone and did not generalise.
 
 ---
 
-## Phase 5 — Family surface · `[ ]`
+## Phase 5 — Family surface · `[~]` in progress
 
 | ID | Task | Role | Depends | Status |
 | --- | --- | --- | --- | --- |
-| S5-01 | `powerdns_view_zone`, `powerdns_network` — LMDB only | DEV | S3-07 | `[ ]` |
-| S5-02 | `powerdns_autoprimary` | DEV | S3-07 | `[ ]` |
+| S5-01 | `powerdns_view_zone`, `powerdns_network` — LMDB only | DEV | S3-07 | `[x]` |
+| S5-02 | `powerdns_autoprimary` | DEV | S3-07 | `[x]` |
 | S5-03 | `powerdns_recursor_zone`, `powerdns_recursor_acl` | DEV | S2-04 | `[ ]` |
 | S5-04 | `powerdns_dnsdist_acl` | DEV | S2-05 | `[ ]` |
 | S5-05 | Data sources for recursor and dnsdist | DEV | S5-03, S5-04 | `[ ]` |
-| S5-06 | Negative tests asserting each capability diagnostic | QA | S5-01…S5-04 | `[ ]` |
+| S5-06 | Negative tests asserting each capability diagnostic | QA | S5-01…S5-04 | `[~]` LMDB and unconfigured-product covered |
 
 S5-06 asserts the **message**, not the failure. A bare `422` reaching a user is
-the defect this provider exists to avoid.
+the defect this provider exists to avoid, and a test that only checked "this
+errored" would pass for a provider that surfaced the status and left the
+operator to work it out.
+
+Two cases are covered so far, and the split between them is worth recording:
+
+- **Views on a relational backend** is an acceptance test. It needs two real
+  servers with different backends, which is exactly what ADR 0005 built the lab
+  for. Its twin asserts that meeting the requirement works, because a
+  diagnostic naming a fix is only useful if the fix does something.
+- **An unconfigured product** could not be an acceptance test. The lab
+  configures every product through the environment and the provider reads the
+  environment by design, so there is no way to have one unconfigured on a
+  machine where the suite runs. It is a unit test on the `Require*` accessors
+  instead, asserting the argument name and the environment variable appear in
+  the text.
+
+The Recursor's `api_dir` case is skipped with its reason recorded: the lab's
+Recursor has it configured, and provoking the failure would need a second
+Recursor with it left out. The classifier itself is covered by
+`classify_test.go`, including the cases that must not fire.
+
+### One worktree per sprint, starting here
+
+Phase 5 is the first sprint to follow the workflow `AGENTS.md` has always
+described. Doing so immediately exposed a defect in it: the dev container is
+bind-mounted on whichever checkout started it, and its name was fixed, so a
+worktree's `task test` compiled the code in `main` instead of its own.
+
+`DEV_SUFFIX` now derives a per-checkout container name from the directory, and
+each worktree gets its own. Verified by inspecting the mount: the worktree's
+container is mounted on the worktree.
 
 ---
 

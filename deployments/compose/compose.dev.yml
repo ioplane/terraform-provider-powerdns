@@ -8,11 +8,15 @@
 # The lab is a separate Compose project on purpose (ADR 0005): it is started
 # and stopped independently of the tools that talk to it.
 
-name: terraform-provider-powerdns-dev
+# The suffix is what makes one worktree's container distinct from another's.
+# Without it every worktree shares one container, which is mounted on whichever
+# tree started it — so `task test` in a worktree would build the wrong code.
+# Taskfile.yml derives DEV_SUFFIX from the checkout directory.
+name: terraform-provider-powerdns-dev${DEV_SUFFIX:-}
 
 services:
   dev:
-    container_name: terraform-provider-powerdns-dev
+    container_name: terraform-provider-powerdns-dev${DEV_SUFFIX:-}
     build:
       context: ../..
       dockerfile: deployments/containers/Containerfile.dev

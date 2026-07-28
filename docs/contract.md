@@ -66,6 +66,9 @@ sits, so every `id` here is composed from the attributes that locate it.
 | `powerdns_zone_metadata` | `<zone>/<kind>` | `example.com./ALLOW-AXFR-FROM` |
 | `powerdns_zone_cryptokey` | `<zone>/<key_id>` | `example.com./3` |
 | `powerdns_tsigkey` | canonical key name | `transfer.` |
+| `powerdns_view_zone` | `<view>/<zone>` | `trusted/example.com.` |
+| `powerdns_network` | the CIDR | `192.0.2.0/24` |
+| `powerdns_autoprimary` | `<ip>/<nameserver>` | `192.0.2.53/ns1.example.com.` |
 
 The consequence is that changing any part of an id replaces the resource.
 There is no rename: PowerDNS has no operation that would implement one.
@@ -85,6 +88,9 @@ come.
 | `powerdns_zone_metadata` | One metadata kind | `zone`, `kind` |
 | `powerdns_zone_cryptokey` | One DNSSEC key | `zone`, `key_type`, and `algorithm`/`bits` when configured |
 | `powerdns_tsigkey` | One TSIG key | `name`, `algorithm` — see below |
+| `powerdns_view_zone` | A zone's membership of a view (LMDB only) | `view`, `zone` |
+| `powerdns_network` | A subnet-to-view mapping (LMDB only) | `network` |
+| `powerdns_autoprimary` | An autoprimary entry | every attribute |
 
 ### Data sources
 
@@ -152,6 +158,8 @@ deciding how to write a value:
 | `powerdns_record.values`, type `A`/`AAAA` | by address value, ignoring order |
 | `powerdns_record.values`, other types | exactly |
 | `powerdns_zone_cryptokey.key_type` | `csk` is compatible with `ksk` and `zsk` |
+| `powerdns_network.network` | as a subnet, so an uncompressed IPv6 prefix is not a change |
+| `powerdns_autoprimary.ip` | by address value |
 
 Every one of these is asserted in both directions: a respelling plans nothing,
 and a genuine change plans a change. A comparison looser than the server's

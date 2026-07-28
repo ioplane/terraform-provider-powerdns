@@ -199,6 +199,9 @@ func (p *powerdnsProvider) Resources(_ context.Context) []func() resource.Resour
 		NewZoneMetadataResource,
 		NewCryptoKeyResource,
 		NewTSIGKeyResource,
+		NewViewZoneResource,
+		NewNetworkResource,
+		NewAutoprimaryResource,
 	}
 }
 

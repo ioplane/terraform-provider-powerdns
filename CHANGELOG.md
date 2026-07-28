@@ -144,6 +144,13 @@ The mapping between commit type, changelog section and version bump is in
   no GitLab remote was ever configured — and stays as the gate definition for a
   mirror that does not exist. One pull request per sprint, squash-merged.
 
+- `powerdns_view_zone`, `powerdns_network` and `powerdns_autoprimary`. Views
+  and networks need the LMDB backend; on a relational one the diagnostic names
+  the requirement rather than repeating a 422.
+- Negative tests asserting each capability diagnostic by its **text**. A test
+  that only checked "this errored" would pass for a provider that surfaced a
+  bare status code.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
@@ -238,6 +245,10 @@ gate had been unable to report:
   `terraform-plugin-framework`: `golang.org/x/net` to v0.55.0 (GO-2026-5026),
   `golang.org/x/text` to v0.39.0 (GO-2026-5970), and `google.golang.org/grpc`
   to v1.82.1 (GO-2026-4762, GO-2026-6061). `govulncheck` now reports zero.
+
+- One dev container per checkout. The container was bind-mounted on whichever
+  tree started it and its name was fixed, so a worktree's `task test` compiled
+  the code in `main`. Found on the first sprint to actually use a worktree.
 
 ### Notes
 

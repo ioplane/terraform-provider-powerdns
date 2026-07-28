@@ -14,10 +14,15 @@
 version: '3'
 
 vars:
+  # One dev container per checkout. main and each worktree get their own, named
+  # after the directory, because a shared container is bind-mounted on whichever
+  # tree happened to start it — and `task test` would then build the wrong code.
+  DEV_SUFFIX:
+    sh: 'case "$PWD" in */.worktrees/*) echo "-$(basename "$PWD")" ;; *) echo "" ;; esac'
   COMPOSE_DEV: deployments/compose/compose.dev.yml
   COMPOSE_LAB: deployments/compose/compose.lab.yml
-  DC: podman-compose -f deployments/compose/compose.dev.yml
-  EXEC: podman-compose -f deployments/compose/compose.dev.yml exec -T dev
+  DC: DEV_SUFFIX={{.DEV_SUFFIX}} podman-compose -f deployments/compose/compose.dev.yml
+  EXEC: DEV_SUFFIX={{.DEV_SUFFIX}} podman-compose -f deployments/compose/compose.dev.yml exec -T dev
   TYPE: powerdns
   BINARY: terraform-provider-powerdns
   VERSION:
@@ -52,8 +57,8 @@ tasks:
   _dev-running:
     internal: true
     preconditions:
-      - sh: podman container exists terraform-provider-powerdns-dev
-        msg: "dev container is not running — run: task up"
+      - sh: podman container exists terraform-provider-powerdns-dev{{.DEV_SUFFIX}}
+        msg: "dev container is not running for this checkout — run: task up"
 
   _lab-running:
     internal: true
@@ -70,8 +75,8 @@ tasks:
     # Hanging it off `up` means the first command anybody runs installs it,
     # rather than leaving the AI-attribution ban to a step somebody remembers.
     status:
-      - test -f .git/hooks/commit-msg
-      - test -f .git/hooks/pre-commit
+      - test -f "$(git rev-parse --git-common-dir)/hooks/commit-msg"
+      - test -f "$(git rev-parse --git-common-dir)/hooks/pre-commit"
     cmds:
       - pre-commit install --hook-type pre-commit --hook-type commit-msg
 
