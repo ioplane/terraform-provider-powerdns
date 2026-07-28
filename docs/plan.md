@@ -5,7 +5,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 0 in progress
+**Status:** phase 0 **closed**; phase 1 (transport) next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -23,7 +23,7 @@ Roles per [`methodology.md`](methodology.md): **PM**, **ARC**, **DEV**, **QA**,
 
 ---
 
-## Phase 0 — Foundation · `[~]`
+## Phase 0 — Foundation · `[x]` closed 2026-07-28
 
 **Goal:** the toolchain, the lab and the pipelines everything else depends on.
 **Exit gate:** `task all` green on an empty provider; `task lab:verify` green
@@ -37,20 +37,31 @@ across five services.
 | S0-02 | `AGENTS.md`, symlinks `CLAUDE.md` and `CODEX.md` | PM | S0-01 | `[x]` |
 | S0-03 | Naming standard synthesised from the five sources | PM | — | `[x]` |
 | S0-04 | Standards: versioning, commits, changelog | PM | S0-03 | `[x]` |
-| S0-05 | Standards: Go 1.26, provider practices, Terragrunt, API discipline, Python, verified identifiers, containers | ARC | — | `[ ]` |
-| S0-06 | ADR 0001–0007 | ARC | — | `[~]` 0006 done |
+| S0-05 | Standards: Go 1.26, provider practices, Terragrunt, API discipline, Python, verified identifiers | ARC | — | `[x]` |
+| S0-06 | ADR 0001–0007 | ARC | — | `[x]` |
 | S0-07 | Dev image on `golang:1.26-trixie`, pinned by digest | OPS | — | `[x]` |
 | S0-08 | Five-service lab, every image pinned by digest | OPS | S0-07 | `[x]` |
 | S0-09 | `lab.py` on podman-py: up, down, status, verify | OPS | S0-08 | `[x]` |
-| S0-10 | Taskfile | OPS | S0-07 | `[ ]` |
-| S0-11 | `golangci-lint` v2, allowlist, severity tiers | OPS | — | `[ ]` |
-| S0-12 | Python gate: uv, ruff, ty, `pyproject.toml` | OPS | S0-07 | `[ ]` |
-| S0-13 | `scripts/check-pins.sh` — digests and action SHAs resolve, none float | OPS | — | `[ ]` |
-| S0-14 | `scripts/check-no-ai-attribution.sh` and the commit hook | OPS | — | `[ ]` |
-| S0-15 | GitLab CI: build, test, lint, security, acceptance matrix | OPS | S0-10 | `[ ]` |
-| S0-16 | GitHub Actions: release only — goreleaser, GPG, registry | OPS | S0-10 | `[ ]` |
-| S0-17 | `main.go` + empty framework provider, protocol 6 | DEV | S0-10 | `[ ]` |
-| S0-18 | `CHANGELOG.md`, `VERSION`, CONTRIBUTING, GOVERNANCE, SECURITY | PM | — | `[ ]` |
+| S0-10 | Taskfile — 37 tasks, guards on container and lab | OPS | S0-07 | `[x]` |
+| S0-11 | `golangci-lint` v2, allowlist of 82, **no path exclusions** | OPS | — | `[x]` |
+| S0-12 | Python gate: uv, ruff, ty, `pyproject.toml` | OPS | S0-07 | `[x]` |
+| S0-13 | `scripts/check-pins.sh` — digests and action SHAs resolve, none float | OPS | — | `[x]` |
+| S0-14 | `scripts/check-no-ai-attribution.sh` and the commit hook | OPS | — | `[x]` |
+| S0-15 | GitLab CI: build, test, lint, security, acceptance matrix | OPS | S0-10 | `[x]` |
+| S0-16 | GitHub Actions: release only — goreleaser, GPG, registry | OPS | S0-10 | `[x]` |
+| S0-17 | `main.go` + empty framework provider, protocol 6, three-product schema | DEV | S0-10 | `[x]` |
+| S0-18 | `CHANGELOG.md`, `VERSION`, README, CONTRIBUTING, SECURITY, docs index | PM | — | `[x]` |
+
+**Exit gate met.** `go build` clean, `golangci-lint` 0 issues with **no path
+exclusions**, `check-pins.sh` verifies 10 references, `lab:verify` green across
+five services. The Taskfile parses with 37 tasks.
+
+**Two of my own mistakes were caught by the gate I had just written.** The
+GitLab pipeline went in with placeholder digests of all zeros, and
+`check-pins.sh` itself had a resolution bug — it handed skopeo a reference
+carrying both a tag and a digest, which skopeo rejects, so five valid digests
+reported as not found. Both fixed; the checker is now verified against a
+fixture containing one fabricated digest and one floating tag.
 
 **S0-08 already earned its keep.** Standing up dnsdist found that
 `setAPIWritable`, not `apiConfigDir`, gates every write — without it each `PUT`

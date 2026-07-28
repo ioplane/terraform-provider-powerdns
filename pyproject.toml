@@ -1,0 +1,120 @@
+# Python tooling for the repository's automation scripts.
+#
+# There is no Python package here to publish — the scripts under scripts/ drive
+# the lab and the dev container. This file exists so ruff and ty have a single
+# declared configuration rather than per-invocation flags.
+#
+# Managed with uv: https://docs.astral.sh/uv/
+#   uv sync           install the pinned tool environment
+#   uv run ruff check scripts/
+#   uv run ty check scripts/
+
+[project]
+name = "terraform-provider-powerdns-automation"
+version = "0.1.0"
+description = "Lab and build automation for terraform-provider-powerdns."
+requires-python = ">=3.12"
+dependencies = [
+    "podman==5.7.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff==0.16.0",
+    "ty==0.0.64",
+]
+
+[tool.uv]
+# The scripts are not an installable package; uv should manage the environment
+# without trying to build one.
+package = false
+
+# --- ruff -------------------------------------------------------------------
+# https://docs.astral.sh/ruff/
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["scripts"]
+
+[tool.ruff.lint]
+# Same philosophy as .golangci.yml: an explicit allowlist gives an auditable
+# surface, and the strict rules are on by default rather than opted into.
+select = [
+    "F",      # pyflakes
+    "E", "W", # pycodestyle
+    "I",      # isort
+    "N",      # pep8-naming
+    "D",      # pydocstyle
+    "UP",     # pyupgrade
+    "ANN",    # flake8-annotations
+    "S",      # flake8-bandit
+    "BLE",    # flake8-blind-except
+    "B",      # flake8-bugbear
+    "A",      # flake8-builtins
+    "C4",     # flake8-comprehensions
+    "DTZ",    # flake8-datetimez
+    "T10",    # flake8-debugger
+    "EM",     # flake8-errmsg
+    "EXE",    # flake8-executable
+    "ISC",    # flake8-implicit-str-concat
+    "ICN",    # flake8-import-conventions
+    "LOG",    # flake8-logging
+    "G",      # flake8-logging-format
+    "INP",    # flake8-no-pep420
+    "PIE",    # flake8-pie
+    "T20",    # flake8-print
+    "PT",     # flake8-pytest-style
+    "Q",      # flake8-quotes
+    "RSE",    # flake8-raise
+    "RET",    # flake8-return
+    "SLF",    # flake8-self
+    "SIM",    # flake8-simplify
+    "TID",    # flake8-tidy-imports
+    "TC",     # flake8-type-checking
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+    "TD",     # flake8-todos
+    "ERA",    # eradicate
+    "PL",     # pylint
+    "TRY",    # tryceratops
+    "FLY",    # flynt
+    "PERF",   # perflint
+    "FURB",   # refurb
+    "RUF",    # ruff-specific
+]
+
+ignore = [
+    # The scripts are operator-facing command-line tools: printing to stdout is
+    # their output mechanism, not a debugging leftover.
+    "T201",
+    # One-line docstring on the module is enough; the tools are short.
+    "D203", "D213",
+    # Conflicts with the formatter.
+    "ISC001",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# subprocess use is the point of the automation, and every call site is a fixed
+# argument list with no shell and no user input.
+"scripts/automation/*.py" = ["S603", "S607"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+# --- ty ---------------------------------------------------------------------
+# https://docs.astral.sh/ty/
+# ty is pre-1.0 (0.0.64 at time of writing). It runs in the gate because its
+# findings have been accurate here, but a ty-only failure is reviewed rather
+# than trusted blindly — see docs/standards/python-tooling.md.
+[tool.ty.src]
+include = ["scripts"]
+
+[tool.ty.rules]
+possibly-unresolved-reference = "error"
+unresolved-import = "error"
+invalid-return-type = "error"

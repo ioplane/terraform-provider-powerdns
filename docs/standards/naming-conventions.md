@@ -75,7 +75,7 @@ checked — see §8.
 | Markdown | `kebab-case.md` | `naming-conventions.md` |
 | ADRs | `NNNN-kebab.md` | `0006-dnsdist-scope.md` |
 | Design records | `DESIGN-NN-kebab.md` | `DESIGN-01-target-architecture.md` |
-| Audit records | `AUDIT-NN-kebab.md` | `AUDIT-01-fork-baseline.md` |
+| Audit records | `AUDIT-NN-kebab.md` | `AUDIT-01-baseline.md` |
 | Directories | `kebab-case` or one word | `deployments/`, `internal/api/` |
 | YAML / config | `kebab-case.yml` | `compose.dev.yml` |
 | Terraform files | `snake_case.tf` | `main.tf` |

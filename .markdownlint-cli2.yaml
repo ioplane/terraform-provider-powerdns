@@ -1,0 +1,24 @@
+config:
+  default: true
+  # Line length is handled by hand-wrapping at 80; tables and links legitimately
+  # exceed it and reflowing them hurts readability.
+  MD013:
+    line_length: 100
+    tables: false
+    code_blocks: false
+  # Duplicate headings are expected across ADRs (Context / Decision).
+  MD024:
+    siblings_only: true
+  MD033: false
+  MD041: false
+
+globs:
+  - "**/*.md"
+
+ignores:
+  - "vendor/**"
+  - "node_modules/**"
+  - "bin/**"
+  - "dist/**"
+  - ".worktrees/**"
+  - "CHANGELOG.md"

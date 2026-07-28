@@ -1,0 +1,22 @@
+# Conventional Commits 1.0.0 — https://www.conventionalcommits.org/en/v1.0.0/
+# Enforced on commit messages (commit-msg hook) and on pull-request titles (CI).
+extends:
+  - "@commitlint/config-conventional"
+
+rules:
+  type-enum:
+    - 2
+    - always
+    - [feat, fix, docs, chore, build, ci, refactor, perf, test, style, revert]
+  scope-enum:
+    - 2
+    - always
+    - [provider, zone, record, metadata, view, network, dnssec, tsig,
+       autoprimary, recursor, dnsdist, transport, auth, actions, functions,
+       ephemeral, docs, examples, lab, ci, build, deps, release, test, lint,
+       repo, standards]
+  scope-empty: [2, never]
+  subject-case: [2, always, [lower-case, sentence-case]]
+  subject-full-stop: [2, never, "."]
+  header-max-length: [2, always, 72]
+  body-max-line-length: [2, always, 72]

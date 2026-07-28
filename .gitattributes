@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.go text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+vendor/** linguist-vendored
+docs/** linguist-documentation

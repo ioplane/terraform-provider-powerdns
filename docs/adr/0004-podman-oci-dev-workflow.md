@@ -1,0 +1,34 @@
+# ADR 0004 — Containerised development on Podman and OCI
+
+- **Status:** accepted
+- **Date:** 2026-07-28
+- **Deciders:** ARC, OPS
+
+## Decision
+
+1. Development happens **inside a container** built from `golang:1.26-trixie`,
+   pinned by digest, with every tool baked in and pinned by build argument.
+2. The image is defined in a **`Containerfile`** per the `Containerfile.5`
+   specification, buildable by Buildah and `podman build` without an external
+   frontend.
+3. Orchestration uses the **Compose Specification** — no top-level `version:`
+   key — run through `podman-compose`.
+4. Images carry **OCI image-spec annotations**.
+5. Scripted automation uses **`podman-py`** against the Podman REST API, with a
+   CLI fallback so a diagnostic command does not fail when the API socket is
+   absent.
+6. Everything that runs is referenced **by digest**, never by tag.
+
+## Rationale
+
+Point 6 is the one that matters. `golang:1.26-trixie` is a moving reference; a
+digest is not. A build that is reproducible only until the upstream tag moves is
+not reproducible. `scripts/check-pins.sh` enforces it.
+
+## Consequences
+
+- The host needs Podman, podman-compose and Task. Nothing else.
+- CI uses the same digest-pinned images, so "works locally" and "works in CI"
+  mean the same thing.
+- Rootless Podman cannot bind privileged ports; the lab listens high and
+  publishes high. A property of the fixture, not a defect.

@@ -1,0 +1,305 @@
+# golangci-lint v2 configuration for terraform-provider-powerdns.
+# Spec: https://golangci-lint.run/usage/configuration/
+#
+# Philosophy:
+#   * `default: none` — an explicit allowlist gives an auditable surface.
+#   * Severity-tiered — a curated set is `error` (blocks merge); the rest warn.
+#   * Adapted for the Terraform Plugin Framework: schema/CRUD methods are long
+#     and pointer-receiver heavy by design, so the length linters are relaxed
+#     on those specific method bodies rather than disabled globally.
+version: "2"
+
+run:
+  timeout: 10m
+  relative-path-mode: gomod
+  tests: true
+  build-tags:
+    - acceptance
+
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/ioplane/terraform-provider-powerdns
+
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      colors: true
+  show-stats: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters:
+  default: none
+  enable:
+    # Security
+    - gosec
+    - bidichk
+    - forcetypeassert
+    - reassign
+    - containedctx
+    - forbidigo
+
+    # Correctness
+    - govet
+    - staticcheck
+    - errcheck
+    - bodyclose
+    - noctx
+    - contextcheck
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - durationcheck
+    - fatcontext
+    - copyloopvar
+    - predeclared
+    - recvcheck
+    - gocheckcompilerdirectives
+    - iface
+    - asasalint
+    - gochecksumtype
+    - gochecknoinits
+    - iotamixing
+
+    # Error handling
+    - errorlint
+    - err113
+    - errname
+    - errchkjson
+
+    # Network
+    - nosprintfhostport
+
+    # Code quality
+    - gocritic
+    - funlen
+    - exhaustive
+    - unparam
+    - unconvert
+    - unused
+    - ineffassign
+    - maintidx
+    - nakedret
+    - nonamedreturns
+    - goprintffuncname
+    - interfacebloat
+    - inamedparam
+    - decorder
+    - embeddedstructfieldcheck
+    - nestif
+    - funcorder
+    - goconst
+    - godox
+
+    # Performance
+    - prealloc
+    - perfsprint
+    - makezero
+    - mirror
+    - wastedassign
+    - intrange
+    - exptostd
+
+    # Style
+    - dupl
+    - misspell
+    - sloglint
+    - musttag
+    - modernize
+    - asciicheck
+    - canonicalheader
+    - dupword
+    - usestdlibvars
+    - loggercheck
+    - whitespace
+    - godot
+    - godoclint
+    - tagalign
+    - importas
+
+    # Dependencies
+    - depguard
+    - gomoddirectives
+    - gomodguard_v2
+
+    # Discipline
+    - nolintlint
+
+    # Tests
+    - tparallel
+    - thelper
+    - testableexamples
+    - usetesting
+    - testifylint
+    - paralleltest
+
+  settings:
+    gosec:
+      excludes: []
+      severity: low
+      confidence: low
+      config:
+        global:
+          audit: "true"
+          nosec: "true"
+          show-ignored: "true"
+        G301: "0750"
+        G302: "0600"
+        G306: "0600"
+    govet:
+      enable:
+        - shadow
+        - atomic
+        - copylocks
+        - loopclosure
+        - httpmux
+    funlen:
+      lines: 80
+      statements: 50
+    maintidx:
+      under: 20
+    nakedret:
+      max-func-lines: 0
+    exhaustive:
+      default-signifies-exhaustive: true
+    interfacebloat:
+      max: 10
+    importas:
+      no-unaliased: false
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: "math/rand$"
+              desc: "Use crypto/rand for secrets or math/rand/v2 otherwise."
+            - pkg: "^log$"
+              desc: "Use github.com/hashicorp/terraform-plugin-log/tflog for provider logging."
+            - pkg: "io/ioutil"
+              desc: "Deprecated in Go 1.16; use io / os."
+            - pkg: "unsafe"
+              desc: "Forbidden — the provider handles untrusted API and config input."
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    loggercheck:
+      require-string-key: true
+      no-printf-like: true
+    forbidigo:
+      forbid:
+        - pattern: '^fmt\.Print(|f|ln)$'
+          msg: "Use tflog for provider logging; fmt.Print* is allowed only under cmd/ and scripts/."
+        - pattern: '^print(ln)?$'
+          msg: "Bootstrap-only builtin; use tflog instead."
+      exclude-godoc-examples: true
+    goconst:
+      min-len: 4
+      min-occurrences: 5
+      match-constant: true
+    godox:
+      # TODO tracks planned work; FIXME/HACK/XXX/BUG mark things that must not
+      # ship and therefore fail the gate.
+      keywords:
+        - FIXME
+        - HACK
+        - XXX
+        - BUG
+    gomodguard_v2:
+      blocked:
+        - module: github.com/pkg/errors
+          recommendations:
+            - errors
+            - fmt
+          reason: "Standard library covers errors.Is / errors.As since Go 1.13."
+        - module: io/ioutil
+          recommendations:
+            - io
+            - os
+          reason: "Deprecated in Go 1.16."
+    nestif:
+      min-complexity: 5
+    funcorder:
+      constructor: true
+      struct-method: true
+    paralleltest:
+      ignore-missing: false
+      ignore-missing-subtests: false
+    embeddedstructfieldcheck:
+      forbid-mutex: true
+
+  exclusions:
+    generated: strict
+    presets:
+      - std-error-handling
+      - common-false-positives
+    paths:
+      # Nothing is excluded. This repository has no legacy package, and the
+      # first line of code faces the full gate — which is the one advantage of
+      # starting from scratch that is free to keep.
+      - $^
+    rules:
+      # Plugin Framework Schema/Metadata/ModifyPlan bodies are long and deeply
+      # nested by design — attribute maps, not business logic.
+      - source: 'func \(.*\) (Schema|Metadata|ModifyPlan|ConfigValidators|ImportState)\('
+        linters:
+          - funlen
+          - maintidx
+          - nestif
+      # Tests relax the strictest style/security rules.
+      - path: _test\.go
+        linters:
+          - gosec
+          - dupl
+          - funlen
+          - err113
+          - nonamedreturns
+          - maintidx
+          - containedctx
+          - forcetypeassert
+          - goconst
+          - godox
+          - nestif
+          - funcorder
+      # Acceptance tests share one lab instance and a global zone namespace, so
+      # parallel execution is unsafe. They live beside the resource they cover,
+      # named *_acc_test.go and built with the `acceptance` tag.
+      - path: _acc_test\.go
+        linters:
+          - paralleltest
+          - tparallel
+      # main.go bootstraps the provider server: fmt/flag/log at the edge is fine.
+      - path: main\.go
+        linters:
+          - forbidigo
+      - path: scripts/
+        linters:
+          - forbidigo
+          - depguard
+
+severity:
+  default: warning
+  rules:
+    - linters:
+        - gosec
+        - errcheck
+        - bodyclose
+        - noctx
+        - staticcheck
+        - forcetypeassert
+        - containedctx
+        - nilnil
+        - reassign
+        - forbidigo
+        - gomodguard_v2
+        - iotamixing
+        - paralleltest
+      severity: error

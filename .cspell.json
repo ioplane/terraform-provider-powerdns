@@ -1,0 +1,16 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "ignorePaths": ["bin/**", "dist/**", ".cache/**", "go.sum", "test/lab/schema.pgsql.sql"],
+  "words": [
+    "autoprimaries", "autoprimary", "autosecondary", "axfr", "cryptokey",
+    "cryptokeys", "dnsdist", "dnskey", "dnssec", "dnsutils", "gopls", "gpgsql",
+    "keyrings", "lmdb", "nosec", "nsec", "opentofu", "pdns", "pdnsutil",
+    "powerdns", "prealloc", "presigned", "rectify", "rrset", "rrsets",
+    "rpzstatistics", "semgrep", "skopeo", "supermasters", "terragrunt",
+    "tfplugindocs", "tflog", "tofu", "trixie", "tsig", "tsigkey", "tsigkeys",
+    "vulncheck", "buildvcs", "gotestsum", "goreleaser", "gofumpt", "podman",
+    "buildah", "ioplane", "nameservers", "recursor", "webserver"
+  ],
+  "ignoreRegExpList": ["/[a-f0-9]{7,64}/", "/https?:\\/\\/\\S+/"]
+}

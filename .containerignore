@@ -1,0 +1,11 @@
+.git/
+.worktrees/
+bin/
+dist/
+vendor/
+node_modules/
+*.tfstate
+*.tfstate.backup
+.terraform/
+coverage.out
+coverage.html
