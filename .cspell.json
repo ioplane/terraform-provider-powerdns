@@ -13,7 +13,8 @@
     "powerdns", "prealloc", "presigned", "rectify", "rrset", "rrsets",
     "rpzstatistics", "semgrep", "skopeo", "supermasters", "terragrunt",
     "tfplugindocs", "tflog", "tofu", "trixie", "tsig", "tsigkey", "tsigkeys",
-    "vulncheck", "buildvcs", "gotestsum", "goreleaser", "gofumpt", "podman",
+    "vulncheck", "buildvcs", "keytype", "DNSUPDATE", "nsec3narrow",
+    "nsec3param", "gotestsum", "goreleaser", "gofumpt", "podman",
     "buildah", "ioplane", "nameservers", "recursor", "webserver",
 
     // Go identifiers, standard library and terraform-plugin-framework.

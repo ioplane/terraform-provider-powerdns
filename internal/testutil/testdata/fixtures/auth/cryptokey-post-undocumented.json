@@ -1,0 +1,11 @@
+{
+  "name": "cryptokey-post-undocumented",
+  "description": "POST on a single key answers 400, not 404 \u2014 registered but undocumented (pdns#17807)",
+  "method": "POST",
+  "path": "/api/v1/servers/localhost/zones/s202.test./cryptokeys/1",
+  "status": 400,
+  "body": {
+    "error": "Bad Request"
+  },
+  "recorded_against": "5.1.3"
+}

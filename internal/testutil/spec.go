@@ -96,7 +96,27 @@ var KnownDivergences = []KnownDivergence{
 			"{\"result\": \"Rectified\"}. Found by this cross-check on a recorded fixture",
 	},
 	{
+		Method: http.MethodGet,
+		Path:   "/api/v1/servers/localhost/autoprimaries",
+		Body:   true,
+		Reason: "the response is declared as a single Autoprimary object; the server " +
+			"sends an array of them. A generated client would fail to decode the " +
+			"list endpoint entirely",
+	},
+	{
+		Field: "flags",
+		Reason: "every Cryptokey carries flags — 256 for a ZSK, 257 for a KSK — and the " +
+			"schema omits it under additionalProperties: false",
+	},
+	{
+		Field: "type",
+		Reason: "PowerDNS stamps a \"type\" discriminator onto Metadata, Cryptokey, " +
+			"TSIGKey and ConfigSetting objects; none of those schemas declares it, " +
+			"and all four set additionalProperties: false",
+	},
+	{
 		Field: "autoprimaries_url",
+		Path:  "/api/v1/servers",
 		Reason: "the Server object sends it and the schema omits it, with " +
 			"additionalProperties: false — so a generated client would reject a real " +
 			"response. Found by this cross-check, not by reading the specification",
@@ -235,7 +255,7 @@ func (s *SpecChecker) Check(ctx context.Context, f Fixture) CheckResult {
 			result.Divergence = d
 			return result
 		}
-		if d := s.knownFieldDivergence(verr); d != nil {
+		if d := s.knownFieldDivergence(verr, f.Path); d != nil {
 			result.Divergence = d
 			return result
 		}
@@ -259,7 +279,7 @@ func (s *SpecChecker) DocumentedOperations() []string {
 func (s *SpecChecker) knownDivergence(method, path string) *KnownDivergence {
 	for i := range KnownDivergences {
 		d := &KnownDivergences[i]
-		if d.Body || d.Method != method {
+		if d.Body || d.Field != "" || d.Method != method {
 			continue
 		}
 		// Compare on the template's fixed prefix, so a recorded path with real
@@ -292,12 +312,40 @@ func (s *SpecChecker) knownBodyDivergence(method, path string) *KnownDivergence 
 
 // knownFieldDivergence matches a schema mismatch caused by a field the server
 // sends and the specification omits.
-func (s *SpecChecker) knownFieldDivergence(err error) *KnownDivergence {
+func (s *SpecChecker) knownFieldDivergence(err error, path string) *KnownDivergence {
+	// Two passes: entries that name a route first, then the route-agnostic
+	// ones. A field as ordinary as "type" appears in many messages, and
+	// without this the answer depended on list order — servers-list, which
+	// fails over autoprimaries_url, was being attributed to "type" purely
+	// because "type" was listed above it.
+	if d := s.matchField(err, path, true); d != nil {
+		return d
+	}
+	return s.matchField(err, path, false)
+}
+
+func (s *SpecChecker) matchField(err error, path string, scoped bool) *KnownDivergence {
 	msg := err.Error()
 	for i := range KnownDivergences {
 		d := &KnownDivergences[i]
-		if d.Field != "" && strings.Contains(msg, d.Field) {
-			return d
+		if d.Field == "" || d.Body {
+			continue
+		}
+		if (d.Path != "") != scoped {
+			continue
+		}
+		if scoped && !strings.HasPrefix(path, d.Path) {
+			continue
+		}
+		// Match the quoted field name, not a bare substring. kin-openapi
+		// writes `property "flags" is unsupported` and `additional properties
+		// 'type' not allowed`, and a field as ordinary as "type" appears in
+		// almost every other message too — an unquoted match attributed the
+		// servers-list failure to the wrong divergence.
+		for _, quoted := range []string{`"` + d.Field + `"`, `'` + d.Field + `'`} {
+			if strings.Contains(msg, quoted) {
+				return d
+			}
 		}
 	}
 	return nil

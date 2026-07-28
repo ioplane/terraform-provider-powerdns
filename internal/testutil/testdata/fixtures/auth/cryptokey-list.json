@@ -1,0 +1,40 @@
+{
+  "name": "cryptokey-list",
+  "description": "the collection omits privatekey entirely; this is the read to reconcile against",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/zones/s202.test./cryptokeys",
+  "status": 200,
+  "body": [
+    {
+      "active": false,
+      "algorithm": "ECDSAP256SHA256",
+      "bits": 256,
+      "dnskey": "257 3 13 wLwq2Tgtcr0HLwAxSnACAc2r3muUzE+5gyl0C4KJxF7aX4WjYqmQk0RfW3VEZA+hck8YampGmo8vSqRNsbXTmQ==",
+      "ds": [
+        "60587 13 2 db4973a5a0f89e6df9f56eb2d115315b7df81cfa8eee13fb43c3402f575705c9",
+        "60587 13 4 7e9e7e6c832308996cfd54db30189c8e15dc24f3adc1433ec6a53a32bf22810bb394ee8c54acaa0a9c2a0c1cb27b033c"
+      ],
+      "flags": 257,
+      "id": 1,
+      "keytype": "csk",
+      "published": true,
+      "type": "Cryptokey"
+    },
+    {
+      "active": true,
+      "algorithm": "ECDSAP256SHA256",
+      "bits": 256,
+      "dnskey": "256 3 13 k06JPcAK60igY14tAOkf0XqkJoPyFgIdEgxVNWxB6lUX+uyCkFiPSlYf36hVz0hQpf7AlQ/TLHMQ3PsG2hfYGQ==",
+      "ds": [
+        "38755 13 2 fe7aff5c146a6133f7ef7e47d58ff1e67cc6aa724ea6b1b32357aaf99be0f1b2",
+        "38755 13 4 3581bcf84f35797fa1c2390ac5cef7926f1f07dbca23345ff1ce1b2e30558014dee3f443c1b22f0e0cf26d7f4469bf6a"
+      ],
+      "flags": 256,
+      "id": 2,
+      "keytype": "csk",
+      "published": true,
+      "type": "Cryptokey"
+    }
+  ],
+  "recorded_against": "5.1.3"
+}

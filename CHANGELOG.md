@@ -61,6 +61,13 @@ The mapping between commit type, changelog section and version bump is in
   notify, axfr-retrieve, export and rectify. Twelve contract tests against
   recorded fixtures, no containers needed.
 
+- `internal/api/auth` metadata, cryptokeys, tsigkeys and autoprimaries — 19
+  more operations, 29 of the 68 now covered. Twenty-three contract tests.
+- `TestFixturesCarryNoKeyMaterial` — a recorded fixture may not contain a
+  DNSSEC private key or a TSIG secret. Fixtures are committed, so a bad one
+  means rewriting history rather than deleting a file. Verified by planting a
+  fixture holding a private key and watching the check fail.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every

@@ -11,7 +11,7 @@
 
 ![phase 2_of_8](https://shieldcn.dev/badge/phase-2_of_8-0969da.svg?variant=secondary)
 ![phases_closed 2](https://shieldcn.dev/badge/phases_closed-2-3fb950.svg?variant=secondary)
-![tasks_done 33](https://shieldcn.dev/badge/tasks_done-33-3fb950.svg?variant=secondary)
+![tasks_done 34](https://shieldcn.dev/badge/tasks_done-34-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -23,7 +23,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 2 (clients) in progress — S2-01 next
+**Status:** phase 2 (clients) — S2-01 and S2-02 closed, 29 of 68 operations; S2-03 next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -226,8 +226,10 @@ layer needs no containers, so it runs on every commit; the lab is needed to
 
 The vendored OpenAPI document exists to catch drift in the shapes we use. It
 does not decide whether an endpoint exists, and no code is generated from it.
-It cannot be trusted for either, as this project has now demonstrated six
-times:
+It cannot be trusted for either, as this project has now demonstrated nine
+times. Six of the nine were found by this machinery rather than by reading, and
+five of those arrived in a single afternoon of phase 2 — which is the argument
+for having built it:
 
 | # | Defect | Found by | Status |
 | --- | --- | --- | --- |
@@ -237,9 +239,15 @@ times:
 | 4 | `autoprimaries_url` sent by every `Server` object, absent from a schema declaring `additionalProperties: false` — a generated client would reject a real response | this cross-check, on a recorded fixture | to report |
 | 5 | `GET zones/{id}/export` declared `type: string`; the server sends `{"zone": "…"}`. The documentation calls it "AXFR format", which reads like `text/plain` and is not | this cross-check, phase 2 | to report |
 | 6 | `PUT zones/{id}/rectify` declared `type: string`; the server sends `{"result": "Rectified"}` | this cross-check, phase 2 | to report |
+| 7 | `GET /autoprimaries` declared as a single `Autoprimary` object; the server sends an array. A generated client could not decode the list endpoint at all | this cross-check, phase 2 | to report |
+| 8 | `Cryptokey` omits `flags` — 256 for a ZSK, 257 for a KSK — under `additionalProperties: false` | this cross-check, phase 2 | to report |
+| 9 | PowerDNS stamps a `type` discriminator onto `Metadata`, `Cryptokey`, `TSIGKey` and `ConfigSetting`; none declares it, and all four set `additionalProperties: false` | this cross-check, phase 2 | to report |
 
-Defects 3 through 6 were found by this machinery rather than by reading, which
-is the argument for building it. Defects 5 and 6 arrived the moment phase 2
+Defect 9 is the broadest: four schemas reject a field the server puts on every
+one of their objects. Any code generated from this document would fail to
+decode an ordinary metadata read.
+
+Defects 5 and 6 arrived the moment phase 2
 recorded its first fixtures against those two routes, and 5 had already been
 caught by hand an hour earlier: `ExportZone` was written to return the body
 verbatim, on the strength of the documentation's phrase "AXFR format", and a
@@ -270,7 +278,7 @@ recounting. Each row's count is the sum of its domains in
 | ID | Task | Role | Depends | Ops | Status |
 | --- | --- | --- | --- | --- | --- |
 | S2-01 | `api/auth`: zones and rrsets — including notify, axfr-retrieve, export, rectify | DEV | S1-07 | 10 | `[x]` |
-| S2-02 | `api/auth`: metadata (5), cryptokeys (6), tsigkeys (5), autoprimaries (3) | DEV | S2-01 | 19 | `[ ]` |
+| S2-02 | `api/auth`: metadata (5), cryptokeys (6), tsigkeys (5), autoprimaries (3) | DEV | S2-01 | 19 | `[x]` |
 | S2-03 | `api/auth`: views (4), networks (3), servers (2), config (1), statistics (1), search (1), cache flush (1) | DEV | S2-01 | 13 | `[ ]` |
 | S2-04 | `api/rec`: zones (5), config (5), statistics (2), search (1), cache (1), servers (2) | DEV | S1-07 | 16 | `[ ]` |
 | S2-05 | `api/dnsdist`: all ten, of which two write | DEV | S1-07 | 10 | `[ ]` |
@@ -281,6 +289,33 @@ recounting. Each row's count is the sum of its domains in
 two writable settings, statistics" — which is 8 of its 16. It also listed
 "zone actions" under S2-03 while S2-01 already owned them. Corrected by
 recounting against the capability map rather than against the earlier plan.
+
+### Key material is asymmetric, and the asymmetry is load-bearing
+
+S2-02 established a property the whole DNSSEC design rests on. PowerDNS returns
+key material from the single-object read and withholds it from the collection:
+
+| Endpoint | Secret field | Present? |
+| --- | --- | --- |
+| `GET zones/{id}/cryptokeys` | `privatekey` | **omitted entirely** |
+| `GET zones/{id}/cryptokeys/{key_id}` | `privatekey` | yes |
+| `POST zones/{id}/cryptokeys` | `privatekey` | yes |
+| `GET tsigkeys` | `key` | **present but blank** |
+| `GET tsigkeys/{id}` | `key` | yes |
+| `POST tsigkeys` | `key` | yes |
+
+So the rule for the resource layer is mechanical: **reconcile against the
+collection, never against a get.** Note the two products of the same rule are
+not identical — cryptokeys omit the field, TSIG keys blank it, so a caller
+testing for presence rather than emptiness would believe it held a secret.
+
+Two guards enforce this rather than a comment asking nicely. Contract tests
+fail if either collection ever starts carrying material, and
+`TestFixturesCarryNoKeyMaterial` fails if a recorded fixture does — a fixture
+taken from a single-key endpoint would put a DNSSEC private key in git
+permanently, where the fix is rewriting history rather than deleting a file.
+That check was verified by planting a fixture containing a private key and
+watching it fail.
 
 Two notes that shape the clients rather than merely describe them:
 

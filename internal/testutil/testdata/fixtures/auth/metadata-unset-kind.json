@@ -1,0 +1,13 @@
+{
+  "name": "metadata-unset-kind",
+  "description": "an unset kind answers 200 with an empty list, not 404",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/zones/s202.test./metadata/ALLOW-DNSUPDATE-FROM",
+  "status": 200,
+  "body": {
+    "kind": "ALLOW-DNSUPDATE-FROM",
+    "metadata": [],
+    "type": "Metadata"
+  },
+  "recorded_against": "5.1.3"
+}

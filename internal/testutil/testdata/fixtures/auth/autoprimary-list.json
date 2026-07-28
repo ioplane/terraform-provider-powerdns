@@ -1,0 +1,15 @@
+{
+  "name": "autoprimary-list",
+  "description": "the ip and nameserver pair is the key; there is no id",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/autoprimaries",
+  "status": 200,
+  "body": [
+    {
+      "account": "probe",
+      "ip": "192.0.2.53",
+      "nameserver": "ns1.probe.test."
+    }
+  ],
+  "recorded_against": "5.1.3"
+}

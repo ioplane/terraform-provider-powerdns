@@ -1,0 +1,17 @@
+{
+  "name": "tsigkey-list",
+  "description": "the collection blanks key rather than omitting the field",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/tsigkeys",
+  "status": 200,
+  "body": [
+    {
+      "algorithm": "hmac-sha256",
+      "id": "probe.",
+      "key": "",
+      "name": "probe",
+      "type": "TSIGKey"
+    }
+  ],
+  "recorded_against": "5.1.3"
+}

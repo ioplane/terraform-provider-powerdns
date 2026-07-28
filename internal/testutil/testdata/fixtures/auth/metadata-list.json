@@ -1,0 +1,17 @@
+{
+  "name": "metadata-list",
+  "description": "a fresh zone already carries SOA-EDIT-API DEFAULT, assigned by the server",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/zones/s202.test./metadata",
+  "status": 200,
+  "body": [
+    {
+      "kind": "SOA-EDIT-API",
+      "metadata": [
+        "DEFAULT"
+      ],
+      "type": "Metadata"
+    }
+  ],
+  "recorded_against": "5.1.3"
+}
