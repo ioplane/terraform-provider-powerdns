@@ -11,7 +11,7 @@
 
 ![phase 2_of_8](https://shieldcn.dev/badge/phase-2_of_8-0969da.svg?variant=secondary)
 ![phases_closed 2](https://shieldcn.dev/badge/phases_closed-2-3fb950.svg?variant=secondary)
-![tasks_done 31](https://shieldcn.dev/badge/tasks_done-31-3fb950.svg?variant=secondary)
+![tasks_done 32](https://shieldcn.dev/badge/tasks_done-32-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -145,6 +145,7 @@ without containers, and cross-checked against the vendored specification.
 | S1-08 | `compose.dev.yml` — the file every `task` target already assumed | OPS | S0-04 | `[x]` |
 | S1-09 | Make `task all` pass end to end: six latent gate failures | OPS | S1-08 | `[x]` |
 | S1-10 | Install the git hooks S0-14 only configured; `check-hooks.sh` in the gate | OPS | S0-14 | `[x]` |
+| S1-11 | Rewrite the nine commit messages that predate the hook; `commitlint` in CI | OPS | S1-10 | `[x]` |
 
 The classifier is verified twice over. `classify_test.go` asserts the mapping,
 including the cases that must **not** fire — a rule that classifies too eagerly
@@ -187,6 +188,20 @@ anybody runs arms the ban. `scripts/check-hooks.sh` asserts both halves in the
 gate: the hooks are present, **and** the checker rejects a message carrying an
 AI trailer while accepting an ordinary one. Testing only the rejection would
 pass for a checker that rejects everything.
+
+Installing the hook then rejected the very commit that installed it — header 91
+characters, `hooks` not in the scope enum, body lines over 72 — which is the
+most direct evidence available that it works. Running `commitlint` over the
+history it had never guarded found **nine of the first ten commits in
+violation**, mostly on header and body length.
+
+S1-11 rewrote all nine. Trees are byte-identical before and after
+(`1d626ab938cd`), authorship is unchanged, and every commit now passes. The
+pre-rewrite history is kept locally on `backup/pre-commitlint-rewrite`.
+
+A hook only guards commits made in a clone that ran `task hooks`, so the branch
+needs its own check: `.gitlab-ci.yml` now runs `commitlint --from` the merge
+base on every merge request and on the default branch.
 
 ### The test scaffolding
 

@@ -78,6 +78,20 @@ lint:pins:
   script:
     - scripts/check-pins.sh
 
+commits:
+  stage: quality
+  # The commit-msg hook only protects commits made in a clone that ran
+  # `task hooks`. This is the half that protects the branch, and it caught
+  # nine of the first ten commits here when it was finally run.
+  script:
+    - npm install --no-save @commitlint/cli @commitlint/config-conventional
+    - |
+      base="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-$(git rev-parse HEAD~1)}"
+      npx commitlint --config .commitlintrc.yaml --from "$base" --to HEAD --verbose
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
 docs:
   stage: quality
   script:

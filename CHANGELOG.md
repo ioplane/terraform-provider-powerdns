@@ -102,6 +102,11 @@ gate had been unable to report:
 - `yamllint` reported 30 warnings against the vendored PowerDNS specification,
   whose formatting is not ours to fix. Excluded, with `.venv/`.
 
+- Nine of the first ten commits violated the repository's own `commitlint`
+  rules, having all been written before the hook existed. Rewritten; trees are
+  byte-identical and authorship unchanged. `commitlint` now also runs in the
+  GitLab pipeline, because a hook only guards clones that installed it.
+
 ### Security
 
 - Four reachable vulnerabilities, all reached through indirect dependencies of
