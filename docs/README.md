@@ -4,6 +4,7 @@
 | --- | --- |
 | [`../AGENTS.md`](../AGENTS.md) | **Start here.** Golden rules, architecture, workflow, gates. |
 | [`methodology.md`](methodology.md) | Delivery method, roles, phase gates, Definition of Done. |
+| [`adr/0008-github-only-review.md`](adr/0008-github-only-review.md) | Review happens on GitHub only; `.gitlab-ci.yml` is unexecuted |
 | [`contract.md`](contract.md) | What the provider promises to users, and what it does not |
 | [`plan.md`](plan.md) | **Live delivery plan.** Task status, updated with the work. |
 

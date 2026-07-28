@@ -191,13 +191,23 @@ Never point acceptance tests at a production PowerDNS.
 `main` is never committed to directly. Work happens on a branch in an isolated
 worktree and merges by pull request.
 
-1. `scripts/worktree.sh new <type>/<scope>/<name>`
+**One worktree per sprint.** A sprint is the unit of review: it opens with a
+worktree cut from `origin/main`, and closes with a pull request that is
+squash-merged. Phases 0 to 4 were committed straight to `main`, which is the
+rule being broken rather than an exception to it — the history is what it is,
+and the rule applies from phase 5 onward.
+
+1. `scripts/worktree.sh new sprint/<phase>-<name>`
 2. Develop in the container: `task up && task shell`
 3. Before pushing: `task all`. Resource changes also need `task verify`; quote
    the acceptance result in the commit body.
 4. Update `CHANGELOG.md` under `[Unreleased]` and the task in `docs/plan.md`
 5. Regenerate registry docs with `task docs` if the schema changed
 6. Open a pull request titled as a Conventional Commit subject; squash-merge
+7. `scripts/worktree.sh rm <branch>` once it is merged
+
+Reviews happen on GitHub. `.gitlab-ci.yml` is kept for a mirror that does not
+exist yet, so nothing currently runs it — see [ADR 0008](docs/adr/0008-github-only-review.md).
 
 ## Pipelines
 

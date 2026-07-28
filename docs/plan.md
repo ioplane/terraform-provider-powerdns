@@ -27,6 +27,23 @@ control.
 **Status:** phase 4 closed; phase 5 (the family surface) next
 **Last updated:** 2026-07-28
 
+## How a sprint runs
+
+One worktree per sprint, one pull request per sprint, squash-merged.
+
+```console
+scripts/worktree.sh new sprint/<phase>-<name>
+# ... work, task all, task verify ...
+gh pr create --fill
+# ... squash-merge ...
+scripts/worktree.sh rm sprint/<phase>-<name>
+```
+
+Phases 0 to 4 were committed directly to `main`. That contradicted
+`AGENTS.md`, which has said `main` is never committed to directly since phase
+0. Recorded here rather than quietly corrected: the rule holds from phase 5,
+and the history stands as it happened.
+
 ## Legend
 
 | Mark | Meaning |

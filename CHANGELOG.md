@@ -140,6 +140,10 @@ The mapping between commit type, changelog section and version bump is in
 - Zone `master_tsig_key_ids` and `slave_tsig_key_ids`, compared as canonical
   key names and ignoring order.
 
+- ADR 0008: reviews happen on GitHub only. `.gitlab-ci.yml` has never run —
+  no GitLab remote was ever configured — and stays as the gate definition for a
+  mirror that does not exist. One pull request per sprint, squash-merged.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
@@ -236,6 +240,10 @@ gate had been unable to report:
   to v1.82.1 (GO-2026-4762, GO-2026-6061). `govulncheck` now reports zero.
 
 ### Notes
+
+- Phases 0 to 4 were committed directly to `main`, which contradicts the
+  workflow `AGENTS.md` has stated since phase 0. Recorded rather than quietly
+  corrected; the rule holds from phase 5 onward.
 
 - ADR 0006 records two dnsdist findings that are absent from its documentation
   and were discovered while standing up the lab: `setAPIWritable`, not
