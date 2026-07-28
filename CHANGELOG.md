@@ -280,6 +280,14 @@ gate had been unable to report:
 
 ### Notes
 
+- semgrep's `uv-missing-dependency-cooldown` is knowingly not applied.
+  `exclude-newer` makes this project's exact version pins unsatisfiable —
+  `ruff==0.16.0` was published inside a seven-day window — and resolution fails
+  rather than falling back. Exact pins, a committed `uv.lock` with hashes and a
+  digest-pinned base image cover reproducibility; they do not cover a release
+  compromised before it was pinned, which is the gap the rule names and this
+  project accepts. The reasoning is in `pyproject.toml` beside the setting.
+
 - Phases 0 to 4 were committed directly to `main`, which contradicts the
   workflow `AGENTS.md` has stated since phase 0. Recorded rather than quietly
   corrected; the rule holds from phase 5 onward.

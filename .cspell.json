@@ -47,6 +47,7 @@
     "booldefault", "listplanmodifier", "stringplanmodifier", "int64planmodifier",
     "stringvalidator", "listvalidator", "plancheck", "providerserver", "svchost",
     "tfversion", "ephemerals", "tfjsonpath", "identityschema", "statecheck",
+    "cooldown", "cooldowns",
     "slaveprobe", "unsign",
 
     // PowerDNS and DNS vocabulary.
