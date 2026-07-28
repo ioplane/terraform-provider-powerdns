@@ -1,0 +1,16 @@
+{
+  "name": "network-list",
+  "description": "the same wrapping, and the CIDR is two path segments not one",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/networks",
+  "status": 200,
+  "body": {
+    "networks": [
+      {
+        "network": "192.0.2.0/24",
+        "view": "trusted"
+      }
+    ]
+  },
+  "recorded_against": "5.1.3"
+}

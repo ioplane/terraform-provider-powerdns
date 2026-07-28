@@ -1,0 +1,13 @@
+{
+  "name": "view-list",
+  "description": "views are an object wrapping a list, not a bare array",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/views",
+  "status": 200,
+  "body": {
+    "views": [
+      "trusted"
+    ]
+  },
+  "recorded_against": "5.1.3"
+}

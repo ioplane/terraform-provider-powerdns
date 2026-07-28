@@ -1,0 +1,13 @@
+{
+  "name": "view-get",
+  "description": "a view is its zone list; it exists only while a zone points at it",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/views/trusted",
+  "status": 200,
+  "body": {
+    "zones": [
+      "viewprobe.test."
+    ]
+  },
+  "recorded_against": "5.1.3"
+}

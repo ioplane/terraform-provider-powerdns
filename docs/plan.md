@@ -11,7 +11,7 @@
 
 ![phase 2_of_8](https://shieldcn.dev/badge/phase-2_of_8-0969da.svg?variant=secondary)
 ![phases_closed 2](https://shieldcn.dev/badge/phases_closed-2-3fb950.svg?variant=secondary)
-![tasks_done 34](https://shieldcn.dev/badge/tasks_done-34-3fb950.svg?variant=secondary)
+![tasks_done 35](https://shieldcn.dev/badge/tasks_done-35-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -23,7 +23,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 2 (clients) — S2-01 and S2-02 closed, 29 of 68 operations; S2-03 next
+**Status:** phase 2 (clients) — Authoritative complete at 42 of 68; `api/rec` next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -279,10 +279,17 @@ recounting. Each row's count is the sum of its domains in
 | --- | --- | --- | --- | --- | --- |
 | S2-01 | `api/auth`: zones and rrsets — including notify, axfr-retrieve, export, rectify | DEV | S1-07 | 10 | `[x]` |
 | S2-02 | `api/auth`: metadata (5), cryptokeys (6), tsigkeys (5), autoprimaries (3) | DEV | S2-01 | 19 | `[x]` |
-| S2-03 | `api/auth`: views (4), networks (3), servers (2), config (1), statistics (1), search (1), cache flush (1) | DEV | S2-01 | 13 | `[ ]` |
+| S2-03 | `api/auth`: views (4), networks (3), servers (2), config (1), statistics (1), search (1), cache flush (1) | DEV | S2-01 | 13 | `[x]` |
 | S2-04 | `api/rec`: zones (5), config (5), statistics (2), search (1), cache (1), servers (2) | DEV | S1-07 | 16 | `[ ]` |
 | S2-05 | `api/dnsdist`: all ten, of which two write | DEV | S1-07 | 10 | `[ ]` |
 | S2-06 | Contract tests per client, against recorded fixtures | QA | S2-01…S2-05 | — | `[ ]` |
+
+**Authoritative is complete: all 42 operations, verified by
+`TestSurfaceIsComplete`.** That test lists every operation `ws-auth.cc`
+registers against the client method covering it, and fails if the count
+drifts. It proves nothing works — the contract tests do that — but it catches
+the failure a per-method suite cannot, because a method nobody wrote has no
+test to fail.
 
 **42 + 16 + 10 = 68.** The previous version of this table listed neither
 `config` nor `statistics` for Authoritative, and gave Recursor as "zones, the

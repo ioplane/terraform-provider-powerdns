@@ -1,0 +1,25 @@
+{
+  "name": "statistics",
+  "description": "counters; value is a string even for numbers, and the type varies",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/statistics",
+  "status": 200,
+  "body": [
+    {
+      "name": "backend-latency",
+      "type": "StatisticItem",
+      "value": "0"
+    },
+    {
+      "name": "backend-queries",
+      "type": "StatisticItem",
+      "value": "59"
+    },
+    {
+      "name": "cache-latency",
+      "type": "StatisticItem",
+      "value": "0"
+    }
+  ],
+  "recorded_against": "5.1.3"
+}

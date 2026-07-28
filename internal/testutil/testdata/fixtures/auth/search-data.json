@@ -1,0 +1,36 @@
+{
+  "name": "search-data",
+  "description": "one heterogeneous list: a zone hit has no content or ttl, a record hit has both",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/search-data",
+  "query": "max=5&q=s202%2A",
+  "status": 200,
+  "body": [
+    {
+      "name": "s202.test.",
+      "object_type": "zone",
+      "zone_id": "s202.test."
+    },
+    {
+      "content": "ns1.s202.test.",
+      "disabled": false,
+      "name": "s202.test.",
+      "object_type": "record",
+      "ttl": 60,
+      "type": "NS",
+      "zone": "s202.test.",
+      "zone_id": "s202.test."
+    },
+    {
+      "content": "a.misconfigured.dns.server.invalid. hostmaster.s202.test. 2026072804 10800 3600 604800 3600",
+      "disabled": false,
+      "name": "s202.test.",
+      "object_type": "record",
+      "ttl": 60,
+      "type": "SOA",
+      "zone": "s202.test.",
+      "zone_id": "s202.test."
+    }
+  ],
+  "recorded_against": "5.1.3"
+}

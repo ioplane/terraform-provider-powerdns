@@ -1,0 +1,25 @@
+{
+  "name": "config-dump",
+  "description": "the whole configuration; GET /config/{name} is documented but has no handler",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/config",
+  "status": 200,
+  "body": [
+    {
+      "name": "api",
+      "type": "ConfigSetting",
+      "value": "yes"
+    },
+    {
+      "name": "launch",
+      "type": "ConfigSetting",
+      "value": "gpgsql"
+    },
+    {
+      "name": "webserver",
+      "type": "ConfigSetting",
+      "value": "yes"
+    }
+  ],
+  "recorded_against": "5.1.3"
+}

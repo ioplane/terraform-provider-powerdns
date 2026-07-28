@@ -68,6 +68,10 @@ The mapping between commit type, changelog section and version bump is in
   means rewriting history rather than deleting a file. Verified by planting a
   fixture holding a private key and watching the check fail.
 
+- `internal/api/auth` views, networks, server, config, statistics, search and
+  cache flush — the Authoritative client is complete at all 42 operations,
+  31 contract tests. `TestSurfaceIsComplete` fails if an operation is dropped.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
