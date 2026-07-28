@@ -1,3 +1,19 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=terraform-provider-powerdns&subtitle=Authoritative+%2B+Recursor+%2B+dnsdist&logo=terraform&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="terraform-provider-powerdns" src="https://shieldcn.dev/header/graph.svg?title=terraform-provider-powerdns&subtitle=Authoritative+%2B+Recursor+%2B+dnsdist&logo=terraform&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<p align="center">
+  <img alt="status" src="https://shieldcn.dev/badge/status-phase_1_of_8.svg?variant=branded&size=xs" />
+  <img alt="licence" src="https://shieldcn.dev/github/license/ioplane/terraform-provider-powerdns.svg?variant=branded&size=xs" />
+  <img alt="terraform" src="https://shieldcn.dev/badge/terraform-1.11%2B.svg?variant=branded&size=xs&logo=terraform" />
+  <img alt="go" src="https://shieldcn.dev/badge/go-1.26.5.svg?variant=branded&size=xs&logo=go" />
+  <img alt="last commit" src="https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=branded&size=xs" />
+</p>
+
 # terraform-provider-powerdns
 
 A Terraform provider for the **PowerDNS family** — Authoritative Server,
@@ -44,6 +60,35 @@ Plus five provider functions and two ephemeral resources.
 `PUT /config/allow-from` and `DELETE /api/v1/cache`. Rules, pools and
 downstream servers are Lua or YAML and are not reachable over HTTP. See
 [ADR 0006](docs/adr/0006-dnsdist-scope.md).
+
+## Surface
+
+```mermaid
+flowchart LR
+  subgraph AUTH["Authoritative · 42 ops"]
+    A1["9 resources"]
+    A2["9 data sources"]
+    A3["4 actions"]
+  end
+  subgraph REC["Recursor · 16 ops"]
+    R1["2 resources"]
+    R2["3 data sources"]
+    R3["1 action"]
+  end
+  subgraph DD["dnsdist · 10 ops"]
+    D1["1 resource"]
+    D2["4 data sources"]
+    D3["1 action"]
+  end
+
+  classDef full fill:#1a7f37,stroke:#116329,color:#fff
+  classDef part fill:#9a6700,stroke:#7d4e00,color:#fff
+  class A1,A2,A3,R1,R2,R3 full
+  class D1,D2,D3 part
+```
+
+Plus five provider functions and two ephemeral resources. dnsdist is amber
+because its API is: two of its ten operations write.
 
 ## What this provider does differently
 

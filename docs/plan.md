@@ -1,3 +1,18 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Delivery+plan&subtitle=Live+execution+record&logo=githubactions&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="Delivery plan" src="https://shieldcn.dev/header/graph.svg?title=Delivery+plan&subtitle=Live+execution+record&logo=githubactions&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<p align="center">
+  <img alt="phase" src="https://shieldcn.dev/badge/phase-1_of_8.svg?variant=branded&size=xs" />
+  <img alt="phase 0" src="https://shieldcn.dev/badge/phase_0-closed.svg?variant=branded&size=xs" />
+  <img alt="tasks done" src="https://shieldcn.dev/badge/tasks_done-20.svg?variant=branded&size=xs" />
+  <img alt="updated" src="https://shieldcn.dev/badge/updated-2026--07--28.svg?variant=branded&size=xs" />
+</p>
+
 # Delivery plan
 
 Living document. The method is in [`methodology.md`](methodology.md); this is
@@ -51,6 +66,8 @@ across five services.
 | S0-16 | GitHub Actions: release only — goreleaser, GPG, registry | OPS | S0-10 | `[x]` |
 | S0-17 | `main.go` + empty framework provider, protocol 6, three-product schema | DEV | S0-10 | `[x]` |
 | S0-18 | `CHANGELOG.md`, `VERSION`, README, CONTRIBUTING, SECURITY, docs index | PM | — | `[x]` |
+| S0-19 | **Added.** Markdown standard: template, shieldcn badges, mermaid; `check-badges.sh` | PM | S0-18 | `[x]` |
+| S0-20 | **Added.** Correct commit authorship to the `gh auth` identity | OPS | — | `[x]` |
 
 **Exit gate met.** `go build` clean, `golangci-lint` 0 issues with **no path
 exclusions**, `check-pins.sh` verifies 10 references, `lab:verify` green across
@@ -62,6 +79,21 @@ GitLab pipeline went in with placeholder digests of all zeros, and
 carrying both a tag and a digest, which skopeo rejects, so five valid digests
 reported as not found. Both fixed; the checker is now verified against a
 fixture containing one fabricated digest and one floating tag.
+
+**S0-19** came from the observation that a standards-heavy repository fails in a
+specific way: every document is individually reasonable and collectively
+unnavigable. The template fixes classification, not prose — a reader can tell a
+binding standard from a design note from a status record without reading past
+the first screen. Badges come from [shieldcn](https://shieldcn.dev), diagrams
+are mermaid, and `scripts/check-badges.sh` verifies both, excluding fenced
+examples so a placeholder cannot pass.
+
+**S0-20** corrected an error of mine. Every commit had been authored with an
+address passed on the command line rather than the one `git config` and
+`gh auth` agree on. Rewritten here and in the sibling repositories; the seven
+branches that are heads of open upstream pull requests are deliberately left
+alone, because force-pushing them would disturb a third party's review in
+flight.
 
 **S0-08 already earned its keep.** Standing up dnsdist found that
 `setAPIWritable`, not `apiConfigDir`, gates every write — without it each `PUT`

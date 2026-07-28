@@ -1,3 +1,18 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Methodology&subtitle=Gated-iterative+delivery&logo=target&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="Methodology" src="https://shieldcn.dev/header/graph.svg?title=Methodology&subtitle=Gated-iterative+delivery&logo=target&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<p align="center">
+  <img alt="method" src="https://shieldcn.dev/badge/method-gated_iterative.svg?variant=branded&size=xs" />
+  <img alt="phases" src="https://shieldcn.dev/badge/phases-8.svg?variant=branded&size=xs" />
+  <img alt="roles" src="https://shieldcn.dev/badge/roles-5.svg?variant=branded&size=xs" />
+  <img alt="sprint" src="https://shieldcn.dev/badge/sprint-2_weeks.svg?variant=branded&size=xs" />
+</p>
+
 # Development methodology
 
 ## The choice: gated-iterative delivery

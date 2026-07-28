@@ -1,3 +1,18 @@
+<!-- markdownlint-disable MD033 MD041 -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=AGENTS.md&subtitle=Read+this+before+touching+code&logo=github&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="AGENTS.md" src="https://shieldcn.dev/header/graph.svg?title=AGENTS.md&subtitle=Read+this+before+touching+code&logo=github&mode=light&align=left&font=geist-mono&border=false" />
+  </picture>
+</p>
+
+<p align="center">
+  <img alt="binding" src="https://shieldcn.dev/badge/status-binding.svg?variant=branded&size=xs" />
+  <img alt="audience" src="https://shieldcn.dev/badge/audience-human_%2B_agent.svg?variant=branded&size=xs" />
+  <img alt="gates" src="https://shieldcn.dev/badge/gates-11.svg?variant=branded&size=xs" />
+  <img alt="standards" src="https://shieldcn.dev/badge/standards-11.svg?variant=branded&size=xs" />
+</p>
+
 # Agent & contributor guide — terraform-provider-powerdns
 
 Canonical guide for anyone working in this repository, human or automated.
@@ -76,7 +91,7 @@ Normative. Read the standard before changing the thing it governs.
 | PowerDNS API discipline | [`docs/standards/powerdns-api-discipline.md`](docs/standards/powerdns-api-discipline.md) |
 | Python tooling — uv, ruff, ty | [`docs/standards/python-tooling.md`](docs/standards/python-tooling.md) |
 | Verified identifiers | [`docs/standards/verified-identifiers.md`](docs/standards/verified-identifiers.md) |
-| Containers — OCI, Compose, Podman | [`docs/standards/container-conventions.md`](docs/standards/container-conventions.md) |
+| Markdown — structure, badges, diagrams | [`docs/standards/markdown-conventions.md`](docs/standards/markdown-conventions.md) |
 | Methodology — roles, gates, sprints | [`docs/methodology.md`](docs/methodology.md) |
 | **Delivery plan — live task status** | [`docs/plan.md`](docs/plan.md) |
 
@@ -85,19 +100,27 @@ Architectural decisions are immutable numbered records under
 
 ## Architecture in one page
 
-```text
-internal/
-  api/transport/   HTTP, X-API-Key, retry, status examined before body
-  api/auth/        Authoritative client — one file per API domain
-  api/rec/         Recursor client
-  api/dnsdist/     dnsdist client
-  provider/        provider schema, Configure, registration
-  resources/<object>/
-  datasources/<object>/
-  actions/         notify, axfr_retrieve, rectify, flush_cache
-  ephemeral/       tsigkey, cryptokey — key material that never reaches state
-  functions/       fqdn, reverse_zone_name, ptr_name, soa_serial
-  testutil/        lab wiring and recorded HTTP fixtures
+```mermaid
+flowchart TD
+  T["api/transport<br/>HTTP · X-API-Key · retry<br/>status before body<br/>capability classification"]
+  A["api/auth<br/>42 operations"]
+  R["api/rec<br/>16 operations"]
+  D["api/dnsdist<br/>10 operations"]
+  P["provider<br/>schema · Configure · registration"]
+  RES["resources · datasources<br/>actions · ephemeral"]
+  FN["functions<br/>pure, offline, no client"]
+
+  T --> A & R & D
+  A & R & D --> P
+  P --> RES
+  FN -.->|"no dependency"| P
+
+  classDef core fill:#0969da,stroke:#0550ae,color:#fff
+  classDef client fill:#1a7f37,stroke:#116329,color:#fff
+  classDef leaf fill:#9a6700,stroke:#7d4e00,color:#fff
+  class T,P core
+  class A,R,D client
+  class RES,FN leaf
 ```
 
 Four rules, each earned from a defect observed in an existing provider:

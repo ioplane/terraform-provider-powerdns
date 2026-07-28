@@ -233,6 +233,7 @@ tasks:
       - '{{.EXEC}} markdownlint-cli2 "**/*.md" "#node_modules" "#bin" "#dist"'
       - '{{.EXEC}} uv run yamllint -c .yamllint.yaml .'
       - '{{.EXEC}} cspell --no-progress --no-summary --config .cspell.json "**/*.md" "**/*.go"'
+      - scripts/check-badges.sh
 
   # === Dependencies ===
 
