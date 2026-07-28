@@ -38,11 +38,72 @@ The mapping between commit type, changelog section and version bump is in
 - Empty provider on `terraform-plugin-framework` v1.19.0, protocol 6, with the
   three-product configuration schema.
 
+- HTTP transport shared by all three products: `X-Api-Key`, a TLS 1.2 floor,
+  timeouts, and a retry policy that backs off on `5xx`, `429` and transport
+  errors while failing fast on `4xx` — a `4xx` is an answer, and retrying it
+  turns a fast failure into a slow one.
+- Capability classifier. Four distinct "this installation cannot do that"
+  conditions across the three products each surface as a bare `4xx`; the
+  transport classifies them once, so every resource reports the same actionable
+  diagnostic naming the setting to change.
+- `internal/testutil` — the contract test layer: recorded HTTP fixtures, a mock
+  server that replays them, and an OpenAPI cross-check. Ten fixtures recorded
+  from the five-service lab. The layer needs no containers, so it runs on every
+  commit; the lab is needed to record a fixture, not to use one.
+- `deployments/compose/compose.dev.yml` — the development container. Host
+  networking, so a lab endpoint means the same thing inside it and out.
+- `task fixtures:record` — re-records the fixtures against a running lab.
+  Deliberately manual and in no gate: a fixture that re-records itself is not a
+  fixture.
+
+### Fixed
+
+The pre-merge gate had never run end-to-end, because the compose file every
+`task` target depends on was missing. Adding it surfaced six failures that the
+gate had been unable to report:
+
+- `compose.dev.yml` did not exist, while `DC`, `EXEC` and the `_dev-running`
+  precondition all referenced it. Every containerised target was unreachable.
+- `test:contract` ran `go test -tags contract ./internal/api/...` and matched
+  nothing: no file carried the tag and the contract tests live in
+  `internal/testutil`. It now runs the tests it names.
+- `tf:fmt` and `tf:fmt:check` failed on the absence of `examples/`, which
+  arrives in phase 7. They now skip when there is nothing to format.
+- `MD060` failed on every table in the repository: the delimiter rows were
+  compact while the content rows were spaced. All 18 affected files normalised
+  to `| --- | --- |`.
+- `MD042` failed on 36 badges linking to `](#)` — clickable, leading nowhere,
+  jumping the reader to the top of the page. Badges without a destination are
+  now images.
+- `MD013` failed on the two header URLs, which cannot be wrapped, in each of 22 files. The
+  exemption is now scoped to the header block rather than the whole file, so
+  the prose is still held to 100 columns.
+- `cspell` reported 197 unknown words against an `en` dictionary while the
+  prose is written in British English. Adding `en-GB` resolved 135 of them; the
+  remaining 62 are technical identifiers, now listed and grouped by origin.
+- `markdownlint` and `cspell` both linted `.venv/`, which uv materialises in
+  the working tree. Ignored, and added to `.gitignore`.
+
+### Security
+
+- Four reachable vulnerabilities, all reached through indirect dependencies of
+  `terraform-plugin-framework`: `golang.org/x/net` to v0.55.0 (GO-2026-5026),
+  `golang.org/x/text` to v0.39.0 (GO-2026-5970), and `google.golang.org/grpc`
+  to v1.82.1 (GO-2026-4762, GO-2026-6061). `govulncheck` now reports zero.
+
 ### Notes
 
 - ADR 0006 records two dnsdist findings that are absent from its documentation
   and were discovered while standing up the lab: `setAPIWritable`, not
   `apiConfigDir`, gates every write, and `DELETE /api/v1/cache` answers `404`
   when the pool has no packet cache.
+- The vendored OpenAPI document is a cross-check, never a source of code, and
+  nothing is generated from it. Four divergences between it and the
+  implementation are now recorded in `docs/plan.md` §Phase 1. Two were reported
+  as [PowerDNS/pdns#17807](https://github.com/PowerDNS/pdns/issues/17807); two
+  more were found by this cross-check itself and are neither visible to a
+  reader nor yet reported: `Record.modified_at` is misindented into a stray
+  sibling key, and `autoprimaries_url` is sent by every `Server` object while
+  the schema omits it under `additionalProperties: false`.
 
 [Unreleased]: https://github.com/ioplane/terraform-provider-powerdns/commits/main
