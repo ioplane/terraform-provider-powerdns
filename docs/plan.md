@@ -9,9 +9,9 @@
 
 <div align="center">
 
-![phase 2_of_8](https://shieldcn.dev/badge/phase-2_of_8-0969da.svg?variant=secondary)
-![phases_closed 2](https://shieldcn.dev/badge/phases_closed-2-3fb950.svg?variant=secondary)
-![tasks_done 36](https://shieldcn.dev/badge/tasks_done-36-3fb950.svg?variant=secondary)
+![phase 3_of_8](https://shieldcn.dev/badge/phase-3_of_8-0969da.svg?variant=secondary)
+![phases_closed 3](https://shieldcn.dev/badge/phases_closed-3-3fb950.svg?variant=secondary)
+![tasks_done 38](https://shieldcn.dev/badge/tasks_done-38-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -23,7 +23,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 2 (clients) — Authoritative and Recursor complete, 58 of 68; `api/dnsdist` next
+**Status:** phase 2 (clients) closed — 68 of 68 operations; phase 3 (core resources) next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -265,10 +265,12 @@ not a gap here.
 
 ---
 
-## Phase 2 — Clients · `[~]` in progress
+## Phase 2 — Clients · `[x]` closed 2026-07-28
 
 **Exit gate:** all 68 operations implemented and contract-tested — 42
-Authoritative, 16 Recursor, 10 dnsdist, per the capability map.
+Authoritative, 16 Recursor, 10 dnsdist. **Met.** Each client carries a
+`TestSurfaceIsComplete` asserting its own count against the source, and 52
+contract tests run against 26 recorded fixtures without a container.
 
 The operation counts are in the table because the exit gate is a number: a
 phase that claims 68 and delivers 61 should be visible as such without anybody
@@ -281,8 +283,8 @@ recounting. Each row's count is the sum of its domains in
 | S2-02 | `api/auth`: metadata (5), cryptokeys (6), tsigkeys (5), autoprimaries (3) | DEV | S2-01 | 19 | `[x]` |
 | S2-03 | `api/auth`: views (4), networks (3), servers (2), config (1), statistics (1), search (1), cache flush (1) | DEV | S2-01 | 13 | `[x]` |
 | S2-04 | `api/rec`: zones (5), config (5), statistics (2), search (1), cache (1), servers (2) | DEV | S1-07 | 16 | `[x]` |
-| S2-05 | `api/dnsdist`: all ten, of which two write | DEV | S1-07 | 10 | `[ ]` |
-| S2-06 | Contract tests per client, against recorded fixtures | QA | S2-01…S2-05 | — | `[ ]` |
+| S2-05 | `api/dnsdist`: all ten, of which two write | DEV | S1-07 | 10 | `[x]` |
+| S2-06 | Contract tests per client, against recorded fixtures | QA | S2-01…S2-05 | — | `[x]` |
 
 **Authoritative is complete: all 42 operations, verified by
 `TestSurfaceIsComplete`.** That test lists every operation `ws-auth.cc`
@@ -364,7 +366,35 @@ Two notes that shape the clients rather than merely describe them:
 - **dnsdist has ten operations and two of them write** — `PUT
   config/allow-from` and `DELETE /api/v1/cache`. Rules, pools, downstreams and
   dynblocks are Lua or YAML, never HTTP. The client cannot be given a shape
-  that implies otherwise.
+  that implies otherwise, and `TestSurfaceIsComplete` fails if the write count
+  ever leaves two, because that would mean ADR 0006 needs revisiting.
+
+### What the clients found that reading would not have
+
+Each of these was written one way from the documentation, then corrected by a
+request against the lab. They are listed because the pattern is the argument
+for the fixture layer, not because any one of them is remarkable.
+
+| Product | Assumed | Actual |
+| --- | --- | --- |
+| auth | `/export` returns `text/plain` | JSON, `{"zone": "…"}` |
+| auth | `/rectify` refuses when `api_rectify` is on | 200, and for an unsigned Native zone too |
+| auth | a PATCH without `changetype` gets an opaque 422 | the server names the field |
+| auth | an unset metadata kind is a 404 | 200 with an empty list |
+| auth | a fresh zone has no metadata | `SOA-EDIT-API DEFAULT`, server-assigned |
+| auth | a TSIG key keeps the name it was given | canonicalised, `probe` → `probe.` |
+| rec | an upstream is stored as given | `192.0.2.53` → `192.0.2.53:53` |
+| dnsdist | `setAPIWritable` gates every write | only `PUT`; `DELETE /cache` is admitted regardless |
+| dnsdist | an unknown pool returns an empty list | 404, with an empty body and no message |
+| dnsdist | the ACL appears in the config dump as `allow-from` | it appears as `acl` |
+| dnsdist | the flush count is a number | a string, `"0"` |
+
+The last three matter most for the resource layer. A 405 classified as the
+write gate would tell an operator to add a Lua call that would not help — the
+classifier now fires only on `PUT`, and two tests assert it stays silent on
+`POST` and on `DELETE` elsewhere. The `acl` versus `allow-from` mismatch means
+reconciling the dump against the writable endpoint by name finds nothing. And
+a count declared as an int fails to decode a successful flush.
 
 ---
 

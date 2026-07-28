@@ -40,10 +40,14 @@ const (
 	// Recursor API read-only out of the box.
 	CapabilityRecursorNeedsAPIDir
 
-	// CapabilityDNSDistNotWritable: dnsdist gates writes behind
-	// setAPIWritable(). isMethodAllowed() checks that flag before it looks at
-	// the path, so every PUT answers 405 without it — including paths that do
-	// accept a PUT once it is enabled.
+	// CapabilityDNSDistNotWritable: dnsdist gates configuration writes behind
+	// setAPIWritable(). isMethodAllowed() admits a PUT only when the flag is
+	// set, so every PUT answers 405 without it — including the one path that
+	// does accept a PUT once it is enabled.
+	//
+	// Configuration writes only. DELETE /api/v1/cache is admitted without
+	// consulting the flag, so a cache flush works on a server that refuses
+	// every config write.
 	CapabilityDNSDistNotWritable
 
 	// CapabilityDNSDistNoPacketCache: DELETE /api/v1/cache answers 404 when the

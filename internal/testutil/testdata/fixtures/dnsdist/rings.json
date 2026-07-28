@@ -1,0 +1,12 @@
+{
+  "name": "rings",
+  "description": "query and response ring buffers",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/rings",
+  "status": 200,
+  "body": {
+    "queries": [],
+    "responses": []
+  },
+  "recorded_against": "2.1.0"
+}

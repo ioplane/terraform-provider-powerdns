@@ -214,7 +214,7 @@ func (c *Client) apiError(op, method, path string, resp *http.Response) error {
 		Path:          path,
 		StatusCode:    resp.StatusCode,
 		ServerMessage: message,
-		Capability:    classify(c.product, resp.StatusCode, path, message),
+		Capability:    classify(c.product, method, resp.StatusCode, path, message),
 	}
 }
 

@@ -1,0 +1,13 @@
+{
+  "name": "cache-flush",
+  "description": "count is a string, not a number; decoding it as an int fails",
+  "method": "DELETE",
+  "path": "/api/v1/cache",
+  "query": "name=probe.test.&pool=&type=A",
+  "status": 200,
+  "body": {
+    "count": "0",
+    "status": "purged"
+  },
+  "recorded_against": "2.1.0"
+}

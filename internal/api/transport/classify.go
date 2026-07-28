@@ -38,14 +38,14 @@ func (p Product) String() string {
 // server, not by reading documentation — none of these four conditions is
 // documented in a way that would let a client infer them. The tag each was
 // verified against is named on the rule.
-func classify(product Product, status int, path, serverMessage string) Capability {
+func classify(product Product, method string, status int, path, serverMessage string) Capability {
 	switch product {
 	case ProductAuth:
 		return classifyAuth(status, path)
 	case ProductRecursor:
 		return classifyRecursor(status, serverMessage)
 	case ProductDNSDist:
-		return classifyDNSDist(status, path)
+		return classifyDNSDist(method, status, path)
 	default:
 		return CapabilityNone
 	}
@@ -84,19 +84,32 @@ func classifyRecursor(status int, serverMessage string) Capability {
 
 // classifyDNSDist: two separate limits, and both look like something else.
 //
-// A 405 on any path is the setAPIWritable gate: isMethodAllowed() checks
-// d_apiReadWrite before it examines the path, so a writable path and an
-// unwritable one answer identically without it. Verified against
-// dnsdist-2.1.0 — the same PUT answers 405 with apiConfigDir alone and 200
-// once setAPIWritable(true, dir) is set.
+// Only a 405 on a PUT is the setAPIWritable gate. isMethodAllowed() in
+// dnsdist-web.cc (line 368 at tag dnsdist-2.1.0) admits GET unconditionally,
+// PUT only when d_apiReadWrite is set and only for config/allow-from, and
+// DELETE only for /api/v1/cache. Everything else falls through to false, so a
+// POST answers 405 on a path that exists and has nothing to do with the flag.
+// Both verified against dnsdist-2.1.0: POST config/allow-from answers 405 on a
+// writable server, and the same PUT answers 405 with apiConfigDir alone and
+// 200 once setAPIWritable(true, dir) is set.
+//
+// Classifying every 405 as the gate would tell an operator to enable
+// setAPIWritable when the real problem is a method the product never accepts.
 //
 // A 404 on the cache path is a missing packet cache, not a missing endpoint.
 // Verified the same way: 404 with no cache on the pool, 200 and
 // {"count":"0","status":"purged"} after newPacketCache().
-func classifyDNSDist(status int, path string) Capability {
+//
+// DELETE /api/v1/cache is deliberately not gated: isMethodAllowed admits it
+// without consulting d_apiReadWrite, so a cache flush works on a server that
+// refuses every configuration write.
+func classifyDNSDist(method string, status int, path string) Capability {
 	switch status {
 	case http.StatusMethodNotAllowed:
-		return CapabilityDNSDistNotWritable
+		if method == http.MethodPut {
+			return CapabilityDNSDistNotWritable
+		}
+		return CapabilityNone
 	case http.StatusNotFound:
 		if strings.Contains(path, "/cache") {
 			return CapabilityDNSDistNoPacketCache

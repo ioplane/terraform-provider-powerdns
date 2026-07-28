@@ -15,6 +15,7 @@ func TestClassify(t *testing.T) {
 	tests := []struct {
 		name    string
 		product Product
+		method  string
 		status  int
 		path    string
 		message string
@@ -82,9 +83,32 @@ func TestClassify(t *testing.T) {
 		{
 			name:    "dnsdist write without setAPIWritable",
 			product: ProductDNSDist,
+			method:  http.MethodPut,
 			status:  http.StatusMethodNotAllowed,
 			path:    "/api/v1/servers/localhost/config/allow-from",
 			want:    CapabilityDNSDistNotWritable,
+		},
+		{
+			// Must not fire. isMethodAllowed rejects a POST outright,
+			// whatever d_apiReadWrite says, so blaming the flag would send an
+			// operator to change a setting that would not help.
+			name:    "dnsdist 405 on a POST is not the write gate",
+			product: ProductDNSDist,
+			method:  http.MethodPost,
+			status:  http.StatusMethodNotAllowed,
+			path:    "/api/v1/servers/localhost/config/allow-from",
+			want:    CapabilityNone,
+		},
+		{
+			// Also must not fire, for the same reason: DELETE is admitted
+			// only for /api/v1/cache, and refused everywhere else regardless
+			// of the flag.
+			name:    "dnsdist 405 on a DELETE elsewhere is not the write gate",
+			product: ProductDNSDist,
+			method:  http.MethodDelete,
+			status:  http.StatusMethodNotAllowed,
+			path:    "/api/v1/servers/localhost/config/allow-from",
+			want:    CapabilityNone,
 		},
 		{
 			name:    "dnsdist cache flush with no packet cache",
@@ -116,10 +140,10 @@ func TestClassify(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := classify(tt.product, tt.status, tt.path, tt.message)
+			got := classify(tt.product, tt.method, tt.status, tt.path, tt.message)
 			if got != tt.want {
-				t.Errorf("classify(%s, %d, %q, %q) = %v, want %v",
-					tt.product, tt.status, tt.path, tt.message, got, tt.want)
+				t.Errorf("classify(%s, %s, %d, %q, %q) = %v, want %v",
+					tt.product, tt.method, tt.status, tt.path, tt.message, got, tt.want)
 			}
 		})
 	}

@@ -77,6 +77,10 @@ The mapping between commit type, changelog section and version bump is in
   `Get(name)`/`Set(name)` pair, because every other name answers 404 and the
   client refuses those before reaching the wire.
 
+- `internal/api/dnsdist` — the dnsdist client, all 10 operations of which 2
+  write, 10 contract tests. Phase 2 closes at 68 of 68 operations across the
+  three products, with 52 contract tests over 26 recorded fixtures.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
@@ -137,6 +141,16 @@ gate had been unable to report:
   the upstream issue cites, and wrong for the pinned `auth-5.1.3`, where the
   same registration is line 3349. Both revisions are now stated. The upstream
   issue itself was checked and is correct.
+
+- The transport classified **every** dnsdist 405 as a missing `setAPIWritable`.
+  `isMethodAllowed` admits `GET` unconditionally, `PUT` only behind the flag,
+  and `DELETE` only for `/api/v1/cache`; everything else falls through, so a
+  `POST` answers 405 on a path that exists and has nothing to do with the flag.
+  The diagnostic would have sent an operator to change a setting that would not
+  help. Now scoped to `PUT`, with tests asserting it stays silent otherwise.
+- Documentation said `setAPIWritable` gates *every* dnsdist write. It gates
+  configuration writes; `DELETE /api/v1/cache` is admitted without consulting
+  it, so a cache flush works on a server that refuses every config write.
 
 ### Security
 

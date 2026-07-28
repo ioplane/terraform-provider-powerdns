@@ -1,0 +1,9 @@
+{
+  "name": "pool-unknown",
+  "description": "an unknown pool answers 404 with an empty body, so the failure carries no explanation",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/pool",
+  "query": "name=nonexistent",
+  "status": 404,
+  "recorded_against": "2.1.0"
+}

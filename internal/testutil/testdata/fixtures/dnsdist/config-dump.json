@@ -1,0 +1,85 @@
+{
+  "name": "config-dump",
+  "description": "fifteen settings; the ACL appears as \"acl\" here and is written at config/allow-from",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/config",
+  "status": 200,
+  "body": [
+    {
+      "name": "acl",
+      "type": "ConfigSetting",
+      "value": "10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 0.0.0.0/0, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, ::1/128, fc00::/7, fe80::/10"
+    },
+    {
+      "name": "allow-empty-response",
+      "type": "ConfigSetting",
+      "value": false
+    },
+    {
+      "name": "control-socket",
+      "type": "ConfigSetting",
+      "value": "127.0.0.1:5199"
+    },
+    {
+      "name": "ecs-override",
+      "type": "ConfigSetting",
+      "value": false
+    },
+    {
+      "name": "ecs-source-prefix-v4",
+      "type": "ConfigSetting",
+      "value": 24
+    },
+    {
+      "name": "ecs-source-prefix-v6",
+      "type": "ConfigSetting",
+      "value": 56
+    },
+    {
+      "name": "fixup-case",
+      "type": "ConfigSetting",
+      "value": false
+    },
+    {
+      "name": "max-outstanding",
+      "type": "ConfigSetting",
+      "value": 65536
+    },
+    {
+      "name": "server-policy",
+      "type": "ConfigSetting",
+      "value": "leastOutstanding"
+    },
+    {
+      "name": "stale-cache-entries-ttl",
+      "type": "ConfigSetting",
+      "value": 0
+    },
+    {
+      "name": "tcp-recv-timeout",
+      "type": "ConfigSetting",
+      "value": 2
+    },
+    {
+      "name": "tcp-send-timeout",
+      "type": "ConfigSetting",
+      "value": 2
+    },
+    {
+      "name": "truncate-tc",
+      "type": "ConfigSetting",
+      "value": false
+    },
+    {
+      "name": "verbose",
+      "type": "ConfigSetting",
+      "value": false
+    },
+    {
+      "name": "verbose-health-checks",
+      "type": "ConfigSetting",
+      "value": false
+    }
+  ],
+  "recorded_against": "2.1.0"
+}
