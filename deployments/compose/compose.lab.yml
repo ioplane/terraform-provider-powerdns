@@ -1,0 +1,112 @@
+# compose.lab.yml — acceptance fixture, Compose Specification.
+# https://github.com/compose-spec/compose-spec/blob/main/spec.md
+#
+# Five services, three products, two authoritative backends. The count is the
+# design: views and networks are unimplemented by gpgsql, so a single
+# authoritative instance cannot cover the provider; dnsdist has nowhere else to
+# exercise its two write operations.
+#
+# Every image is pinned by digest. A tag is a mutable reference.
+
+name: terraform-provider-powerdns-lab
+
+services:
+  postgres:
+    container_name: pdns-lab-pg
+    image: docker.io/library/postgres:17@sha256:a426e44bac0b759c95894d68e1a0ac03ecc20b619f498a91aae373bf06d8508d
+    environment:
+      POSTGRES_USER: pdns
+      POSTGRES_PASSWORD: pdns
+      POSTGRES_DB: pdns
+    ports:
+      - "15432:5432"
+    volumes:
+      # Short form, not long: the Compose Specification long syntax cannot
+      # request SELinux relabelling, and without :z the container cannot read
+      # the file on an SELinux host.
+      - ../../test/lab/schema.pgsql.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro,z
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pdns -d pdns"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  auth-pg:
+    container_name: pdns-lab-auth-pg
+    image: docker.io/powerdns/pdns-auth-51:5.1.3@sha256:f976e753a1de8ec62636203ecb12ae5fa3d1055601be167de53f1f673e0abe59
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../../test/lab/auth-gpgsql.conf:/etc/powerdns/pdns.conf:ro,z
+    ports:
+      - "15300:5300/udp"
+      - "15300:5300/tcp"
+      - "18081:8081/tcp"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -H 'X-API-Key: labapikey' http://127.0.0.1:8081/api/v1/servers"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  auth-lmdb:
+    container_name: pdns-lab-auth-lmdb
+    image: docker.io/powerdns/pdns-auth-51:5.1.3@sha256:f976e753a1de8ec62636203ecb12ae5fa3d1055601be167de53f1f673e0abe59
+    # root: writes the LMDB file into a named volume.
+    user: root
+    volumes:
+      - ../../test/lab/auth-lmdb.conf:/etc/powerdns/pdns.conf:ro,z
+      - lmdb-data:/data
+    ports:
+      - "18091:8081/tcp"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -H 'X-API-Key: labapikey' http://127.0.0.1:8081/api/v1/servers"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  recursor:
+    container_name: pdns-lab-rec
+    image: docker.io/powerdns/pdns-recursor-54:5.4.4@sha256:9a1198437d7847ec6ec5b44b68f74bfe7db47659b49db166bede91d40e8fbb5c
+    # root: the API writes zones and ACLs into api_dir.
+    user: root
+    volumes:
+      - ../../test/lab/recursor.yml:/etc/powerdns/recursor.yml:ro,z
+      - rec-api:/var/lib/powerdns-api
+    ports:
+      - "15301:5301/udp"
+      - "15301:5301/tcp"
+      - "18082:8082/tcp"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -H 'X-API-Key: labapikey' http://127.0.0.1:8082/api/v1/servers"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  dnsdist:
+    container_name: pdns-lab-dnsdist
+    image: docker.io/powerdns/dnsdist-21:2.1.0@sha256:2fc7ef0e0009a419e59082e31e2e42614fd0979c0b1929f72f4755f210c1e521
+    # root: setAPIWritable persists allow-from into the api directory.
+    user: root
+    volumes:
+      - ../../test/lab/dnsdist.conf:/etc/dnsdist/dnsdist.conf:ro,z
+      - dnsdist-api:/var/lib/dnsdist
+    ports:
+      - "15302:5302/udp"
+      - "15302:5302/tcp"
+      - "18083:8083/tcp"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -H 'X-API-Key: labapikey' http://127.0.0.1:8083/api/v1/servers/localhost"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  lmdb-data:
+  rec-api:
+  dnsdist-api:

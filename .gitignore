@@ -1,0 +1,12 @@
+bin/
+dist/
+vendor/
+.cache/
+.worktrees/
+coverage.out
+coverage.html
+__pycache__/
+*.pyc
+*.tfstate
+*.tfstate.backup
+.terraform/

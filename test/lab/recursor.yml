@@ -1,0 +1,28 @@
+# PowerDNS Recursor 5.4.4 — lab configuration (native 5.x YAML settings)
+incoming:
+  listen:
+    - 0.0.0.0:5301
+  allow_from:
+    - 0.0.0.0/0
+
+# include_dir is deliberately unset. Under the YAML settings of 5.x it must not
+# equal api_dir ("Active YAML settings do not allow include_dir to be equal to
+# api_dir") and it must already exist on disk, so the documented
+# include-dir == api-config-dir recipe from the 4.x era no longer applies.
+# API writes succeed without it; they are simply not re-read on restart.
+
+webservice:
+  webserver: true
+  api_key: labapikey
+  address: 0.0.0.0
+  port: 8082
+  allow_from:
+    - 0.0.0.0/0
+  # Without api_dir every write to /zones and /config/allow-from returns
+  # 422 'Config Option "api-config-dir" must be set'. The Terraform resources
+  # powerdns_recursor_forward_zone and powerdns_recursor_config are unusable
+  # against a recursor that does not set it. See CM-04 §5.
+  api_dir: /var/lib/powerdns-api
+
+logging:
+  loglevel: 5
