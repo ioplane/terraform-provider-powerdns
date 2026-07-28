@@ -25,3 +25,14 @@ ignores:
   - "dist/**"
   - ".worktrees/**"
   - "CHANGELOG.md"
+  # Registry documentation, written by tfplugindocs from the schema and the
+  # examples. Its formatting is the generator's; editing it would be undone by
+  # the next `task docs`, and holding a machine's output to a hand-writing
+  # style guide is a rule nobody can satisfy. `task docs:check` validates it
+  # instead, against the Registry's own rules.
+  - "docs/index.md"
+  - "docs/resources/**"
+  - "docs/data-sources/**"
+  - "docs/functions/**"
+  - "docs/actions/**"
+  - "docs/ephemeral-resources/**"

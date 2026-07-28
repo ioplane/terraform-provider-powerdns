@@ -170,6 +170,14 @@ The mapping between commit type, changelog section and version bump is in
   have none: their key is the same on every installation, so any identity would
   be false.
 
+- `powerdns_recursor_zone` and `powerdns_dnsdist_server` data sources. Both
+  products are mostly read-only over HTTP, so most of what they expose is only
+  useful to read — dnsdist's downstreams and pools are Lua or YAML and have no
+  write path at all.
+- Examples for the whole surface — 11 resources, 7 data sources, 5 functions,
+  2 ephemeral resources and the provider — and generated registry
+  documentation, validated with `tfplugindocs validate`.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every

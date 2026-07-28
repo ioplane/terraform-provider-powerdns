@@ -11,7 +11,7 @@
 
 ![phase 7_of_8](https://shieldcn.dev/badge/phase-7_of_8-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 62](https://shieldcn.dev/badge/tasks_done-62-3fb950.svg?variant=secondary)
+![tasks_done 66](https://shieldcn.dev/badge/tasks_done-66-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,7 +24,8 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 6 closed; phase 7 (release) next
+**Status:** phase 7 — examples and registry documentation landed;
+version matrix and release next
 **Last updated:** 2026-07-28
 
 ## How a sprint runs
@@ -634,7 +635,7 @@ three keys in the zone and did not generalise.
 
 ---
 
-## Phase 5 — Family surface · `[~]` all resources landed; S5-05 deferred to S7-00
+## Phase 5 — Family surface · `[x]` closed 2026-07-29 — S5-05 landed as S7-00
 
 | ID | Task | Role | Depends | Status |
 | --- | --- | --- | --- | --- |
@@ -642,7 +643,7 @@ three keys in the zone and did not generalise.
 | S5-02 | `powerdns_autoprimary` | DEV | S3-07 | `[x]` |
 | S5-03 | `powerdns_recursor_zone`, `powerdns_recursor_acl` | DEV | S2-04 | `[x]` |
 | S5-04 | `powerdns_dnsdist_acl` | DEV | S2-05 | `[x]` |
-| S5-05 | Data sources for recursor and dnsdist | DEV | S5-03, S5-04 | `[ ]` deferred to phase 7 with the examples |
+| S5-05 | Data sources for recursor and dnsdist | DEV | S5-03, S5-04 | `[x]` delivered as S7-00 |
 | S5-06 | Negative tests asserting each capability diagnostic | QA | S5-01…S5-04 | `[x]` |
 
 S5-06 asserts the **message**, not the failure. A bare `422` reaching a user is
@@ -819,13 +820,42 @@ says nothing about the cause.
 
 ---
 
-## Phase 7 — Release · `[ ]`
+## Phase 7 — Release · `[~]` in progress
+
+### Documentation is generated, and `docs/` now holds two things
+
+`tfplugindocs` writes registry documentation into `docs/`, which is also where
+this project's own documents live — the plan, the contract, the standards, the
+ADRs. Both now share the directory.
+
+`tfplugindocs validate` was run against it and passes: it recognised exactly the
+30 provider documents and ignored everything else, because the Registry reads
+`index.md` and the known subdirectories — `resources/`, `data-sources/`,
+`functions/`, `ephemeral-resources/`, `actions/`, `guides/` — rather than every
+file it finds.
+
+That is an inference from the validator's behaviour rather than a guarantee
+from the Registry, so **S7-05 must confirm it before publication**: if internal
+documents render as provider pages, they move to a directory of their own
+before the tag is signed. Recorded here rather than assumed away.
+
+### Every example is a claim that has to keep working
+
+The examples are not decoration. `tfplugindocs` embeds them in the generated
+pages, so an example that drifts is documentation that lies, and `task
+tf:fmt:check` covers only their formatting.
+
+Each one therefore states the constraint it is demonstrating, in the words the
+schema uses: that a zone's `nameservers` are create-only, that `csk` and `ksk`
+are the same key, that destroying an ACL resource leaves the ACL alone, that a
+prefix off a boundary has no reverse zone. A reader who copies an example
+copies the caveat with it.
 
 | ID | Task | Role | Status |
 | --- | --- | --- | --- |
-| S7-00 | Data sources for recursor and dnsdist — deferred from S5-05 | DEV | `[ ]` |
-| S7-01 | Examples for every resource, action and function | DEV | `[ ]` |
-| S7-02 | Registry documentation generated and validated | DEV | `[ ]` |
+| S7-00 | Data sources for recursor and dnsdist — deferred from S5-05 | DEV | `[x]` |
+| S7-01 | Examples for every resource, action, function, data source and ephemeral | DEV | `[x]` |
+| S7-02 | Registry documentation generated and validated | DEV | `[x]` |
 | S7-03 | Version matrix: acceptance against auth 5.0.x as well as 5.1.3 | QA | `[ ]` |
 | S7-04 | Signed `v0.1.0` | PM | `[ ]` |
 | S7-05 | Terraform Registry submission | PM | `[ ]` |
