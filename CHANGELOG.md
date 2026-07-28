@@ -125,6 +125,15 @@ The mapping between commit type, changelog section and version bump is in
   DNSSEC on server-side, and a default of `false` made the zone plan to turn it
   back off on every run.
 
+- `powerdns_tsigkey`, with the secret as a write-only attribute — Terraform
+  sends it to the provider and stores it in neither state nor the plan file.
+  Leaving it unset has PowerDNS generate one, which is then unreadable through
+  the provider.
+- Zone DNSSEC attributes: `nsec3param`, `nsec3narrow` and `presigned`.
+- A behaviour test: a zone signed through the provider is queried with
+  `dig +dnssec` and must answer with an RRSIG. Every other test asserts what an
+  API returned; this one asks the DNS server.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
@@ -201,6 +210,12 @@ gate had been unable to report:
   reads back as `csk` and is renamed when a second appears. Comparing the
   string literally would have made adding a second key replace the first —
   destroying the signing key of a live zone.
+
+- Changing a TSIG algorithm now replaces the key. `PUT /tsigkeys/{id}` deletes
+  the previous entry only when the name changed, so changing the algorithm
+  alone left the old key in place and added a second under the same id — three
+  PUTs produced three entries. The zone would then authenticate against
+  whichever the backend returned first.
 
 ### Security
 

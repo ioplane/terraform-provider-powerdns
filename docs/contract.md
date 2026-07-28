@@ -65,6 +65,7 @@ sits, so every `id` here is composed from the attributes that locate it.
 | `powerdns_record` | `<zone>/<name>/<type>` | `example.com./www.example.com./A` |
 | `powerdns_zone_metadata` | `<zone>/<kind>` | `example.com./ALLOW-AXFR-FROM` |
 | `powerdns_zone_cryptokey` | `<zone>/<key_id>` | `example.com./3` |
+| `powerdns_tsigkey` | canonical key name | `transfer.` |
 
 The consequence is that changing any part of an id replaces the resource.
 There is no rename: PowerDNS has no operation that would implement one.
@@ -83,6 +84,7 @@ come.
 | `powerdns_record` | One RRSet | `zone`, `name`, `type` |
 | `powerdns_zone_metadata` | One metadata kind | `zone`, `kind` |
 | `powerdns_zone_cryptokey` | One DNSSEC key | `zone`, `key_type`, and `algorithm`/`bits` when configured |
+| `powerdns_tsigkey` | One TSIG key | `name`, `algorithm` — see below |
 
 ### Data sources
 
@@ -160,7 +162,29 @@ The consequence is deliberate: **a generated DNSSEC private key cannot be read
 back through `powerdns_zone_cryptokey`.** Nothing exposes it, because anything
 that did would put it in a plan file as well as a state file.
 
-### 4.2.1 `csk` is not a third key type
+### 4.2.1 A TSIG secret is write-only or unreadable
+
+`powerdns_tsigkey.secret_wo` is a write-only attribute: Terraform hands the
+value to the provider during apply and stores it in neither the state file nor
+the plan file. It needs Terraform 1.11 or later.
+
+Leaving it unset asks PowerDNS to generate a secret, which then cannot be read
+back through this provider at all. Both paths keep the secret off disk, which
+is the guarantee; retrieving a generated secret is not offered because
+anything that offered it would write it somewhere.
+
+Because a write-only value is stored nowhere, a change to it cannot be detected
+from state. Rotating a secret means replacing the resource.
+
+### 4.2.2 Changing a TSIG algorithm replaces the key
+
+Not a design choice. `PUT /tsigkeys/{id}` deletes the previous entry only when
+the *name* changed, so changing only the algorithm leaves the old key in place
+and adds a second under the same id — verified against auth-5.1.3, where three
+PUTs produced three entries. Replacement is the only way to end up with one
+key.
+
+### 4.2.3 `csk` is not a third key type
 
 PowerDNS stores DNSKEY flags and derives `keytype` from them together with how
 many keys a zone holds. A zone's only key reads back as `csk` whatever it was

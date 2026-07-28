@@ -11,7 +11,7 @@
 
 ![phase 4_of_8](https://shieldcn.dev/badge/phase-4_of_8-0969da.svg?variant=secondary)
 ![phases_closed 4](https://shieldcn.dev/badge/phases_closed-4-3fb950.svg?variant=secondary)
-![tasks_done 50](https://shieldcn.dev/badge/tasks_done-50-3fb950.svg?variant=secondary)
+![tasks_done 53](https://shieldcn.dev/badge/tasks_done-53-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,7 +24,8 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 4 — `powerdns_zone_cryptokey` and the state-file test landed
+**Status:** phase 4 — DNSSEC keys, TSIG keys and the behaviour test landed;
+ephemeral resources remain
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -516,10 +517,10 @@ guessing would have led to the modifiers, which were working.
 | --- | --- | --- | --- | --- |
 | S4-01 | ARC: key-material handling — reconcile against the collection | ARC | S3-07 | `[x]` |
 | S4-02 | `powerdns_zone_cryptokey` | DEV | S4-01 | `[x]` |
-| S4-03 | Zone DNSSEC attributes: `dnssec`, `nsec3param`, `nsec3narrow`, `presigned`, `api_rectify` | DEV | S4-02 | `[ ]` |
-| S4-04 | `powerdns_tsigkey`; zone `master_tsig_key_ids` / `slave_tsig_key_ids` | DEV | S3-07 | `[ ]` |
+| S4-03 | Zone DNSSEC attributes: `dnssec`, `nsec3param`, `nsec3narrow`, `presigned`, `api_rectify` | DEV | S4-02 | `[x]` |
+| S4-04 | `powerdns_tsigkey` | DEV | S3-07 | `[x]` zone `*_tsig_key_ids` remain |
 | S4-05 | Ephemeral `powerdns_cryptokey_material`, `powerdns_tsigkey_secret` | DEV | S4-01 | `[ ]` |
-| S4-06 | Behaviour test: signed zone validates under `dig +dnssec` | QA | S4-03 | `[ ]` |
+| S4-06 | Behaviour test: signed zone validates under `dig +dnssec` | QA | S4-03 | `[x]` |
 | S4-07 | Test asserting no key material reaches state | QA | S4-05 | `[x]` |
 
 S4-07 is a security property, so it is tested rather than asserted. The check
@@ -532,6 +533,35 @@ check alone would miss.
 It is deliberately not a proof that the right endpoint was called. A refactor
 switching the read to `GetCryptoKey` would keep every other test passing and
 fail this one, which is the point.
+
+### Defect 10: a TSIG `PUT` adds a key instead of changing one
+
+`apiServerTSIGKeyDetailPUT` calls `setTSIGKey(name, algorithm, key)` and then
+deletes the previous entry **only when the name changed**
+(`pdns/ws-auth.cc:1932` at tag `auth-5.1.3`). Changing only the algorithm
+therefore leaves the old key in place and adds a second under the same id.
+Measured: three consecutive PUTs produced three entries, all reading
+`algprobe.`.
+
+This is the first defect this project has found in the *implementation* rather
+than in the specification, and it is why `algorithm` and `name` both force
+replacement on `powerdns_tsigkey`. An in-place update would appear to succeed
+and leave the zone authenticating against whichever entry the backend happened
+to return first. The acceptance test asserts the count, not just the value.
+
+`Update` on that resource consequently does nothing, and says so: every
+attribute forces replacement, including `secret_wo`, whose value cannot be
+compared against state because it is never stored there.
+
+### S4-06 is the only test that asks the DNS server
+
+Everything else in this suite asserts what an API returned. `dig +dnssec`
+against the lab's authoritative port asks whether the zone actually serves
+signatures — the gap between "the request succeeded" and "the thing works".
+
+It caught a mistake immediately, though mine rather than the provider's: `dig`
+takes one type per query and reads a second type name as a hostname, so
+`dig … A RRSIG` silently asked about a host called RRSIG and returned nothing.
 
 ### `keytype` is derived, not stored, and that is a production hazard
 

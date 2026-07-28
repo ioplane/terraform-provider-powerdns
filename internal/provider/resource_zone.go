@@ -63,7 +63,10 @@ type zoneModel struct {
 	SOAEditAPI types.String `tfsdk:"soa_edit_api"`
 	APIRectify types.Bool   `tfsdk:"api_rectify"`
 
-	DNSSEC types.Bool `tfsdk:"dnssec"`
+	DNSSEC      types.Bool   `tfsdk:"dnssec"`
+	NSEC3Param  types.String `tfsdk:"nsec3param"`
+	NSEC3Narrow types.Bool   `tfsdk:"nsec3narrow"`
+	Presigned   types.Bool   `tfsdk:"presigned"`
 
 	Serial       types.Int64 `tfsdk:"serial"`
 	EditedSerial types.Int64 `tfsdk:"edited_serial"`
@@ -198,6 +201,34 @@ func (r *zoneResource) Schema(
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"nsec3param": schema.StringAttribute{
+				MarkdownDescription: "NSEC3 parameters as `<algorithm> <flags> " +
+					"<iterations> <salt>`, for example `1 0 0 ab`. Empty means NSEC " +
+					"rather than NSEC3.",
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"nsec3narrow": schema.BoolAttribute{
+				MarkdownDescription: "Narrow NSEC3: compute denial of existence on the " +
+					"fly rather than storing it. Meaningful only with `nsec3param` set.",
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"presigned": schema.BoolAttribute{
+				MarkdownDescription: "The zone arrives already signed, so PowerDNS " +
+					"serves the signatures it was given rather than making its own.",
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"serial": schema.Int64Attribute{
 				MarkdownDescription: "The zone's SOA serial, as stored.",
 				Computed:            true,
@@ -270,9 +301,10 @@ func (r *zoneResource) Create(
 	if !plan.APIRectify.IsNull() {
 		zone.APIRectify = plan.APIRectify.ValueBoolPointer()
 	}
-	if !plan.DNSSEC.IsNull() {
+	if !plan.DNSSEC.IsNull() && !plan.DNSSEC.IsUnknown() {
 		zone.DNSSEC = plan.DNSSEC.ValueBoolPointer()
 	}
+	applyDNSSECAttributes(plan, &zone)
 
 	resp.Diagnostics.Append(elementsAs(ctx, plan.Masters, &zone.Masters)...)
 	// Nameservers are not a Zone field: PowerDNS takes them as a create-only
@@ -362,9 +394,10 @@ func (r *zoneResource) Update(
 	if !plan.APIRectify.IsNull() {
 		zone.APIRectify = plan.APIRectify.ValueBoolPointer()
 	}
-	if !plan.DNSSEC.IsNull() {
+	if !plan.DNSSEC.IsNull() && !plan.DNSSEC.IsUnknown() {
 		zone.DNSSEC = plan.DNSSEC.ValueBoolPointer()
 	}
+	applyDNSSECAttributes(plan, &zone)
 	resp.Diagnostics.Append(elementsAs(ctx, plan.Masters, &zone.Masters)...)
 	if resp.Diagnostics.HasError() {
 		return

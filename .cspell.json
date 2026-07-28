@@ -11,6 +11,7 @@
     "cryptokeys", "dnsdist", "dnskey", "dnssec", "dnsutils", "gopls", "gpgsql",
     "keyrings", "lmdb", "nosec", "nsec", "opentofu", "pdns", "pdnsutil",
     "prefixlen", "gmysql", "gsqlite", "bindbackend", "ECDSAP", "cryptokey",
+    "RRSIG", "algprobe", "digprobe", "norecurse", "dnsutils",
     "keysigning", "boolplanmodifier",
     "powerdns", "prealloc", "presigned", "rectify", "rrset", "rrsets",
     "rpzstatistics", "semgrep", "skopeo", "supermasters", "terragrunt",

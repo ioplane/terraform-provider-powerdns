@@ -102,6 +102,15 @@ func applyZone(
 	if mode == afterRead || model.DNSSEC.IsUnknown() || model.DNSSEC.IsNull() {
 		model.DNSSEC = types.BoolValue(derefBool(zone.DNSSEC))
 	}
+	if mode == afterRead || model.NSEC3Param.IsUnknown() || model.NSEC3Param.IsNull() {
+		model.NSEC3Param = types.StringValue(zone.NSEC3Param)
+	}
+	if mode == afterRead || model.NSEC3Narrow.IsUnknown() || model.NSEC3Narrow.IsNull() {
+		model.NSEC3Narrow = types.BoolValue(derefBool(zone.NSEC3Narrow))
+	}
+	if mode == afterRead || model.Presigned.IsUnknown() || model.Presigned.IsNull() {
+		model.Presigned = types.BoolValue(derefBool(zone.Presigned))
+	}
 
 	if mode == afterRead {
 		model.Kind = types.StringValue(zone.Kind)
@@ -119,6 +128,23 @@ func applyZone(
 	}
 
 	return diags
+}
+
+// applyDNSSECAttributes copies the signing attributes onto a request body.
+//
+// Each is Optional and Computed, so an unknown value means "the configuration
+// said nothing" and must not be sent — sending the zero value would turn NSEC3
+// off on a zone that has it.
+func applyDNSSECAttributes(model zoneModel, zone *auth.Zone) {
+	if !model.NSEC3Param.IsUnknown() && !model.NSEC3Param.IsNull() {
+		zone.NSEC3Param = model.NSEC3Param.ValueString()
+	}
+	if !model.NSEC3Narrow.IsUnknown() && !model.NSEC3Narrow.IsNull() {
+		zone.NSEC3Narrow = model.NSEC3Narrow.ValueBoolPointer()
+	}
+	if !model.Presigned.IsUnknown() && !model.Presigned.IsNull() {
+		zone.Presigned = model.Presigned.ValueBoolPointer()
+	}
 }
 
 // optionalString maps the empty string to null.
