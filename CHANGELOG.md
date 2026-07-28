@@ -157,6 +157,14 @@ The mapping between commit type, changelog section and version bump is in
   than only written: `main` is blocked for direct commits, and a `file:line`
   citation without a revision is warned about.
 
+- Actions: `powerdns_notify_zone`, `powerdns_axfr_retrieve`,
+  `powerdns_rectify_zone` and `powerdns_flush_cache`. Terraform 1.14 or later.
+  The capability map listed 24 operations as uncoverable because Terraform had
+  nowhere to put an imperative operation; actions cover 19 of them.
+- Functions: `fqdn`, `is_fqdn`, `reverse_zone_name`, `ptr_name` and
+  `soa_serial`. Pure and offline — a data source would make a plan depend on a
+  server for an answer that is a string operation.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
