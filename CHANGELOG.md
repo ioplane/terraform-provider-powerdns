@@ -104,6 +104,10 @@ gate had been unable to report:
   against itself: the Taskfile has 40 tasks, not 37; `golangci-lint` has no
   *blanket* path exclusions but does carry five enumerated per-rule exemptions,
   which is a weaker claim than the one the plan made.
+- The `gofumpt` pre-commit hook called a binary the dev image does not carry,
+  so it could never have run. Replaced by `golangci-lint fmt`, which is already
+  configured with `gofmt`, `gofumpt` and `goimports` — running the formatter
+  from two configurations is how they come to disagree.
 - `yamllint` reported 30 warnings against the vendored PowerDNS specification,
   whose formatting is not ours to fix. Excluded, with `.venv/`.
 
