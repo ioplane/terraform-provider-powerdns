@@ -67,8 +67,9 @@ var KnownDivergences = []KnownDivergence{
 	{
 		Method: http.MethodPost,
 		Path:   "/api/v1/servers/localhost/zones/{zone_id}/cryptokeys/{cryptokey_id}",
-		Reason: "implemented but not documented; registered at ws-auth.cc:3361 and answers 400 " +
-			"rather than 404 (PowerDNS/pdns#17807)",
+		Reason: "implemented but not documented; ws-auth.cc registers apiZoneCryptokeysPOST " +
+			"on the key path (line 3349 at tag auth-5.1.3, 3361 on master a74d89a8) and " +
+			"the server answers 400 rather than 404 (PowerDNS/pdns#17807)",
 	},
 	{
 		Method: http.MethodGet,

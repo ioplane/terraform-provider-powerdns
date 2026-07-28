@@ -1,0 +1,13 @@
+{
+  "name": "cache-flush",
+  "description": "count zero is a successful flush, not a failure",
+  "method": "PUT",
+  "path": "/api/v1/servers/localhost/cache/flush",
+  "query": "domain=recprobe.test.",
+  "status": 200,
+  "body": {
+    "count": 0,
+    "result": "Flushed cache."
+  },
+  "recorded_against": "5.4.4"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "rpzstatistics",
+  "description": "empty with no response policy zones loaded, which is a normal answer",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/rpzstatistics",
+  "status": 200,
+  "body": {},
+  "recorded_against": "5.4.4"
+}

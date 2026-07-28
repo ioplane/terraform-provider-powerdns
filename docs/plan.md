@@ -11,7 +11,7 @@
 
 ![phase 2_of_8](https://shieldcn.dev/badge/phase-2_of_8-0969da.svg?variant=secondary)
 ![phases_closed 2](https://shieldcn.dev/badge/phases_closed-2-3fb950.svg?variant=secondary)
-![tasks_done 35](https://shieldcn.dev/badge/tasks_done-35-3fb950.svg?variant=secondary)
+![tasks_done 36](https://shieldcn.dev/badge/tasks_done-36-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -23,7 +23,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 2 (clients) — Authoritative complete at 42 of 68; `api/rec` next
+**Status:** phase 2 (clients) — Authoritative and Recursor complete, 58 of 68; `api/dnsdist` next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -234,7 +234,7 @@ for having built it:
 | # | Defect | Found by | Status |
 | --- | --- | --- | --- |
 | 1 | `GET /config/{name}` documented, no handler — the server answers 404 | reading `ws-auth.cc` | [pdns#17807](https://github.com/PowerDNS/pdns/issues/17807) |
-| 2 | `POST cryptokeys/{id}` implemented at `ws-auth.cc:3361`, undocumented | reading `ws-auth.cc` | [pdns#17807](https://github.com/PowerDNS/pdns/issues/17807) |
+| 2 | `POST cryptokeys/{id}` implemented, undocumented — `apiZoneCryptokeysPOST`, `ws-auth.cc:3349` at tag `auth-5.1.3` and `:3361` on `master` `a74d89a8` | reading `ws-auth.cc` | [pdns#17807](https://github.com/PowerDNS/pdns/issues/17807) |
 | 3 | `Record.modified_at` indented one level too far out — a stray sibling of `properties`, so the property is simultaneously missing and the schema structurally invalid | `kin-openapi` refusing to load the file | to report |
 | 4 | `autoprimaries_url` sent by every `Server` object, absent from a schema declaring `additionalProperties: false` — a generated client would reject a real response | this cross-check, on a recorded fixture | to report |
 | 5 | `GET zones/{id}/export` declared `type: string`; the server sends `{"zone": "…"}`. The documentation calls it "AXFR format", which reads like `text/plain` and is not | this cross-check, phase 2 | to report |
@@ -280,7 +280,7 @@ recounting. Each row's count is the sum of its domains in
 | S2-01 | `api/auth`: zones and rrsets — including notify, axfr-retrieve, export, rectify | DEV | S1-07 | 10 | `[x]` |
 | S2-02 | `api/auth`: metadata (5), cryptokeys (6), tsigkeys (5), autoprimaries (3) | DEV | S2-01 | 19 | `[x]` |
 | S2-03 | `api/auth`: views (4), networks (3), servers (2), config (1), statistics (1), search (1), cache flush (1) | DEV | S2-01 | 13 | `[x]` |
-| S2-04 | `api/rec`: zones (5), config (5), statistics (2), search (1), cache (1), servers (2) | DEV | S1-07 | 16 | `[ ]` |
+| S2-04 | `api/rec`: zones (5), config (5), statistics (2), search (1), cache (1), servers (2) | DEV | S1-07 | 16 | `[x]` |
 | S2-05 | `api/dnsdist`: all ten, of which two write | DEV | S1-07 | 10 | `[ ]` |
 | S2-06 | Contract tests per client, against recorded fixtures | QA | S2-01…S2-05 | — | `[ ]` |
 
@@ -323,6 +323,38 @@ taken from a single-key endpoint would put a DNSSEC private key in git
 permanently, where the fix is rewriting history rather than deleting a file.
 That check was verified by planting a fixture containing a private key and
 watching it fail.
+
+### The counts were verified against the source, not carried forward
+
+Every operation count in this table was re-derived from a local checkout of
+[PowerDNS/pdns](https://github.com/PowerDNS/pdns) at the exact tags the lab
+runs, rather than taken from the capability map that produced them earlier:
+
+| Product | Tag | Where | Count |
+| --- | --- | --- | --- |
+| Authoritative | `auth-5.1.3` | `pdns/ws-auth.cc`, `registerApiHandler` under `/api/v1/servers` | 42 |
+| Recursor | `rec-5.4.4` | `pdns/recursordist/ws-recursor.cc`, lines 873–888 | 16 |
+| dnsdist | `dnsdist-2.1.0` | `pdns/dnsdistdist/dnsdist-web.cc`, `registerWebHandler` | 10 |
+
+All three matched. Two things the re-derivation corrected:
+
+- **The `ws-auth.cc` line number for defect 2 was ambiguous.** It read
+  `ws-auth.cc:3361` with no revision. That is correct on `master` `a74d89a8`,
+  which is what [pdns#17807](https://github.com/PowerDNS/pdns/issues/17807)
+  cites, and wrong for the tag this project pins: at `auth-5.1.3` the same
+  registration is line **3349**. Both are now stated with their revision, per
+  [`verified-identifiers.md`](standards/verified-identifiers.md).
+- **dnsdist registers paths, not method-and-path pairs.** `dnsdist-web.cc`
+  hangs one handler on each path and dispatches on method inside it, so its
+  eight registrations plus `PUT` on `config/allow-from` and `DELETE` on
+  `/api/v1/cache` are what make the ten. Counting registrations alone would
+  have given eight and quietly lost the only two writes the product has.
+
+For the Recursor, four handlers sit in the same registration block and are
+excluded for different reasons: `/jsonstat` is marked legacy dispatch, `/api`
+and `/api/v1` are discovery endpoints, and `/metrics` is a `registerWebHandler`
+rather than an API handler at all. PowerDNS publishes no specification for the
+Recursor or for dnsdist, so for those two the source is the specification.
 
 Two notes that shape the clients rather than merely describe them:
 

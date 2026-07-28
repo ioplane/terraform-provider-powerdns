@@ -72,6 +72,11 @@ The mapping between commit type, changelog section and version bump is in
   cache flush — the Authoritative client is complete at all 42 operations,
   31 contract tests. `TestSurfaceIsComplete` fails if an operation is dropped.
 
+- `internal/api/rec` — the Recursor client, all 16 operations, 11 contract
+  tests. The two writable settings are named constants rather than a
+  `Get(name)`/`Set(name)` pair, because every other name answers 404 and the
+  client refuses those before reaching the wire.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
@@ -126,6 +131,12 @@ gate had been unable to report:
   rules, having all been written before the hook existed. Rewritten; trees are
   byte-identical and authorship unchanged. `commitlint` now also runs in the
   GitLab pipeline, because a hook only guards clones that installed it.
+
+- The `ws-auth.cc` line cited for the undocumented `POST cryptokeys/{id}` was
+  given without a revision. It is right for `master` `a74d89a8`, which is what
+  the upstream issue cites, and wrong for the pinned `auth-5.1.3`, where the
+  same registration is line 3349. Both revisions are now stated. The upstream
+  issue itself was checked and is correct.
 
 ### Security
 

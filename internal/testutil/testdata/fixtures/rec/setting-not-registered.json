@@ -1,0 +1,8 @@
+{
+  "name": "setting-not-registered",
+  "description": "every name except allow-from and allow-notify-from answers 404, on read as well as write",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/config/max-cache-entries",
+  "status": 404,
+  "recorded_against": "5.4.4"
+}

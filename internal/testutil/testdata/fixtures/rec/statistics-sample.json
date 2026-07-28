@@ -1,0 +1,25 @@
+{
+  "name": "statistics-sample",
+  "description": "counters; value is a string even for numbers",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/statistics",
+  "status": 200,
+  "body": [
+    {
+      "name": "aggressive-nsec-cache-entries",
+      "type": "StatisticItem",
+      "value": "3"
+    },
+    {
+      "name": "aggressive-nsec-cache-nsec-hits",
+      "type": "StatisticItem",
+      "value": "5"
+    },
+    {
+      "name": "aggressive-nsec-cache-nsec-wc-hits",
+      "type": "StatisticItem",
+      "value": "0"
+    }
+  ],
+  "recorded_against": "5.4.4"
+}

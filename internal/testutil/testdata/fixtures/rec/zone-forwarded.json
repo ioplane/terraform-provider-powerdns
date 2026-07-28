@@ -1,0 +1,20 @@
+{
+  "name": "zone-forwarded",
+  "description": "a Forwarded zone; note the server appended :53 to the upstream it was given",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/zones/recprobe.test.",
+  "status": 200,
+  "body": {
+    "id": "recprobe.test.",
+    "kind": "Forwarded",
+    "name": "recprobe.test.",
+    "notify_allowed": false,
+    "records": [],
+    "recursion_desired": false,
+    "servers": [
+      "192.0.2.53:53"
+    ],
+    "url": "/api/v1/servers/localhost/zones/recprobe.test."
+  },
+  "recorded_against": "5.4.4"
+}
