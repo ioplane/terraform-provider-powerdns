@@ -69,6 +69,9 @@ sits, so every `id` here is composed from the attributes that locate it.
 | `powerdns_view_zone` | `<view>/<zone>` | `trusted/example.com.` |
 | `powerdns_network` | the CIDR | `192.0.2.0/24` |
 | `powerdns_autoprimary` | `<ip>/<nameserver>` | `192.0.2.53/ns1.example.com.` |
+| `powerdns_recursor_zone` | canonical zone name | `example.com.` |
+| `powerdns_recursor_acl` | the setting name | `allow-from` |
+| `powerdns_dnsdist_acl` | `allow-from` | anything |
 
 The consequence is that changing any part of an id replaces the resource.
 There is no rename: PowerDNS has no operation that would implement one.
@@ -91,6 +94,9 @@ come.
 | `powerdns_view_zone` | A zone's membership of a view (LMDB only) | `view`, `zone` |
 | `powerdns_network` | A subnet-to-view mapping (LMDB only) | `network` |
 | `powerdns_autoprimary` | An autoprimary entry | every attribute |
+| `powerdns_recursor_zone` | A Recursor zone | `name` |
+| `powerdns_recursor_acl` | One of two Recursor netmask settings | — |
+| `powerdns_dnsdist_acl` | dnsdist's `allow-from` | — |
 
 ### Data sources
 
@@ -160,6 +166,8 @@ deciding how to write a value:
 | `powerdns_zone_cryptokey.key_type` | `csk` is compatible with `ksk` and `zsk` |
 | `powerdns_network.network` | as a subnet, so an uncompressed IPv6 prefix is not a change |
 | `powerdns_autoprimary.ip` | by address value |
+| `powerdns_recursor_zone.servers` | as upstreams: a bare address equals the same address with `:53` |
+| `powerdns_recursor_acl.netmasks`, `powerdns_dnsdist_acl.netmasks` | as subnets, ignoring order |
 
 Every one of these is asserted in both directions: a respelling plans nothing,
 and a genuine change plans a change. A comparison looser than the server's

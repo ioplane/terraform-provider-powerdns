@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 
 	"github.com/ioplane/terraform-provider-powerdns/internal/api/auth"
+	"github.com/ioplane/terraform-provider-powerdns/internal/api/rec"
 	"github.com/ioplane/terraform-provider-powerdns/internal/api/transport"
 	"github.com/ioplane/terraform-provider-powerdns/internal/provider"
 )
@@ -73,6 +74,22 @@ func acceptanceAuthClient() (*auth.Client, error) {
 		return nil, fmt.Errorf("building the acceptance client: %w", err)
 	}
 	return auth.New(http), nil
+}
+
+// acceptanceRecursorClient builds a Recursor client for the assertions that
+// check the server directly.
+func acceptanceRecursorClient() (*rec.Client, error) {
+	http, err := transport.New(transport.Config{
+		BaseURL:  os.Getenv("PDNS_RECURSOR_SERVER_URL"),
+		APIKey:   os.Getenv("PDNS_API_KEY"),
+		Product:  transport.ProductRecursor,
+		Timeout:  30 * time.Second,
+		Attempts: 3,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("building the acceptance Recursor client: %w", err)
+	}
+	return rec.New(http), nil
 }
 
 // t0 is a context for the direct-to-server assertions, which run outside a

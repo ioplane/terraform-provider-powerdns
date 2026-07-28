@@ -11,7 +11,7 @@
 
 ![phase 5_of_8](https://shieldcn.dev/badge/phase-5_of_8-0969da.svg?variant=secondary)
 ![phases_closed 5](https://shieldcn.dev/badge/phases_closed-5-3fb950.svg?variant=secondary)
-![tasks_done 58](https://shieldcn.dev/badge/tasks_done-58-3fb950.svg?variant=secondary)
+![tasks_done 62](https://shieldcn.dev/badge/tasks_done-62-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,8 +24,8 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 5 — views, networks and autoprimaries landed;
-Recursor and dnsdist resources next
+**Status:** phase 5 — the family surface is complete;
+phase 6 (actions and functions) next
 **Last updated:** 2026-07-28
 
 ## How a sprint runs
@@ -641,10 +641,10 @@ three keys in the zone and did not generalise.
 | --- | --- | --- | --- | --- |
 | S5-01 | `powerdns_view_zone`, `powerdns_network` — LMDB only | DEV | S3-07 | `[x]` |
 | S5-02 | `powerdns_autoprimary` | DEV | S3-07 | `[x]` |
-| S5-03 | `powerdns_recursor_zone`, `powerdns_recursor_acl` | DEV | S2-04 | `[ ]` |
-| S5-04 | `powerdns_dnsdist_acl` | DEV | S2-05 | `[ ]` |
-| S5-05 | Data sources for recursor and dnsdist | DEV | S5-03, S5-04 | `[ ]` |
-| S5-06 | Negative tests asserting each capability diagnostic | QA | S5-01…S5-04 | `[~]` LMDB and unconfigured-product covered |
+| S5-03 | `powerdns_recursor_zone`, `powerdns_recursor_acl` | DEV | S2-04 | `[x]` |
+| S5-04 | `powerdns_dnsdist_acl` | DEV | S2-05 | `[x]` |
+| S5-05 | Data sources for recursor and dnsdist | DEV | S5-03, S5-04 | `[ ]` deferred to phase 7 with the examples |
+| S5-06 | Negative tests asserting each capability diagnostic | QA | S5-01…S5-04 | `[x]` |
 
 S5-06 asserts the **message**, not the failure. A bare `422` reaching a user is
 the defect this provider exists to avoid, and a test that only checked "this
@@ -668,6 +668,49 @@ The Recursor's `api_dir` case is skipped with its reason recorded: the lab's
 Recursor has it configured, and provoking the failure would need a second
 Recursor with it left out. The classifier itself is covered by
 `classify_test.go`, including the cases that must not fire.
+
+### The two ACL resources are singletons and say so
+
+Neither product has a collection of ACLs. The Recursor exposes two named
+netmask settings and dnsdist exactly one, so a resource per ACL is a resource
+that can only exist once.
+
+Terraform cannot prevent a second one of the same type, so the schema says what
+the API means and `Delete` does the safe thing: it leaves the setting alone and
+warns. There is no unset state for an ACL — writing an empty list would refuse
+every client — so removing the resource removes Terraform's knowledge of the
+setting rather than the setting.
+
+### `ImportStateVerify` does not run plan modifiers
+
+Importing a Recursor zone failed on `servers`: state held `192.0.2.54` from the
+configuration and the import read `192.0.2.54:53` from the server. That is
+precisely the normalisation the semantic modifier exists to absorb, and it is
+invisible in ordinary use.
+
+`ImportStateVerify` compares raw strings without running modifiers, so every
+attribute the server respells has to be listed in `ImportStateVerifyIgnore`
+with the reason. Three resources now carry such a list, and the pattern is
+worth knowing before writing the fourth.
+
+### Hooks and skills, so the rules are not only written down
+
+`AGENTS.md` said "main is never committed to directly" for five phases while
+fourteen commits went straight to main. The rule was fine; nothing enforced it.
+
+- `.claude/hooks/guard-main-branch.sh` blocks `git commit` and `git push` on
+  main, and allows the sanctioned paths — `gh pr merge`, a fast-forward pull.
+- `.claude/hooks/guard-unverified-identifiers.sh` warns when a `file:line`
+  citation reaches a file without a revision beside it, which is how
+  `ws-auth.cc:3361` was written unqualified when the pinned tag has it at 3349.
+- `.claude/skills/sprint-workflow` and `.claude/skills/powerdns-facts` carry
+  the workflow and the measure-don't-assume rule, including the table of
+  eleven comments this project wrote from documentation and then corrected
+  against the lab.
+
+Both hooks were verified by running them against inputs that must fail and
+inputs that must pass, which is the same standard `check-hooks.sh` applies to
+the commit-msg hook.
 
 ### One worktree per sprint, starting here
 

@@ -151,6 +151,12 @@ The mapping between commit type, changelog section and version bump is in
   that only checked "this errored" would pass for a provider that surfaced a
   bare status code.
 
+- `powerdns_recursor_zone`, `powerdns_recursor_acl` and `powerdns_dnsdist_acl`.
+  The family surface is complete: all three products have resources.
+- Repository hooks and skills, so the rules in `AGENTS.md` are enforced rather
+  than only written: `main` is blocked for direct commits, and a `file:line`
+  citation without a revision is warned about.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
@@ -249,6 +255,10 @@ gate had been unable to report:
 - One dev container per checkout. The container was bind-mounted on whichever
   tree started it and its name was fixed, so a worktree's `task test` compiled
   the code in `main`. Found on the first sprint to actually use a worktree.
+
+- Removing an ACL resource leaves the setting on the server and warns. There is
+  no unset state for an ACL, and writing an empty list would refuse every
+  client.
 
 ### Notes
 
