@@ -11,7 +11,7 @@
 
 ![phase 3_of_8](https://shieldcn.dev/badge/phase-3_of_8-0969da.svg?variant=secondary)
 ![phases_closed 3](https://shieldcn.dev/badge/phases_closed-3-3fb950.svg?variant=secondary)
-![tasks_done 38](https://shieldcn.dev/badge/tasks_done-38-3fb950.svg?variant=secondary)
+![tasks_done 41](https://shieldcn.dev/badge/tasks_done-41-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -23,7 +23,8 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 2 (clients) closed — 68 of 68 operations; phase 3 (core resources) next
+**Status:** phase 3 — `powerdns_zone` and the plan modifiers landed;
+`powerdns_record` next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -398,23 +399,49 @@ a count declared as an int fails to decode a successful flush.
 
 ---
 
-## Phase 3 — Core resources · `[ ]`
+## Phase 3 — Core resources · `[~]` in progress
 
 **Exit gate:** acceptance green on both authoritative backends.
 
 | ID | Task | Role | Depends | Status |
 | --- | --- | --- | --- | --- |
-| S3-01 | ARC: zone and record schemas, identity, signed | ARC | S2-06 | `[ ]` |
-| S3-02 | `powerdns_zone` | DEV | S3-01 | `[ ]` |
+| S3-01 | ARC: zone and record schemas, identity, signed | ARC | S2-06 | `[x]` |
+| S3-02 | `powerdns_zone` | DEV | S3-01 | `[x]` |
 | S3-03 | `powerdns_record` | DEV | S3-02 | `[ ]` |
 | S3-04 | `powerdns_zone_metadata` | DEV | S3-02 | `[ ]` |
 | S3-05 | Data sources: zone, zones, record, zone_metadata, zone_export | DEV | S3-03 | `[ ]` |
-| S3-06 | Semantic-normalisation plan modifiers: case, IPv6, server defaults | DEV | S3-02 | `[ ]` |
+| S3-06 | Semantic-normalisation plan modifiers: case, IPv6, server defaults | DEV | S3-02 | `[x]` |
 | S3-07 | Acceptance on both backends for each | QA | S3-02…S3-05 | `[ ]` |
 
-S3-06 is not optional polish. Three normalisations are already known — `kind`
-title-casing, IPv6 zero compression, `soa_edit_api` assignment — and each
-produces a permanent diff if compared as a string.
+S3-06 is not optional polish, and phase 2 raised the count from three to seven.
+Each produces a permanent diff if compared as a string, so
+`internal/provider/normalise` answers "are these the same thing?" per kind of
+value and `internal/provider/planmodify` turns that into a plan modifier.
+
+The modifiers are tested in both directions. A test that only proves a
+respelling is suppressed would pass for a modifier that suppresses everything —
+and a modifier that suppresses too much hides a real change, which is worse
+than a spurious diff because no plan ever shows it. So every case has its
+`differ` twin: a substituted master, a different port, a duplicate that must
+not satisfy two slots.
+
+### Two framework contracts the acceptance tests found
+
+Both were written wrong first and corrected by running against the lab.
+
+**A create must return exactly what was planned.** Writing the server's
+`Native` into state after a create configured as `native` fails with *"Provider
+produced inconsistent result after apply"* — a framework contract no plan
+modifier can rescue. So `applyZone` has two modes: after a write the planned
+spelling is kept, and only after a read does the server's value land. The
+semantic modifiers then earn their keep on the *next* plan, comparing a
+configured `native` against a state holding `Native`.
+
+**A Computed attribute without `UseStateForUnknown` makes every plan
+non-empty.** `serial` and `edited_serial` planned as "known after apply" on
+each run, so `ExpectEmptyPlan` failed for a reason that had nothing to do with
+normalisation. The diagnosis was only visible because the test prints the plan;
+guessing would have led to the modifiers, which were working.
 
 ---
 

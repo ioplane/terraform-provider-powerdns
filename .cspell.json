@@ -40,6 +40,9 @@
     "ddist", "dnsdistdist", "recursordist", "pgsql", "exportprobe",
     "jsonstat", "loglevel", "recprobe", "viewprobe", "rpzstatistics",
     "netmasks", "qtype", "rcode", "dohFrontends", "dynblocks",
+    "planmodify", "planmodifier", "unconfigured", "tfprotov", "normalise",
+    "booldefault", "listplanmodifier", "stringplanmodifier", "int64planmodifier",
+    "stringvalidator", "plancheck", "providerserver", "svchost",
     "slaveprobe", "unsign",
 
     // PowerDNS and DNS vocabulary.

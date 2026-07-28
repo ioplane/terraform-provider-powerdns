@@ -81,6 +81,17 @@ The mapping between commit type, changelog section and version bump is in
   write, 10 contract tests. Phase 2 closes at 68 of 68 operations across the
   three products, with 52 contract tests over 26 recorded fixtures.
 
+- `powerdns_zone` — the first resource, with create, read, update, delete and
+  import. Acceptance tests on both authoritative backends assert an empty plan
+  after apply, which is the property the whole normalisation layer exists for.
+- `internal/provider/normalise` and `internal/provider/planmodify` — semantic
+  comparison for zone kinds, DNS names, IP addresses, CIDRs, Recursor
+  upstreams and unordered lists, and the plan modifiers that apply them. Each
+  is tested for what it must suppress *and* for what it must not.
+- The provider now builds its three clients and hands them to resources, with
+  a diagnostic naming the missing argument when a product is unconfigured. It
+  had carried a `TODO(phase-1)` in `Configure` since phase 0.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every

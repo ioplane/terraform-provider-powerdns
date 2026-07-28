@@ -258,3 +258,34 @@ func (c *Client) RectifyZone(ctx context.Context, zoneID string) error {
 	return c.http.Do(ctx, "rectify zone", http.MethodPut,
 		zonePath(zoneID)+"/rectify", nil, nil)
 }
+
+// CreateZoneWithNameservers creates a zone, passing nameservers alongside it.
+//
+// `nameservers` is not a Zone field and never appears in a read: PowerDNS
+// consumes it once, at creation, to generate the SOA and NS records, and
+// ignores it afterwards. Modelling it as part of Zone would imply it round
+// trips, which it does not.
+//
+// An empty list is not the same as omitting it. PowerDNS generates no NS
+// records for a zone created without nameservers, which is what a caller wants
+// when it intends to manage them as records.
+func (c *Client) CreateZoneWithNameservers(
+	ctx context.Context,
+	zone Zone,
+	nameservers []string,
+) (*Zone, error) {
+	// The request body is the zone plus the extra key, so it is built by
+	// embedding rather than by adding a field to Zone.
+	body := struct {
+		Zone
+
+		Nameservers []string `json:"nameservers,omitempty"`
+	}{Zone: zone, Nameservers: nameservers}
+
+	var out Zone
+	if err := c.http.Do(ctx, "create zone", http.MethodPost,
+		basePath()+"/zones", body, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}

@@ -14,11 +14,11 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Defaults applied in Configure. The framework has no schema-level default for
@@ -170,22 +170,29 @@ func (p *powerdnsProvider) Configure(
 		return
 	}
 
-	// TODO(phase-1): build the transport and the three clients here, and place
-	// the bundle on resp.ResourceData and resp.DataSourceData. The provider is
-	// deliberately empty until internal/api/transport exists — the transport
-	// being second-class is what produces inconsistent error handling.
-	_ = ctx
-	_ = path.Root
-	_ = resolveBool
-	_ = resolveInt
-	_ = defaultTimeoutSeconds
-	_ = defaultRetryAttempts
+	clients, diags := buildClients(data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "PowerDNS provider configured", map[string]any{
+		"authoritative": clients.Auth != nil,
+		"recursor":      clients.Recursor != nil,
+		"dnsdist":       clients.DNSDist != nil,
+	})
+
+	// The same bundle to both: a data source needs exactly what a resource
+	// needs, and handing out two copies invites them to drift.
+	resp.ResourceData = clients
+	resp.DataSourceData = clients
 }
 
-// Resources returns the managed resources. Empty until phase 3; the plan is in
-// docs/plan.md.
+// Resources returns the managed resources.
 func (p *powerdnsProvider) Resources(_ context.Context) []func() resource.Resource {
-	return nil
+	return []func() resource.Resource{
+		NewZoneResource,
+	}
 }
 
 // DataSources returns the data sources. Empty until phase 3.
