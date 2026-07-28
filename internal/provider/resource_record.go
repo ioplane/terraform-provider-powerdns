@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/ioplane/terraform-provider-powerdns/internal/api/auth"
@@ -26,6 +27,7 @@ import (
 
 var (
 	_ resource.Resource                = (*recordResource)(nil)
+	_ resource.ResourceWithIdentity    = (*recordResource)(nil)
 	_ resource.ResourceWithConfigure   = (*recordResource)(nil)
 	_ resource.ResourceWithImportState = (*recordResource)(nil)
 )
@@ -200,6 +202,7 @@ func (r *recordResource) Create(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	resp.Diagnostics.Append(r.identityFor(ctx, resp.Identity, plan)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -247,6 +250,7 @@ func (r *recordResource) Read(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	resp.Diagnostics.Append(r.identityFor(ctx, resp.Identity, state)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -306,6 +310,34 @@ func (r *recordResource) ImportState(
 	req resource.ImportStateRequest,
 	resp *resource.ImportStateResponse,
 ) {
+	// An import block carries the identity instead of an id. Three attributes,
+	// no parsing — which is the point of having an identity at all.
+	if req.ID == "" {
+		var zone, name, recordType types.String
+		resp.Diagnostics.Append(
+			req.Identity.GetAttribute(ctx, path.Root("zone_name"), &zone)...)
+		resp.Diagnostics.Append(
+			req.Identity.GetAttribute(ctx, path.Root("record_name"), &name)...)
+		resp.Diagnostics.Append(
+			req.Identity.GetAttribute(ctx, path.Root("record_type"), &recordType)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		zoneID, recordName := canonicalName(zone.ValueString()),
+			canonicalName(name.ValueString())
+
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"),
+			recordID(zoneID, recordName, recordType.ValueString()))...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("zone"), zoneID)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), recordName)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"),
+			recordType.ValueString())...)
+		resp.Diagnostics.Append(setRecordIdentity(ctx, resp.Identity,
+			zoneID, recordName, recordType.ValueString())...)
+		return
+	}
+
 	parts := strings.Split(req.ID, "/")
 	if len(parts) != recordIDParts {
 		resp.Diagnostics.AddError(
@@ -323,6 +355,7 @@ func (r *recordResource) ImportState(
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("zone"), zone)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), name)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), recordType)...)
+	resp.Diagnostics.Append(setRecordIdentity(ctx, resp.Identity, zone, name, recordType)...)
 }
 
 // write is Create and Update, which are the same request.
@@ -358,4 +391,17 @@ func (r *recordResource) write(
 
 	plan.ID = types.StringValue(recordID(zoneID, rrset.Name, rrset.Type))
 	return diags
+}
+
+// identityFor is the RRSet's identity: zone, name and type as three
+// attributes, not one parsed string.
+func (r *recordResource) identityFor(
+	ctx context.Context,
+	identity *tfsdk.ResourceIdentity,
+	model recordModel,
+) diag.Diagnostics {
+	return setRecordIdentity(ctx, identity,
+		canonicalName(model.Zone.ValueString()),
+		canonicalName(model.Name.ValueString()),
+		model.Type.ValueString())
 }

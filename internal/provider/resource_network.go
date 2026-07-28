@@ -20,6 +20,7 @@ import (
 
 var (
 	_ resource.Resource                = (*networkResource)(nil)
+	_ resource.ResourceWithIdentity    = (*networkResource)(nil)
 	_ resource.ResourceWithConfigure   = (*networkResource)(nil)
 	_ resource.ResourceWithImportState = (*networkResource)(nil)
 )
@@ -111,6 +112,8 @@ func (r *networkResource) Create(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	resp.Diagnostics.Append(setNetworkIdentity(ctx, resp.Identity,
+		plan.Network.ValueString())...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -150,6 +153,8 @@ func (r *networkResource) Read(
 	}
 
 	state.View = types.StringValue(network.View)
+	resp.Diagnostics.Append(setNetworkIdentity(ctx, resp.Identity,
+		state.Network.ValueString())...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 

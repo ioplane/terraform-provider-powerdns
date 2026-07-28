@@ -23,6 +23,7 @@ import (
 
 var (
 	_ resource.Resource                = (*recursorZoneResource)(nil)
+	_ resource.ResourceWithIdentity    = (*recursorZoneResource)(nil)
 	_ resource.ResourceWithConfigure   = (*recursorZoneResource)(nil)
 	_ resource.ResourceWithImportState = (*recursorZoneResource)(nil)
 )
@@ -178,6 +179,7 @@ func (r *recursorZoneResource) Create(
 	}
 
 	plan.ID = types.StringValue(created.ID)
+	resp.Diagnostics.Append(setZoneIdentity(ctx, resp.Identity, created.ID)...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -220,6 +222,7 @@ func (r *recursorZoneResource) Read(
 	}
 	state.Servers = servers
 
+	resp.Diagnostics.Append(setZoneIdentity(ctx, resp.Identity, state.ID.ValueString())...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 

@@ -9,9 +9,9 @@
 
 <div align="center">
 
-![phase 5_of_8](https://shieldcn.dev/badge/phase-5_of_8-0969da.svg?variant=secondary)
-![phases_closed 5](https://shieldcn.dev/badge/phases_closed-5-3fb950.svg?variant=secondary)
-![tasks_done 66](https://shieldcn.dev/badge/tasks_done-66-3fb950.svg?variant=secondary)
+![phase 7_of_8](https://shieldcn.dev/badge/phase-7_of_8-0969da.svg?variant=secondary)
+![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
+![tasks_done 67](https://shieldcn.dev/badge/tasks_done-67-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,7 +24,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 6 — actions and functions landed; resource identity next
+**Status:** phase 6 closed; phase 7 (release) next
 **Last updated:** 2026-07-28
 
 ## How a sprint runs
@@ -724,14 +724,14 @@ container is mounted on the worktree.
 
 ---
 
-## Phase 6 — Beyond resources · `[~]` in progress
+## Phase 6 — Beyond resources · `[x]` closed 2026-07-29
 
 | ID | Task | Role | Depends | Status |
 | --- | --- | --- | --- | --- |
 | S6-01 | Actions: `notify_zone`, `axfr_retrieve`, `rectify_zone`, `flush_cache` | DEV | S2-03 | `[x]` |
 | S6-02 | Recursor and dnsdist cache flush | DEV | S2-04, S2-05 | `[x]` folded into one `flush_cache` action |
 | S6-03 | Functions: `fqdn`, `is_fqdn`, `reverse_zone_name`, `ptr_name`, `soa_serial` | DEV | — | `[x]` |
-| S6-04 | Resource identity on every resource with a stable one | DEV | S3-07 | `[ ]` |
+| S6-04 | Resource identity on every resource with a stable one | DEV | S3-07 | `[x]` |
 | S6-05 | Gate actions at Terraform 1.14 via client capability | DEV | S6-01 | `[x]` the framework negotiates it; the tests skip below 1.14 |
 
 S6-03 has no dependency on the clients: the functions are pure and offline,
@@ -758,6 +758,45 @@ guess:
 
 The first test run caught a real defect: `/0` produced `.in-addr.arpa.` with a
 leading dot, which is a different name and not a valid one.
+
+### Identity has one property PowerDNS cannot give it
+
+The framework asks three things of an identity: it addresses at most one remote
+object, it lets the provider decide whether that object exists, and it does not
+change for the object's lifetime.
+
+The second and third hold outright here. Every identity is the natural key
+PowerDNS itself uses, and every attribute composing one already forces
+replacement — so stability is by construction rather than by promise.
+
+The first is stricter than PowerDNS can support. *"At most one remote object
+per provider, across all instances of that provider"* — but `example.com.`
+names one zone on one server, and two servers can each hold a zone by that
+name. Nothing in the API distinguishes them: `/servers/{id}` answers only for
+`localhost`, so there is no server identifier to compose in.
+
+Adding the endpoint URL would not fix it and would break the third property: a
+server that moves gets a new URL while remaining the same object, and the
+identity would change underneath it. So the boundary is the server, and
+`docs/contract.md` says so rather than leaving a user to discover it.
+
+The two ACL resources have **no** identity, deliberately. Their natural key is
+the setting name, which is `allow-from` on every installation there has ever
+been — an identity of `allow-from` would address one object per server and
+every object across servers. Leaving it out is honest; declaring it would not
+be.
+
+### `nameservers` cannot round-trip through an import block
+
+Found by the identity tests. A zone created with `nameservers` imports without
+them — the attribute is create-only and never read back — so the imported
+object has none, the configuration has some, and the difference forces
+replacement. Importing such a zone by identity therefore plans a destroy and
+create rather than a no-op.
+
+That is a property of the API, not of the identity: PowerDNS consumes
+nameservers once and does not report them afterwards. Recorded in the contract
+so it is a known limit rather than a surprise.
 
 ### One flush action, not three
 

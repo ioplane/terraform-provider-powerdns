@@ -27,6 +27,7 @@ import (
 
 var (
 	_ resource.Resource                = (*cryptoKeyResource)(nil)
+	_ resource.ResourceWithIdentity    = (*cryptoKeyResource)(nil)
 	_ resource.ResourceWithConfigure   = (*cryptoKeyResource)(nil)
 	_ resource.ResourceWithImportState = (*cryptoKeyResource)(nil)
 )
@@ -275,6 +276,8 @@ func (r *cryptoKeyResource) Create(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	resp.Diagnostics.Append(setCryptoKeyIdentity(ctx, resp.Identity,
+		zoneID, int64(created.ID))...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -301,6 +304,8 @@ func (r *cryptoKeyResource) Read(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	resp.Diagnostics.Append(setCryptoKeyIdentity(ctx, resp.Identity,
+		zoneID, state.KeyID.ValueInt64())...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
