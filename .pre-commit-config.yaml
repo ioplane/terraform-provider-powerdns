@@ -24,12 +24,19 @@ repos:
         entry: podman-compose -f deployments/compose/compose.dev.yml exec -T dev
                npx --no-install commitlint --config .commitlintrc.yaml --edit
 
-      - id: gofumpt
-        name: gofumpt
+      # golangci-lint fmt, not gofumpt directly: .golangci.yml already
+      # enables gofmt, gofumpt and goimports with the local-prefixes setting,
+      # and running the formatter twice from two configurations is how they
+      # come to disagree. gofumpt is also not a separate binary in the dev
+      # image, so the direct call could never have worked.
+      - id: format
+        name: golangci-lint fmt
         language: system
         types: [go]
         exclude: '^vendor/'
-        entry: podman-compose -f deployments/compose/compose.dev.yml exec -T dev gofumpt -l -w
+        pass_filenames: false
+        entry: podman-compose -f deployments/compose/compose.dev.yml exec -T dev
+               golangci-lint fmt ./...
 
       - id: check-pins
         name: verify image digests and action pins

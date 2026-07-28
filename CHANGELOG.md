@@ -56,6 +56,11 @@ The mapping between commit type, changelog section and version bump is in
   Deliberately manual and in no gate: a fixture that re-records itself is not a
   fixture.
 
+- `internal/api/auth` — the Authoritative client, starting with the ten zone
+  operations: list, search by name, create, read, update, patch rrsets, delete,
+  notify, axfr-retrieve, export and rectify. Twelve contract tests against
+  recorded fixtures, no containers needed.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every

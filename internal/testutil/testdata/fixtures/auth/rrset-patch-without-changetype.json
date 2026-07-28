@@ -1,0 +1,11 @@
+{
+  "name": "rrset-patch-without-changetype",
+  "description": "the server names the missing field, so the client check saves a round trip only",
+  "method": "PATCH",
+  "path": "/api/v1/servers/localhost/zones/exportprobe.test.",
+  "status": 422,
+  "body": {
+    "error": "Key 'changetype' not present or not a String"
+  },
+  "recorded_against": "5.1.3"
+}

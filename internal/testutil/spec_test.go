@@ -56,11 +56,11 @@ func TestRecordedResponsesMatchTheSpec(t *testing.T) {
 		case result.Err != nil:
 			t.Errorf("%s: the recorded response does not match the specification: %v",
 				f.Name, result.Err)
-		case result.Matched:
-			matched++
 		case result.Divergence != nil:
 			t.Logf("%s: known divergence — %s", f.Name, result.Divergence.Reason)
 			unmatched++
+		case result.Matched:
+			matched++
 		default:
 			t.Logf("%s: %s %s is not described by the specification",
 				f.Name, f.Method, f.Path)

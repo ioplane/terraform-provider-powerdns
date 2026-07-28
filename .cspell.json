@@ -35,7 +35,8 @@
 
     // This repository's own test identifiers and container names.
     "testutil", "testacc", "testkey", "labapikey", "capprobe", "fixtureview",
-    "ddist", "dnsdistdist", "recursordist", "pgsql",
+    "ddist", "dnsdistdist", "recursordist", "pgsql", "exportprobe",
+    "slaveprobe", "unsign",
 
     // PowerDNS and DNS vocabulary.
     "downstreams", "dynblocks", "dynblocklist",

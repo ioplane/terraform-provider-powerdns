@@ -1,0 +1,11 @@
+{
+  "name": "zone-axfr-retrieve-rejected",
+  "description": "axfr-retrieve on a non-Slave zone names the reason",
+  "method": "PUT",
+  "path": "/api/v1/servers/localhost/zones/exportprobe.test./axfr-retrieve",
+  "status": 422,
+  "body": {
+    "error": "Domain 'exportprobe.test.' is not a secondary domain (or has no primary defined)"
+  },
+  "recorded_against": "5.1.3"
+}

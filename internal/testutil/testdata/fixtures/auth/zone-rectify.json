@@ -1,0 +1,11 @@
+{
+  "name": "zone-rectify",
+  "description": "rectify succeeds on an unsigned Native zone; the name suggests otherwise",
+  "method": "PUT",
+  "path": "/api/v1/servers/localhost/zones/exportprobe.test./rectify",
+  "status": 200,
+  "body": {
+    "result": "Rectified"
+  },
+  "recorded_against": "5.1.3"
+}

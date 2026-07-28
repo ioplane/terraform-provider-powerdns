@@ -1,0 +1,11 @@
+{
+  "name": "zone-export",
+  "description": "the zone file, delivered as JSON rather than text/plain despite the documentation",
+  "method": "GET",
+  "path": "/api/v1/servers/localhost/zones/exportprobe.test./export",
+  "status": 200,
+  "body": {
+    "zone": "exportprobe.test.\t60\tIN\tNS\tns1.exportprobe.test.\nexportprobe.test.\t60\tIN\tSOA\ta.misconfigured.dns.server.invalid. hostmaster.exportprobe.test. 2026072802 10800 3600 604800 3600\nwww.exportprobe.test.\t300\tIN\tA\t192.0.2.1\n"
+  },
+  "recorded_against": "5.1.3"
+}

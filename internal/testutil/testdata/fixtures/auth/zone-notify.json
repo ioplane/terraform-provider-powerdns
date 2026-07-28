@@ -1,0 +1,11 @@
+{
+  "name": "zone-notify",
+  "description": "notify reports queued, not delivered, even with no slaves",
+  "method": "PUT",
+  "path": "/api/v1/servers/localhost/zones/exportprobe.test./notify",
+  "status": 200,
+  "body": {
+    "result": "Notification queued"
+  },
+  "recorded_against": "5.1.3"
+}

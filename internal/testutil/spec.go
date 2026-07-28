@@ -46,6 +46,11 @@ type KnownDivergence struct {
 	Method string
 	Path   string
 	Field  string
+	// Body marks a divergence in the response body of a route the
+	// specification does describe, as opposed to a route it omits entirely.
+	// The two need different matching: a route gap is found before validation
+	// runs, a body mismatch only after.
+	Body   bool
 	Reason string
 }
 
@@ -74,6 +79,21 @@ var KnownDivergences = []KnownDivergence{
 		Method: http.MethodGet,
 		Path:   "/metrics",
 		Reason: "Prometheus endpoint, registered as a web handler and absent from the specification",
+	},
+	{
+		Method: http.MethodGet,
+		Path:   "/api/v1/servers/localhost/zones/{zone_id}/export",
+		Body:   true,
+		Reason: "the schema says type: string; the server sends an object, " +
+			"{\"zone\": \"<the zone file>\"}. A generated client would hand back the " +
+			"envelope. Found by this cross-check on a recorded fixture",
+	},
+	{
+		Method: http.MethodPut,
+		Path:   "/api/v1/servers/localhost/zones/{zone_id}/rectify",
+		Body:   true,
+		Reason: "the schema says type: string; the server sends an object, " +
+			"{\"result\": \"Rectified\"}. Found by this cross-check on a recorded fixture",
 	},
 	{
 		Field: "autoprimaries_url",
@@ -211,6 +231,10 @@ func (s *SpecChecker) Check(ctx context.Context, f Fixture) CheckResult {
 	}
 
 	if verr := openapi3filter.ValidateResponse(ctx, responseInput); verr != nil {
+		if d := s.knownBodyDivergence(f.Method, f.Path); d != nil {
+			result.Divergence = d
+			return result
+		}
 		if d := s.knownFieldDivergence(verr); d != nil {
 			result.Divergence = d
 			return result
@@ -235,13 +259,31 @@ func (s *SpecChecker) DocumentedOperations() []string {
 func (s *SpecChecker) knownDivergence(method, path string) *KnownDivergence {
 	for i := range KnownDivergences {
 		d := &KnownDivergences[i]
-		if d.Method != method {
+		if d.Body || d.Method != method {
 			continue
 		}
 		// Compare on the template's fixed prefix, so a recorded path with real
 		// identifiers still matches a documented template.
 		prefix, _, _ := strings.Cut(d.Path, "{")
 		if strings.HasPrefix(path, strings.TrimSuffix(prefix, "/")) {
+			return d
+		}
+	}
+	return nil
+}
+
+// knownBodyDivergence matches a response whose whole shape the specification
+// gets wrong, keyed on the route rather than on the validator's message.
+func (s *SpecChecker) knownBodyDivergence(method, path string) *KnownDivergence {
+	for i := range KnownDivergences {
+		d := &KnownDivergences[i]
+		if !d.Body || d.Method != method {
+			continue
+		}
+		prefix, _, _ := strings.Cut(d.Path, "{")
+		suffix := d.Path[strings.LastIndex(d.Path, "}")+1:]
+		if strings.HasPrefix(path, strings.TrimSuffix(prefix, "/")) &&
+			strings.HasSuffix(path, suffix) {
 			return d
 		}
 	}

@@ -11,7 +11,7 @@
 
 ![phase 2_of_8](https://shieldcn.dev/badge/phase-2_of_8-0969da.svg?variant=secondary)
 ![phases_closed 2](https://shieldcn.dev/badge/phases_closed-2-3fb950.svg?variant=secondary)
-![tasks_done 32](https://shieldcn.dev/badge/tasks_done-32-3fb950.svg?variant=secondary)
+![tasks_done 33](https://shieldcn.dev/badge/tasks_done-33-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -226,7 +226,7 @@ layer needs no containers, so it runs on every commit; the lab is needed to
 
 The vendored OpenAPI document exists to catch drift in the shapes we use. It
 does not decide whether an endpoint exists, and no code is generated from it.
-It cannot be trusted for either, as this project has now demonstrated four
+It cannot be trusted for either, as this project has now demonstrated six
 times:
 
 | # | Defect | Found by | Status |
@@ -235,9 +235,16 @@ times:
 | 2 | `POST cryptokeys/{id}` implemented at `ws-auth.cc:3361`, undocumented | reading `ws-auth.cc` | [pdns#17807](https://github.com/PowerDNS/pdns/issues/17807) |
 | 3 | `Record.modified_at` indented one level too far out — a stray sibling of `properties`, so the property is simultaneously missing and the schema structurally invalid | `kin-openapi` refusing to load the file | to report |
 | 4 | `autoprimaries_url` sent by every `Server` object, absent from a schema declaring `additionalProperties: false` — a generated client would reject a real response | this cross-check, on a recorded fixture | to report |
+| 5 | `GET zones/{id}/export` declared `type: string`; the server sends `{"zone": "…"}`. The documentation calls it "AXFR format", which reads like `text/plain` and is not | this cross-check, phase 2 | to report |
+| 6 | `PUT zones/{id}/rectify` declared `type: string`; the server sends `{"result": "Rectified"}` | this cross-check, phase 2 | to report |
 
-Defects 3 and 4 were found by the machinery in this phase, which is the
-argument for it: neither is visible to a human reading the specification.
+Defects 3 through 6 were found by this machinery rather than by reading, which
+is the argument for building it. Defects 5 and 6 arrived the moment phase 2
+recorded its first fixtures against those two routes, and 5 had already been
+caught by hand an hour earlier: `ExportZone` was written to return the body
+verbatim, on the strength of the documentation's phrase "AXFR format", and a
+single `curl` against the lab showed `Content-Type: application/json`. The
+cross-check then found the same thing without being asked.
 
 Both are tolerated rather than failed — listed in `KnownDivergences` and
 `knownSpecDefects`, reported once per run. A check that is permanently red is a
@@ -262,7 +269,7 @@ recounting. Each row's count is the sum of its domains in
 
 | ID | Task | Role | Depends | Ops | Status |
 | --- | --- | --- | --- | --- | --- |
-| S2-01 | `api/auth`: zones and rrsets — including notify, axfr-retrieve, export, rectify | DEV | S1-07 | 10 | `[ ]` |
+| S2-01 | `api/auth`: zones and rrsets — including notify, axfr-retrieve, export, rectify | DEV | S1-07 | 10 | `[x]` |
 | S2-02 | `api/auth`: metadata (5), cryptokeys (6), tsigkeys (5), autoprimaries (3) | DEV | S2-01 | 19 | `[ ]` |
 | S2-03 | `api/auth`: views (4), networks (3), servers (2), config (1), statistics (1), search (1), cache flush (1) | DEV | S2-01 | 13 | `[ ]` |
 | S2-04 | `api/rec`: zones (5), config (5), statistics (2), search (1), cache (1), servers (2) | DEV | S1-07 | 16 | `[ ]` |
