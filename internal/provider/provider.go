@@ -202,6 +202,9 @@ func (p *powerdnsProvider) Resources(_ context.Context) []func() resource.Resour
 		NewViewZoneResource,
 		NewNetworkResource,
 		NewAutoprimaryResource,
+		NewRecursorZoneResource,
+		NewRecursorACLResource,
+		NewDNSDistACLResource,
 	}
 }
 

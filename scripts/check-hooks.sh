@@ -42,4 +42,18 @@ if ! scripts/check-no-ai-attribution.sh "$TMP/good" >/dev/null 2>&1; then
     fail "the AI-attribution check rejected an ordinary message"
 fi
 
+# Must also be accepted: a path to the tool directory this repository carries.
+# The rule bans a claim of authorship, not the letters, and a repository has to
+# be able to describe its own contents.
+printf 'feat(x): a change\n\nAdds .claude/hooks/guard-main-branch.sh.\n' > "$TMP/path"
+if ! scripts/check-no-ai-attribution.sh "$TMP/path" >/dev/null 2>&1; then
+    fail "the AI-attribution check rejected a path under the tool directory"
+fi
+
+# And a claim in prose must still be caught, whatever shape it takes.
+printf 'feat(x): a change\n\nThis change was generated with an AI.\n' > "$TMP/claim"
+if scripts/check-no-ai-attribution.sh "$TMP/claim" >/dev/null 2>&1; then
+    fail "the AI-attribution check accepted a claim of AI authorship in prose"
+fi
+
 printf 'check-hooks: commit-msg and pre-commit installed; the attribution ban rejects and accepts correctly\n'
