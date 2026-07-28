@@ -64,6 +64,7 @@ sits, so every `id` here is composed from the attributes that locate it.
 | `powerdns_zone` | canonical zone name | `example.com.` |
 | `powerdns_record` | `<zone>/<name>/<type>` | `example.com./www.example.com./A` |
 | `powerdns_zone_metadata` | `<zone>/<kind>` | `example.com./ALLOW-AXFR-FROM` |
+| `powerdns_zone_cryptokey` | `<zone>/<key_id>` | `example.com./3` |
 
 The consequence is that changing any part of an id replaces the resource.
 There is no rename: PowerDNS has no operation that would implement one.
@@ -81,6 +82,7 @@ come.
 | `powerdns_zone` | A zone's own attributes | `name`, `nameservers` |
 | `powerdns_record` | One RRSet | `zone`, `name`, `type` |
 | `powerdns_zone_metadata` | One metadata kind | `zone`, `kind` |
+| `powerdns_zone_cryptokey` | One DNSSEC key | `zone`, `key_type`, and `algorithm`/`bits` when configured |
 
 ### Data sources
 
@@ -135,6 +137,7 @@ deciding how to write a value:
 | `powerdns_record.name` | as a DNS name — the server lowercases it |
 | `powerdns_record.values`, type `A`/`AAAA` | by address value, ignoring order |
 | `powerdns_record.values`, other types | exactly |
+| `powerdns_zone_cryptokey.key_type` | `csk` is compatible with `ksk` and `zsk` |
 
 Every one of these is asserted in both directions: a respelling plans nothing,
 and a genuine change plans a change. A comparison looser than the server's
@@ -148,7 +151,24 @@ is that reconciliation reads the collection endpoints, which omit key material,
 rather than the single-object endpoints, which include it.
 
 `TestFixturesCarryNoKeyMaterial` enforces the same rule for recorded test
-fixtures, and phase 4 adds a test that reads the state file itself.
+fixtures. `TestAccCryptoKey_NoPrivateKeyInState` enforces it for state: it
+walks every attribute of every resource and fails on an attribute named for
+key material *or* a value carrying a `Private-key-format` or PEM private-key
+header.
+
+The consequence is deliberate: **a generated DNSSEC private key cannot be read
+back through `powerdns_zone_cryptokey`.** Nothing exposes it, because anything
+that did would put it in a plan file as well as a state file.
+
+### 4.2.1 `csk` is not a third key type
+
+PowerDNS stores DNSKEY flags and derives `keytype` from them together with how
+many keys a zone holds. A zone's only key reads back as `csk` whatever it was
+created as, and is renamed rather than replaced once a second key appears.
+
+`csk` is therefore compared as compatible with both `ksk` and `zsk`. Without
+that, adding a second key would replace the first — destroying the signing key
+of a live zone and invalidating the DS its parent publishes.
 
 ### 4.3 What the provider does not manage, it does not touch
 

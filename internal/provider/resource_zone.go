@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -184,11 +185,18 @@ func (r *zoneResource) Schema(
 				Default:  booldefault.StaticBool(false),
 			},
 			"dnssec": schema.BoolAttribute{
-				MarkdownDescription: "Whether the zone is signed. Turning this on here " +
-					"enables DNSSEC; keys are managed by `powerdns_zone_cryptokey`.",
+				MarkdownDescription: "Whether the zone is signed.\n\n" +
+					"Computed rather than defaulted to `false`, because adding a " +
+					"`powerdns_zone_cryptokey` turns it on server-side. A default would " +
+					"make the zone plan to switch it back off on the next run, and the " +
+					"two resources would fight for ever.\n\n" +
+					"Set it explicitly to sign a zone with a server-generated CSK; leave " +
+					"it unset and manage keys with `powerdns_zone_cryptokey`.",
 				Optional: true,
 				Computed: true,
-				Default:  booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"serial": schema.Int64Attribute{
 				MarkdownDescription: "The zone's SOA serial, as stored.",

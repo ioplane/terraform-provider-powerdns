@@ -117,6 +117,14 @@ The mapping between commit type, changelog section and version bump is in
   metadata collection and answer 422 by name; the server's message does not
   mention that the value is settable elsewhere.
 
+- `powerdns_zone_cryptokey` — DNSSEC keys, reconciled against the collection
+  endpoint so no private key can reach state. Enforced by a test that reads
+  state and fails on an attribute named for key material or a value carrying a
+  private-key header, rather than by reasoning about which endpoint is called.
+- `powerdns_zone.dnssec` is Computed with no default. Creating a key turns
+  DNSSEC on server-side, and a default of `false` made the zone plan to turn it
+  back off on every run.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
@@ -187,6 +195,12 @@ gate had been unable to report:
 - Documentation said `setAPIWritable` gates *every* dnsdist write. It gates
   configuration writes; `DELETE /api/v1/cache` is admitted without consulting
   it, so a cache flush works on a server that refuses every config write.
+
+- `csk` is compared as compatible with `ksk` and `zsk`. PowerDNS derives the
+  key type from DNSKEY flags and the number of keys in the zone, so a sole key
+  reads back as `csk` and is renamed when a second appears. Comparing the
+  string literally would have made adding a second key replace the first —
+  destroying the signing key of a live zone.
 
 ### Security
 

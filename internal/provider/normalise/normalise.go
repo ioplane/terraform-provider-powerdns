@@ -174,3 +174,34 @@ func RecordContent(recordType, configured, actual string) bool {
 func RecordName(configured, actual string) bool {
 	return DNSName(configured, actual)
 }
+
+// DNSSECKeyType compares two DNSSEC key types, treating `csk` as compatible
+// with both `ksk` and `zsk`.
+//
+// PowerDNS does not store the key type. It stores the DNSKEY flags — 257 for a
+// key-signing key, 256 for a zone-signing key — and derives `keytype` from
+// them together with **how many keys the zone holds**. Measured against
+// auth-5.1.3:
+//
+//	keytype requested   zone contents        keytype read back   flags   ds
+//	ksk                 no other key         csk                 257     2
+//	zsk                 no other key         csk                 256     2
+//	ksk                 a zsk beside it      ksk                 257     2
+//	zsk                 a ksk beside it      zsk                 256     0
+//
+// So `csk` is not a third kind of key. It is what PowerDNS calls whichever key
+// is doing every job because it is the only one, and the same key is renamed —
+// not replaced — the moment a second appears. Same id, same material.
+//
+// Comparing the string literally is a trap that only springs in production: a
+// second resource adding a key flips the first one's type, and a
+// RequiresReplace on that attribute would destroy and recreate the signing key
+// of a live zone, losing the DS the parent publishes.
+func DNSSECKeyType(configured, actual string) bool {
+	left, right := strings.ToLower(configured), strings.ToLower(actual)
+	if left == right {
+		return true
+	}
+	// csk is the sole-key spelling of either.
+	return left == "csk" || right == "csk"
+}

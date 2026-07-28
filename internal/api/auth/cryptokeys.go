@@ -21,7 +21,11 @@ import (
 // honouring it is choosing the right read, and the resource layer is expected
 // to prove it with a test that greps the state file (S4-07).
 type CryptoKey struct {
-	// ID is an integer, unique within the zone rather than globally.
+	// ID is an integer assigned by the server, and the counter is **global**
+	// rather than per zone: two zones created in sequence get keys 3, 4 and 5,
+	// not 1, 1 and 2. Verified against auth-5.1.3. So an id is meaningless
+	// without the zone it belongs to, which is why every method here takes
+	// both.
 	ID      int    `json:"id,omitempty"`
 	KeyType string `json:"keytype,omitempty"`
 	Active  bool   `json:"active"`
@@ -29,8 +33,12 @@ type CryptoKey struct {
 	// (signing) but unpublished, which is how a rollover stages a key.
 	Published *bool  `json:"published,omitempty"`
 	DNSKey    string `json:"dnskey,omitempty"`
-	// DS is present for a KSK and absent for a ZSK: a ZSK has no delegation
-	// signer, so an empty slice here is normal rather than a failed read.
+	// DS is present for any key with a delegation signer, and empty for a ZSK
+	// that has one — an empty slice is normal rather than a failed read.
+	//
+	// "A ZSK has no DS" is not quite the rule. A zone's only key is reported
+	// as a csk whatever it was created as, and gets DS records; a zsk beside a
+	// ksk does not. Verified against auth-5.1.3.
 	DS        []string `json:"ds,omitempty"`
 	Algorithm string   `json:"algorithm,omitempty"`
 	Bits      int      `json:"bits,omitempty"`

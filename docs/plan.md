@@ -11,7 +11,7 @@
 
 ![phase 4_of_8](https://shieldcn.dev/badge/phase-4_of_8-0969da.svg?variant=secondary)
 ![phases_closed 4](https://shieldcn.dev/badge/phases_closed-4-3fb950.svg?variant=secondary)
-![tasks_done 47](https://shieldcn.dev/badge/tasks_done-47-3fb950.svg?variant=secondary)
+![tasks_done 50](https://shieldcn.dev/badge/tasks_done-50-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,7 +24,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 3 closed; phase 4 (DNSSEC and the security surface) next
+**Status:** phase 4 — `powerdns_zone_cryptokey` and the state-file test landed
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -461,6 +461,17 @@ whose metadata was partly set by `pdnsutil` or another tool. The acceptance
 test asserts the server-assigned kind is still present after Terraform has
 finished — it fails if the resource ever grows to own the collection.
 
+### Two resources can disagree about one server-side flag
+
+Creating a `powerdns_zone_cryptokey` turns DNSSEC on for the zone. With
+`dnssec` defaulted to `false` on `powerdns_zone`, the zone then planned to turn
+it back off on every run and the two resources fought for ever.
+
+`dnssec` is now Optional and Computed with no default: unset adopts whatever
+the server has. Setting it explicitly still signs a zone with a
+server-generated CSK, which is the other way to do it — and the schema says to
+pick one.
+
 ### A metadata boundary the API draws and does not explain
 
 Two kinds appear in `GET /metadata` and answer **422 "Unsupported metadata
@@ -497,22 +508,56 @@ guessing would have led to the modifiers, which were working.
 
 ---
 
-## Phase 4 — Security surface · `[ ]`
+## Phase 4 — Security surface · `[~]` in progress
 
 **Exit gate:** a zone signed through Terraform validates under `dig +dnssec`.
 
 | ID | Task | Role | Depends | Status |
 | --- | --- | --- | --- | --- |
-| S4-01 | ARC: key-material handling — ephemeral versus write-only, signed | ARC | S3-07 | `[ ]` |
-| S4-02 | `powerdns_zone_cryptokey` | DEV | S4-01 | `[ ]` |
+| S4-01 | ARC: key-material handling — reconcile against the collection | ARC | S3-07 | `[x]` |
+| S4-02 | `powerdns_zone_cryptokey` | DEV | S4-01 | `[x]` |
 | S4-03 | Zone DNSSEC attributes: `dnssec`, `nsec3param`, `nsec3narrow`, `presigned`, `api_rectify` | DEV | S4-02 | `[ ]` |
 | S4-04 | `powerdns_tsigkey`; zone `master_tsig_key_ids` / `slave_tsig_key_ids` | DEV | S3-07 | `[ ]` |
 | S4-05 | Ephemeral `powerdns_cryptokey_material`, `powerdns_tsigkey_secret` | DEV | S4-01 | `[ ]` |
 | S4-06 | Behaviour test: signed zone validates under `dig +dnssec` | QA | S4-03 | `[ ]` |
-| S4-07 | Test asserting no key material reaches state | QA | S4-05 | `[ ]` |
+| S4-07 | Test asserting no key material reaches state | QA | S4-05 | `[x]` |
 
-S4-07 is a security property, so it is tested rather than asserted: the test
-reads the state file and fails if it finds key material.
+S4-07 is a security property, so it is tested rather than asserted. The check
+walks every attribute of every resource in state and fails on two things: an
+attribute *named* for key material, and a *value* matching PowerDNS's
+`Private-key-format` header or a PEM private-key header. The second is what
+catches a key that reached state under some other name — the failure a name
+check alone would miss.
+
+It is deliberately not a proof that the right endpoint was called. A refactor
+switching the read to `GetCryptoKey` would keep every other test passing and
+fail this one, which is the point.
+
+### `keytype` is derived, not stored, and that is a production hazard
+
+PowerDNS stores the DNSKEY flags and computes `keytype` from them **together
+with how many keys the zone holds**. Measured against auth-5.1.3:
+
+| Requested | Zone contents | Read back | Flags | DS |
+| --- | --- | --- | --- | --- |
+| `ksk` | no other key | `csk` | 257 | 2 |
+| `zsk` | no other key | `csk` | 256 | 2 |
+| `ksk` | a `zsk` beside it | `ksk` | 257 | 2 |
+| `zsk` | a `ksk` beside it | `zsk` | 256 | 0 |
+
+`csk` is not a third kind of key. It is what PowerDNS calls whichever key does
+every job because it is the only one, and the same key is *renamed* — not
+replaced — the moment a second appears. Same id, same material.
+
+Comparing that string literally is a trap that springs only in production: a
+second resource adding a key flips the first one's type, and `RequiresReplace`
+on that attribute would destroy and recreate the signing key of a live zone,
+losing the DS the parent publishes. So `csk` is compared as compatible with
+both, and the semantic modifier runs before `RequiresReplace` sees the plan.
+
+The same measurement corrected "a ZSK has no DS", which is true only once the
+ZSK is not the zone's only key. The earlier reading came from a probe with
+three keys in the zone and did not generalise.
 
 ---
 

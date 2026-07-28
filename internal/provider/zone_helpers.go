@@ -96,10 +96,16 @@ func applyZone(
 		model.SOAEditAPI = types.StringValue(zone.SOAEditAPI)
 	}
 
+	// dnssec is Optional and Computed with no default, because adding a
+	// powerdns_zone_cryptokey turns it on server-side. An unknown plan value
+	// must be resolved here: Terraform rejects an unknown that survives apply.
+	if mode == afterRead || model.DNSSEC.IsUnknown() || model.DNSSEC.IsNull() {
+		model.DNSSEC = types.BoolValue(derefBool(zone.DNSSEC))
+	}
+
 	if mode == afterRead {
 		model.Kind = types.StringValue(zone.Kind)
 		model.APIRectify = types.BoolValue(derefBool(zone.APIRectify))
-		model.DNSSEC = types.BoolValue(derefBool(zone.DNSSEC))
 
 		// Optional and not returned when unset: mapping "" to null keeps an
 		// unset attribute unset rather than flipping it to the empty string.
