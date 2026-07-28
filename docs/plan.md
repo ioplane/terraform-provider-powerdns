@@ -11,20 +11,21 @@
 
 ![phase 3_of_8](https://shieldcn.dev/badge/phase-3_of_8-0969da.svg?variant=secondary)
 ![phases_closed 3](https://shieldcn.dev/badge/phases_closed-3-3fb950.svg?variant=secondary)
-![tasks_done 42](https://shieldcn.dev/badge/tasks_done-42-3fb950.svg?variant=secondary)
+![tasks_done 44](https://shieldcn.dev/badge/tasks_done-44-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
 
 # Delivery plan
 
-Living document. The method is in [`methodology.md`](methodology.md); this is
+Living document. The method is in [`methodology.md`](methodology.md) and what the
+provider promises to users is in [`contract.md`](contract.md); this is
 its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 3 — `powerdns_zone` and `powerdns_record` landed;
-`powerdns_zone_metadata` and the data sources next
+**Status:** phase 3 — three resources and two data sources landed;
+the remaining data sources next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -408,10 +409,10 @@ a count declared as an int fails to decode a successful flush.
 | S3-01 | ARC: zone and record schemas, identity, signed | ARC | S2-06 | `[x]` |
 | S3-02 | `powerdns_zone` | DEV | S3-01 | `[x]` |
 | S3-03 | `powerdns_record` — one RRSet, not one record | DEV | S3-02 | `[x]` |
-| S3-04 | `powerdns_zone_metadata` | DEV | S3-02 | `[ ]` |
-| S3-05 | Data sources: zone, zones, record, zone_metadata, zone_export | DEV | S3-03 | `[ ]` |
+| S3-04 | `powerdns_zone_metadata` — one kind, not the collection | DEV | S3-02 | `[x]` |
+| S3-05 | Data sources: `zone`, `zones` | DEV | S3-03 | `[~]` `record`, `zone_metadata` and `zone_export` remain |
 | S3-06 | Semantic-normalisation plan modifiers: case, IPv6, server defaults | DEV | S3-02 | `[x]` |
-| S3-07 | Acceptance on both backends for each | QA | S3-02…S3-05 | `[ ]` |
+| S3-07 | Acceptance on both backends for each | QA | S3-02…S3-05 | `[~]` zone, record and metadata covered |
 
 S3-06 is not optional polish, and phase 2 raised the count from three to seven.
 Each produces a permanent diff if compared as a string, so
@@ -447,6 +448,18 @@ value is a string whose quoting is significant and compares exactly. The
 modifier reads `type` from the plan to choose. Three more normalisations were
 measured for it — the owner name is lowercased, `AAAA` content is compressed,
 and `disabled` survives a round trip.
+
+### `powerdns_zone_metadata` owns one kind, not the collection
+
+The reason is a normalisation found in phase 2: PowerDNS sets `SOA-EDIT-API` on
+every zone it creates, unasked. A resource owning the whole collection would
+have to delete anything it did not recognise, so it would try to remove that
+kind on the first apply, on every zone, for ever.
+
+Owning one kind avoids it entirely, and gives the right answer for a server
+whose metadata was partly set by `pdnsutil` or another tool. The acceptance
+test asserts the server-assigned kind is still present after Terraform has
+finished — it fails if the resource ever grows to own the collection.
 
 ### Two framework contracts the acceptance tests found
 

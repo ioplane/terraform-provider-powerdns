@@ -98,6 +98,17 @@ The mapping between commit type, changelog section and version bump is in
   sets, ordering, `disabled` surviving a round trip, and exact comparison for
   `TXT`.
 
+- `powerdns_zone_metadata` — one metadata kind per resource, so the
+  `SOA-EDIT-API` PowerDNS assigns itself is never deleted. Acceptance asserts
+  it survives.
+- `powerdns_zone` and `powerdns_zones` data sources, for zones the
+  configuration reads but does not own.
+- `docs/contract.md` — what the provider promises to users and what it does
+  not: resource identity, the semantic comparisons users rely on, the four
+  capability diagnostics, the non-goals, and which change bumps which version
+  component. The methodology called this a hard external contract from the
+  start; it had never been written down.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every

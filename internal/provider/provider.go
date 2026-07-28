@@ -193,12 +193,16 @@ func (p *powerdnsProvider) Resources(_ context.Context) []func() resource.Resour
 	return []func() resource.Resource{
 		NewZoneResource,
 		NewRecordResource,
+		NewZoneMetadataResource,
 	}
 }
 
-// DataSources returns the data sources. Empty until phase 3.
+// DataSources returns the data sources.
 func (p *powerdnsProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		NewZoneDataSource,
+		NewZonesDataSource,
+	}
 }
 
 // resolveString applies the precedence a provider argument needs: an explicit
