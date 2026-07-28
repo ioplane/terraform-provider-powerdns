@@ -134,6 +134,12 @@ The mapping between commit type, changelog section and version bump is in
   `dig +dnssec` and must answer with an RRSIG. Every other test asserts what an
   API returned; this one asks the DNS server.
 
+- Ephemeral `powerdns_cryptokey_material` and `powerdns_tsigkey_secret` — the
+  only place the provider returns key material, and safe because Terraform
+  discards an ephemeral value rather than persisting it. Phase 4 closes.
+- Zone `master_tsig_key_ids` and `slave_tsig_key_ids`, compared as canonical
+  key names and ignoring order.
+
 ### Fixed
 
 The pre-merge gate had never run end-to-end, because the compose file every
@@ -216,6 +222,11 @@ gate had been unable to report:
   alone left the old key in place and added a second under the same id — three
   PUTs produced three entries. The zone would then authenticate against
   whichever the backend returned first.
+
+- The provider set `ResourceData` and `DataSourceData` but not
+  `EphemeralResourceData`, so every ephemeral resource received a nil client
+  bundle and panicked at apply. The `Require*` accessors now answer a nil
+  bundle with a diagnostic naming the omission rather than dereferencing it.
 
 ### Security
 

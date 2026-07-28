@@ -9,9 +9,9 @@
 
 <div align="center">
 
-![phase 4_of_8](https://shieldcn.dev/badge/phase-4_of_8-0969da.svg?variant=secondary)
-![phases_closed 4](https://shieldcn.dev/badge/phases_closed-4-3fb950.svg?variant=secondary)
-![tasks_done 53](https://shieldcn.dev/badge/tasks_done-53-3fb950.svg?variant=secondary)
+![phase 5_of_8](https://shieldcn.dev/badge/phase-5_of_8-0969da.svg?variant=secondary)
+![phases_closed 5](https://shieldcn.dev/badge/phases_closed-5-3fb950.svg?variant=secondary)
+![tasks_done 55](https://shieldcn.dev/badge/tasks_done-55-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,8 +24,7 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 4 — DNSSEC keys, TSIG keys and the behaviour test landed;
-ephemeral resources remain
+**Status:** phase 4 closed; phase 5 (the family surface) next
 **Last updated:** 2026-07-28
 
 ## Legend
@@ -509,17 +508,18 @@ guessing would have led to the modifiers, which were working.
 
 ---
 
-## Phase 4 — Security surface · `[~]` in progress
+## Phase 4 — Security surface · `[x]` closed 2026-07-29
 
 **Exit gate:** a zone signed through Terraform validates under `dig +dnssec`.
+**Met** — S4-06 queries the lab's authoritative port and requires an RRSIG.
 
 | ID | Task | Role | Depends | Status |
 | --- | --- | --- | --- | --- |
 | S4-01 | ARC: key-material handling — reconcile against the collection | ARC | S3-07 | `[x]` |
 | S4-02 | `powerdns_zone_cryptokey` | DEV | S4-01 | `[x]` |
 | S4-03 | Zone DNSSEC attributes: `dnssec`, `nsec3param`, `nsec3narrow`, `presigned`, `api_rectify` | DEV | S4-02 | `[x]` |
-| S4-04 | `powerdns_tsigkey` | DEV | S3-07 | `[x]` zone `*_tsig_key_ids` remain |
-| S4-05 | Ephemeral `powerdns_cryptokey_material`, `powerdns_tsigkey_secret` | DEV | S4-01 | `[ ]` |
+| S4-04 | `powerdns_tsigkey`; zone `master_tsig_key_ids` / `slave_tsig_key_ids` | DEV | S3-07 | `[x]` |
+| S4-05 | Ephemeral `powerdns_cryptokey_material`, `powerdns_tsigkey_secret` | DEV | S4-01 | `[x]` |
 | S4-06 | Behaviour test: signed zone validates under `dig +dnssec` | QA | S4-03 | `[x]` |
 | S4-07 | Test asserting no key material reaches state | QA | S4-05 | `[x]` |
 
@@ -533,6 +533,32 @@ check alone would miss.
 It is deliberately not a proof that the right endpoint was called. A refactor
 switching the read to `GetCryptoKey` would keep every other test passing and
 fail this one, which is the point.
+
+### The ephemeral resources are where the secret rule pays for itself
+
+Refusing to return key material closes the leak and leaves a real need unmet:
+an operator has to hand a DNSSEC key to a signing appliance, or a TSIG secret
+to a secondary server. Saying "no" to that is not a security posture, it is an
+unusable provider.
+
+`powerdns_cryptokey_material` and `powerdns_tsigkey_secret` meet the need
+without reopening the leak. Terraform fetches the value during an operation and
+discards it — nothing to state, nothing to the plan file — and an ephemeral
+value may only be consumed by another ephemeral or write-only attribute. That
+restriction is the feature: it is what stops something downstream persisting
+what this deliberately did not.
+
+These are the only two places in the provider that call `GetCryptoKey` or
+`GetTSIGKey`, the endpoints that carry secrets. The acceptance test reads a
+generated TSIG secret ephemerally and feeds it straight into a second key's
+write-only attribute, then asks the *server* whether both keys share a secret —
+because neither is in state, so there is nothing local to compare.
+
+It also exposed a bug of the kind a type checker cannot: the provider sets
+`ResourceData` and `DataSourceData`, and ephemeral resources read a third
+field, `EphemeralResourceData`. Omitting it is a nil dereference at apply
+rather than a compile error. `RequireAuth` and its siblings now answer a nil
+bundle with a diagnostic naming the omission.
 
 ### Defect 10: a TSIG `PUT` adds a key instead of changing one
 

@@ -127,6 +127,19 @@ func applyZone(
 		model.Masters = masters
 	}
 
+	// Computed as well as Optional: PowerDNS returns an empty list rather than
+	// omitting these, so an unknown plan value has to be resolved here.
+	if mode == afterRead || model.MasterTSIGKeyIDs.IsUnknown() {
+		list, d := types.ListValueFrom(ctx, types.StringType, zone.MasterTSIGKeyIDs)
+		diags.Append(d...)
+		model.MasterTSIGKeyIDs = list
+	}
+	if mode == afterRead || model.SlaveTSIGKeyIDs.IsUnknown() {
+		list, d := types.ListValueFrom(ctx, types.StringType, zone.SlaveTSIGKeyIDs)
+		diags.Append(d...)
+		model.SlaveTSIGKeyIDs = list
+	}
+
 	return diags
 }
 
@@ -145,6 +158,14 @@ func applyDNSSECAttributes(model zoneModel, zone *auth.Zone) {
 	if !model.Presigned.IsUnknown() && !model.Presigned.IsNull() {
 		zone.Presigned = model.Presigned.ValueBoolPointer()
 	}
+}
+
+// applyTSIGKeyLists copies the zone's TSIG key lists onto a request body.
+func applyTSIGKeyLists(ctx context.Context, model zoneModel, zone *auth.Zone) diag.Diagnostics {
+	var diags diag.Diagnostics
+	diags.Append(elementsAs(ctx, model.MasterTSIGKeyIDs, &zone.MasterTSIGKeyIDs)...)
+	diags.Append(elementsAs(ctx, model.SlaveTSIGKeyIDs, &zone.SlaveTSIGKeyIDs)...)
+	return diags
 }
 
 // optionalString maps the empty string to null.

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -67,6 +68,9 @@ type zoneModel struct {
 	NSEC3Param  types.String `tfsdk:"nsec3param"`
 	NSEC3Narrow types.Bool   `tfsdk:"nsec3narrow"`
 	Presigned   types.Bool   `tfsdk:"presigned"`
+
+	MasterTSIGKeyIDs types.List `tfsdk:"master_tsig_key_ids"`
+	SlaveTSIGKeyIDs  types.List `tfsdk:"slave_tsig_key_ids"`
 
 	Serial       types.Int64 `tfsdk:"serial"`
 	EditedSerial types.Int64 `tfsdk:"edited_serial"`
@@ -229,6 +233,33 @@ func (r *zoneResource) Schema(
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"master_tsig_key_ids": schema.ListAttribute{
+				MarkdownDescription: "TSIG keys used to sign outgoing AXFR requests, " +
+					"for a `Slave` zone. Each is a key id — the canonical name with a " +
+					"trailing dot, as `powerdns_tsigkey.id` reports it.",
+				Optional:    true,
+				Computed:    true,
+				ElementType: types.StringType,
+				PlanModifiers: []planmodifier.List{
+					planmodify.SemanticSet(
+						"compared as canonical key names, ignoring order",
+						normalise.TSIGKeyID),
+					listplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"slave_tsig_key_ids": schema.ListAttribute{
+				MarkdownDescription: "TSIG keys accepted on incoming AXFR requests, for " +
+					"a zone this server is primary for.",
+				Optional:    true,
+				Computed:    true,
+				ElementType: types.StringType,
+				PlanModifiers: []planmodifier.List{
+					planmodify.SemanticSet(
+						"compared as canonical key names, ignoring order",
+						normalise.TSIGKeyID),
+					listplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"serial": schema.Int64Attribute{
 				MarkdownDescription: "The zone's SOA serial, as stored.",
 				Computed:            true,
@@ -305,6 +336,7 @@ func (r *zoneResource) Create(
 		zone.DNSSEC = plan.DNSSEC.ValueBoolPointer()
 	}
 	applyDNSSECAttributes(plan, &zone)
+	resp.Diagnostics.Append(applyTSIGKeyLists(ctx, plan, &zone)...)
 
 	resp.Diagnostics.Append(elementsAs(ctx, plan.Masters, &zone.Masters)...)
 	// Nameservers are not a Zone field: PowerDNS takes them as a create-only
@@ -398,6 +430,7 @@ func (r *zoneResource) Update(
 		zone.DNSSEC = plan.DNSSEC.ValueBoolPointer()
 	}
 	applyDNSSECAttributes(plan, &zone)
+	resp.Diagnostics.Append(applyTSIGKeyLists(ctx, plan, &zone)...)
 	resp.Diagnostics.Append(elementsAs(ctx, plan.Masters, &zone.Masters)...)
 	if resp.Diagnostics.HasError() {
 		return

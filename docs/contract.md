@@ -96,6 +96,18 @@ come.
 | `powerdns_zone_metadata` | One metadata kind |
 | `powerdns_zone_export` | A zone in presentation format |
 
+### Ephemeral resources
+
+The only place the provider returns key material. Terraform discards an
+ephemeral value rather than persisting it, and such a value may only be
+consumed by another ephemeral or write-only attribute — which is what prevents
+something downstream storing it.
+
+| Type | Reads | Needs |
+| --- | --- | --- |
+| `powerdns_cryptokey_material` | A DNSSEC private key | Terraform 1.10 |
+| `powerdns_tsigkey_secret` | A TSIG shared secret | Terraform 1.10 |
+
 ### Provider arguments
 
 Each takes its value from the argument, then the environment variable, then
@@ -161,6 +173,11 @@ header.
 The consequence is deliberate: **a generated DNSSEC private key cannot be read
 back through `powerdns_zone_cryptokey`.** Nothing exposes it, because anything
 that did would put it in a plan file as well as a state file.
+
+Where the material genuinely has to leave PowerDNS — a signing appliance, a
+secondary server's configuration — the ephemeral resources provide it. They
+are the only callers of the endpoints that carry secrets, and what they return
+is never persisted.
 
 ### 4.2.1 A TSIG secret is write-only or unreadable
 

@@ -14,6 +14,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -182,10 +183,12 @@ func (p *powerdnsProvider) Configure(
 		"dnsdist":       clients.DNSDist != nil,
 	})
 
-	// The same bundle to both: a data source needs exactly what a resource
-	// needs, and handing out two copies invites them to drift.
+	// The same bundle to all three. Each has its own field, and forgetting one
+	// is a nil dereference at apply rather than a compile error — which is how
+	// the ephemeral resources first failed.
 	resp.ResourceData = clients
 	resp.DataSourceData = clients
+	resp.EphemeralResourceData = clients
 }
 
 // Resources returns the managed resources.
@@ -196,6 +199,20 @@ func (p *powerdnsProvider) Resources(_ context.Context) []func() resource.Resour
 		NewZoneMetadataResource,
 		NewCryptoKeyResource,
 		NewTSIGKeyResource,
+	}
+}
+
+// EphemeralResources returns the ephemeral resources.
+//
+// These are the only place the provider asks PowerDNS for key material. The
+// managed resources cannot return it by construction; an ephemeral value is
+// safe to fetch because Terraform discards it rather than persisting it.
+func (p *powerdnsProvider) EphemeralResources(
+	_ context.Context,
+) []func() ephemeral.EphemeralResource {
+	return []func() ephemeral.EphemeralResource{
+		NewCryptoKeyMaterialEphemeral,
+		NewTSIGKeySecretEphemeral,
 	}
 }
 

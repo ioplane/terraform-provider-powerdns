@@ -44,6 +44,10 @@ type clientConfig struct {
 // not something an operator can act on.
 func (c *Clients) RequireAuth(resourceType string) (*auth.Client, diag.Diagnostics) {
 	var diags diag.Diagnostics
+	if c == nil {
+		diags.Append(notConfiguredDiagnostic(resourceType))
+		return nil, diags
+	}
 	if c.Auth == nil {
 		diags.AddError(
 			"PowerDNS Authoritative server not configured",
@@ -58,6 +62,10 @@ func (c *Clients) RequireAuth(resourceType string) (*auth.Client, diag.Diagnosti
 // RequireRecursor returns the Recursor client or a diagnostic.
 func (c *Clients) RequireRecursor(resourceType string) (*rec.Client, diag.Diagnostics) {
 	var diags diag.Diagnostics
+	if c == nil {
+		diags.Append(notConfiguredDiagnostic(resourceType))
+		return nil, diags
+	}
 	if c.Recursor == nil {
 		diags.AddError(
 			"PowerDNS Recursor not configured",
@@ -72,6 +80,10 @@ func (c *Clients) RequireRecursor(resourceType string) (*rec.Client, diag.Diagno
 // RequireDNSDist returns the dnsdist client or a diagnostic.
 func (c *Clients) RequireDNSDist(resourceType string) (*dnsdist.Client, diag.Diagnostics) {
 	var diags diag.Diagnostics
+	if c == nil {
+		diags.Append(notConfiguredDiagnostic(resourceType))
+		return nil, diags
+	}
 	if c.DNSDist == nil {
 		diags.AddError(
 			"PowerDNS dnsdist not configured",
@@ -81,6 +93,21 @@ func (c *Clients) RequireDNSDist(resourceType string) (*dnsdist.Client, diag.Dia
 		)
 	}
 	return c.DNSDist, diags
+}
+
+// notConfiguredDiagnostic reports that the bundle never arrived.
+//
+// A nil bundle means Configure did not run or the provider did not hand it
+// over — the provider has a separate field for resources, data sources and
+// ephemeral resources, and omitting one is a nil dereference at apply rather
+// than a compile error. It has happened once, to the ephemeral resources.
+func notConfiguredDiagnostic(resourceType string) diag.Diagnostic {
+	return diag.NewErrorDiagnostic(
+		"The provider was not configured",
+		fmt.Sprintf("%s received no client bundle. This is a bug in the provider: "+
+			"the provider must set ResourceData, DataSourceData and "+
+			"EphemeralResourceData in Configure.", resourceType),
+	)
 }
 
 // buildTransport constructs one product's transport client.
