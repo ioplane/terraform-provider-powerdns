@@ -867,7 +867,8 @@ copies the caveat with it.
 | S7-02 | Registry documentation generated and validated | DEV | `[x]` |
 | S7-03 | Version matrix: acceptance against auth 5.0.x as well as 5.1.3 | QA | `[ ]` |
 | S7-04 | Signed `v0.1.0` | PM | `[x]` |
-| S7-05 | Terraform Registry submission | PM | `[~]` artefacts published and verified; the Registry side is a manual sign-in |
+| S7-05 | Terraform Registry submission | PM | `[~]` every prerequisite met; the submission itself is browser-only |
+| S7-07 | **Added.** OpenTofu Registry submission | PM | `[~]` same — two issue forms, and they must be filled in by hand |
 | S7-06 | **Added.** An RSA-4096 signing key, and `GPG_PRIVATE_KEY`/`PASSPHRASE` in repository secrets | PM | `[x]` |
 
 ### v0.1.0 is released
@@ -882,9 +883,34 @@ The release gate ran first and passed in 2m33s — signing secrets present,
 matching the served protocol, the tag an ancestor of `main`, `CI` and
 `Acceptance` both green for `81a7ecc`, and the generated documentation in sync.
 
-What remains for S7-05 is not a build step: the Registry needs the public half
-of the signing key registered under the `ioplane` namespace, and the provider
-connected through a sign-in. Neither can be done from a workflow.
+What remains is not a build step, and deliberately cannot be automated.
+
+**Every prerequisite is met.** The repository is public and named
+`terraform-provider-powerdns`; `v0.1.0` carries 29 artefacts, a signed
+`SHA256SUMS` and a manifest declaring protocol 6; the signing key is RSA-4096,
+which is what both registries accept; and membership of the `ioplane`
+organisation is now public, which the OpenTofu submission validates
+automatically and would otherwise have rejected.
+
+**Both registries then need a human in a browser.**
+
+The Terraform Registry publishes through an OAuth sign-in and a form — there is
+no public API for it. The API that exists is for HCP Terraform's *private*
+registry and does not apply.
+
+The OpenTofu Registry takes two issues, and its templates open with a line
+worth quoting: *"Submissions MUST be made through the GitHub issue form UI, not
+via the API, gh CLI, or by manually creating issues. The automated validation
+and processing pipeline depends on the structured data from the issue form."*
+So they were not filed from here. A submission that circumvents the instruction
+at the top of the form is a submission that fails validation and leaves noise
+in somebody else's repository.
+
+**On the namespace.** `ioplane/powerdns` is free in both registries. Seven
+`powerdns` providers already exist in the Terraform Registry, of which
+`pan-net/powerdns` accounts for over ten million downloads. That is the thing
+this provider is arriving next to, and the reason the README leads with what it
+does differently rather than with what it supports.
 
 ### Preparing it was blocked on a key that did not exist
 
