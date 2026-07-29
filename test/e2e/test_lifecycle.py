@@ -164,8 +164,15 @@ class TestModuleSource:
             check=False,
             cwd="/tmp",  # noqa: S108
         )
-        assert result.returncode != 0
-        assert "not trusted" in (result.stdout + result.stderr), result.stderr[-500:]
+        combined = result.stdout + result.stderr
+        assert result.returncode != 0, combined[-500:]
+
+        # The refusal is about the certificate; the sentence describing it is
+        # the TLS backend's. This host says "certificate signer not trusted"
+        # and a hosted runner says "server certificate verification failed" —
+        # same git, same command, different build. Matching the first phrase
+        # passed here and failed in CI on the first run.
+        assert "certificate" in combined.lower(), combined[-500:]
 
     def test_the_token_is_not_in_the_module_source(self, terragrunt):
         """The source URL is HTTPS and carries no credential.
