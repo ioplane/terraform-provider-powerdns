@@ -11,7 +11,7 @@
 
 ![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 73](https://shieldcn.dev/badge/tasks_done-73-3fb950.svg?variant=secondary)
+![tasks_done 74](https://shieldcn.dev/badge/tasks_done-74-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -941,10 +941,8 @@ and a named exception in the checker for one action is how a rule becomes a
 preference — so the action was replaced by the published trivy image, pinned
 by digest, which skopeo resolves from anywhere.
 
-Two things still fail, and neither is a change to this repository:
+One thing still fails, and it is not a change to this repository:
 
-- `dependency-review.yml` — the Dependency graph is disabled for the `ioplane`
-  organisation. A settings toggle. **S8-11.**
 - SonarCloud's quality gate — it objects to `go install pkg@v1.2.3` on the
   grounds that it is not a lock-file, which for a pinned module version it
   effectively is. Marking a finding as a false positive needs access to the
@@ -960,13 +958,20 @@ the dev image and in `ci.yml`, pinned in the same place as everything else:
 | --- | --- | --- |
 | `shellcheck` | the scripts | a dead `IMAGE_RE` in `check-pins.sh`, and five `readonly X="$(cmd)"` that swallow the command's exit status |
 | `shfmt` | the scripts | seven files, reformatted once |
-| `hadolint` | `Containerfile.dev` | `curl … \| gpg` could not fail the build; `SHELL -o pipefail` set |
+| `hadolint` | `Containerfile.dev` | two `curl … \| …` that could not fail the build |
 | `zizmor` | the workflows | sixteen checkouts leaving the token in `.git/config`, and a module cache restored into the signing job |
 
 `shellcheck` is not only for the scripts: `actionlint` hands it every `run:`
 block, so the shell inside a workflow is now held to the same standard as a
 script — and without it installed, actionlint silently checks less than it
 appears to.
+
+`hadolint` also produced the sprint's one wrong first answer. Its finding was
+that a pipe hides the exit status of everything but the last command, and the
+usual remedy is `SHELL ["/bin/bash", "-o", "pipefail", "-c"]` — which podman
+accepts, warns about, and ignores, because OCI has no `SHELL` instruction. It
+would have satisfied the linter and protected nothing. The pipes were removed
+instead, which works whatever builds the image.
 
 The two `zizmor` classes are worth naming because both are about a release
 this repository has not cut yet. `actions/checkout` leaves its token in
@@ -1000,7 +1005,7 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-08 | Acceptance moves to pull requests once its run history says it is stable | QA | `[ ]` |
 | S8-09 | Branch protection: require the gate before merge | PM | `[ ]` |
 | S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[ ]` |
-| S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[ ]` |
+| S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
 
 S8-10 reopens something S0-21 closed. A `github/ci` badge was removed then

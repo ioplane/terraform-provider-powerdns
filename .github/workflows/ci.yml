@@ -304,7 +304,7 @@ jobs:
       - run: npm install -g --ignore-scripts markdownlint-cli2@0.23.2 # pin: MARKDOWNLINT_VERSION
       - run: npm install -g --ignore-scripts cspell@10.0.1 # pin: CSPELL_VERSION
       - run: markdownlint-cli2 "**/*.md" "#node_modules" "#bin" "#dist"
-      - run: uv tool run yamllint -c .yamllint.yaml .
+      - run: uv tool run yamllint@1.38.0 -c .yamllint.yaml . # pin: YAMLLINT_VERSION
       - run: cspell --no-progress --no-summary --config .cspell.json "**/*.md" "**/*.go"
       # Every shieldcn badge resolves and every mermaid block parses. A broken
       # badge is invisible in review and visible on the front page.

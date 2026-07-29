@@ -196,6 +196,10 @@ The mapping between commit type, changelog section and version bump is in
   that could not fail the image build, sixteen checkouts leaving the token in
   `.git/config`, and a module cache restored into the release job that signs
   the artefacts.
+- `yamllint`, `markdownlint-cli2`, `cspell`, `commitlint`, `podman-compose` and
+  `podman-py` are pinned. They were installed at `@latest` in the dev image
+  since phase 0, so "everything is pinned" had six exceptions nobody had
+  counted.
 - The ban on AI attribution is enforced on the branch. The `commit-msg` hook
   only ever protected a clone that had run `task hooks`; CI now checks every
   commit in a pull request, and its title and body, because those become the

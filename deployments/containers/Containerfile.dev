@@ -37,14 +37,12 @@ ARG COMMITLINT_CONFIG_VERSION=21.2.0
 ARG UV_VERSION=0.11.33
 ARG RUFF_VERSION=0.16.0
 ARG TY_VERSION=0.0.64
+ARG YAMLLINT_VERSION=1.38.0
 ARG SEMGREP_VERSION=1.172.0
 ARG PODMAN_PY_VERSION=5.8.0
 
 FROM ${GO_IMAGE} AS dev
 
-# pipefail, so a failing curl in `curl ... | gpg` fails the build rather
-# than being masked by the exit status of the last command in the pipe.
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ARG GOLANGCI_LINT_VERSION
 ARG GOVULNCHECK_VERSION
@@ -70,6 +68,7 @@ ARG COMMITLINT_CONFIG_VERSION
 ARG UV_VERSION
 ARG RUFF_VERSION
 ARG TY_VERSION
+ARG YAMLLINT_VERSION
 ARG SEMGREP_VERSION
 ARG PODMAN_PY_VERSION
 
@@ -108,8 +107,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     install -m 0755 -d /etc/apt/keyrings \
- && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
-      | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+ && curl -fsSL --proto '=https' --tlsv1.2 \
+      https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key -o /tmp/nodesource.key \
+ && gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg /tmp/nodesource.key \
+ && rm -f /tmp/nodesource.key \
  && chmod a+r /etc/apt/keyrings/nodesource.gpg \
  && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
       > /etc/apt/sources.list.d/nodesource.list \
@@ -179,14 +180,17 @@ RUN --mount=type=cache,target=/root/.npm \
 # checks. podman-py is a runtime dependency of the lab automation, so it goes
 # into the interpreter rather than the tool environment.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    curl -fsSL https://astral.sh/uv/${UV_VERSION}/install.sh | sh \
+    curl -fsSL --proto '=https' --tlsv1.2 \
+      "https://astral.sh/uv/${UV_VERSION}/install.sh" -o /tmp/uv-install.sh \
+ && sh /tmp/uv-install.sh \
+ && rm -f /tmp/uv-install.sh \
  && mv /root/.local/bin/uv /root/.local/bin/uvx /usr/local/bin/ \
  && uv --version
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv tool install --python 3.12 "ruff==${RUFF_VERSION}" \
  && uv tool install --python 3.12 "ty==${TY_VERSION}" \
- && uv tool install --python 3.12 yamllint \
+ && uv tool install --python 3.12 "yamllint==${YAMLLINT_VERSION}" \
  && uv tool install --python 3.12 "semgrep==${SEMGREP_VERSION}" \
  && uv tool install --python 3.12 "zizmor==${ZIZMOR_VERSION}" \
  && uv pip install --system --break-system-packages "podman==${PODMAN_PY_VERSION}"
