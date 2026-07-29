@@ -1,0 +1,40 @@
+# What a pull request adds to the dependency graph.
+#
+# Two questions, both of which are cheap to answer here and expensive to
+# answer after a release: does this change pull in a known-vulnerable package,
+# and does it pull in a licence the provider cannot ship under.
+name: Dependency review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          # The provider is Apache-2.0 and ships as a single statically linked
+          # binary, so a copyleft dependency is not a licensing question to
+          # resolve later — it is one that has already been answered wrongly.
+          #
+          # A deny-list rather than an allow-list: Go modules published by
+          # Google carry a compound "BSD-3-Clause AND LicenseRef-…patent…"
+          # expression that no allow-list matches, and the resulting false
+          # positive teaches people to click past this check.
+          deny-licenses: >-
+            GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-only, GPL-3.0-or-later,
+            AGPL-3.0-only, AGPL-3.0-or-later,
+            LGPL-2.0-only, LGPL-2.1-only, LGPL-2.1-or-later,
+            LGPL-3.0-only, LGPL-3.0-or-later
+          comment-summary-in-pr: on-failure

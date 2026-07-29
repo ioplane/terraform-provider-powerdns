@@ -9,9 +9,9 @@
 
 <div align="center">
 
-![phase 7_of_8](https://shieldcn.dev/badge/phase-7_of_8-0969da.svg?variant=secondary)
+![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 66](https://shieldcn.dev/badge/tasks_done-66-3fb950.svg?variant=secondary)
+![tasks_done 73](https://shieldcn.dev/badge/tasks_done-73-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,9 +24,10 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 7 — examples and registry documentation landed;
-version matrix and release next
-**Last updated:** 2026-07-28
+**Status:** phase 8 — the gate now runs in GitHub Actions. Phase 7 stays open
+alongside it: the version matrix and the signed release are release decisions,
+not CI work.
+**Last updated:** 2026-07-29
 
 ## How a sprint runs
 
@@ -859,6 +860,82 @@ copies the caveat with it.
 | S7-03 | Version matrix: acceptance against auth 5.0.x as well as 5.1.3 | QA | `[ ]` |
 | S7-04 | Signed `v0.1.0` | PM | `[ ]` |
 | S7-05 | Terraform Registry submission | PM | `[ ]` |
+
+---
+
+## Phase 8 — Continuous integration · `[~]` in progress
+
+### The gate was never enforced anywhere
+
+Until this phase the quality gate was `task all`, run by a developer and quoted
+in a commit body. [ADR 0008](adr/0008-github-only-review.md) recorded that as
+"weaker than a pipeline enforcing it, and the accepted cost until a runner
+exists", and kept `.gitlab-ci.yml` as the gate's definition for a mirror that
+might exist later — to be "kept current".
+
+It was not kept current. By the time it was removed it called two scripts that
+do not exist, ran the contract tests with a build tag they do not carry, and
+split the acceptance matrix in a way the suite has not worked in since phase 5.
+
+Nobody noticed, because nothing ran it. That is the finding, and it generalises
+past this file: **an unexecuted pipeline does not stay correct, and reads as a
+gate while enforcing nothing.** It is now deleted, and the gate runs where the
+code is reviewed ([ADR 0009](adr/0009-github-actions-is-the-gate.md)).
+
+### One toolchain, in two places, that cannot drift
+
+CI cannot cheaply run the dev container — building that image costs more per
+job than the job. So the workflows install the same tools themselves, and the
+toolchain now exists twice.
+
+Two versions of a linter is not a cosmetic problem: it produces a finding on
+one machine and not the other, and the argument that follows is about which
+machine is right rather than about the code. So `Containerfile.dev` holds every
+version, a workflow line naming one carries `# pin: <ARG>`, and
+`scripts/check-tool-versions.sh` — part of `task all` — fails on a mismatch
+**and** on a deleted marker. Both directions were tested against real
+mutations, because a check that only ever passes proves nothing.
+
+### What the gate found on its way in
+
+Writing the workflows surfaced four defects in things already believed correct:
+
+| Where | Defect |
+| --- | --- |
+| `release.yml` | ran GoReleaser at `latest` — the one path where "whatever was current that day" is least acceptable |
+| `release.yml` | took the release notes from whichever changelog section was on top, not the one matching the tag |
+| `check-pins.sh` | read `github/codeql-action/init` as a repository, so every subpath action reported NOT FOUND |
+| `task semgrep` | ran on the host with no pinned version, against AGENTS.md's own no-host-toolchain rule |
+
+The plan's task counter is also derived now rather than asserted: the audit
+recomputed it, `check-badges.sh` recomputes it on every run. That was the
+audit's own finding left half-finished.
+
+| ID | Task | Role | Status |
+| --- | --- | --- | --- |
+| S8-01 | Retire `.gitlab-ci.yml`; ADR 0009 | OPS | `[x]` |
+| S8-02 | `ci.yml` — the gate, job for job against `task all` | OPS | `[x]` |
+| S8-03 | `acceptance.yml` — the five-container lab on a hosted runner | OPS | `[x]` |
+| S8-04 | `security.yml` — CodeQL, Semgrep, osv-scanner, Trivy, SARIF | OPS | `[x]` |
+| S8-05 | `scorecard.yml`, `dependency-review.yml`, `dependabot.yml` | OPS | `[x]` |
+| S8-06 | `release.yml` — pinned, tested, SBOMs, notes by version | OPS | `[x]` |
+| S8-07 | `check-tool-versions.sh` and `lint:actions` in the gate | OPS | `[x]` |
+| S8-08 | Acceptance moves to pull requests once its run history says it is stable | QA | `[ ]` |
+| S8-09 | Branch protection: require the gate before merge | PM | `[ ]` |
+| S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[ ]` |
+
+S8-10 reopens something S0-21 closed. A `github/ci` badge was removed then
+because it rendered "not found": the endpoint answered `200`, but GitHub held
+only the release workflow, so there was no CI to report. There is now — and
+`check-badges.sh` fetches the JSON behind a dynamic badge rather than trusting
+the status code, so adding it before the first run would fail the gate. It goes
+in after.
+
+S8-08 and S8-09 are deliberately open. Acceptance is five services and a
+ninety-minute ceiling, and it has never run on hardware nobody here controls;
+making every pull request wait on it before it has proven itself buys an
+unreliable gate rather than a slow one. Branch protection is worth setting only
+once the checks it would require have a run history to point at.
 
 ---
 

@@ -203,10 +203,27 @@ tasks:
     desc: Every image digest and action SHA resolves, and none float
     cmds: [scripts/check-pins.sh]
 
+  lint:tools:
+    desc: CI installs the same tool versions the dev image is built with
+    cmds: [scripts/check-tool-versions.sh]
+
+  lint:actions:
+    desc: actionlint and shellcheck over the workflows
+    # A workflow is only executed by pushing it. Without this the first reader
+    # of a typo in a `run:` block is the runner, after the merge.
+    deps: [_dev-running]
+    cmds: ['{{.EXEC}} actionlint']
+
   semgrep:
     desc: Semantic security scan
+    # In the container, like everything else. It ran on the host until the
+    # workflows needed a version to agree with, and a tool with no pinned
+    # version cannot be the same tool twice.
+    deps: [_dev-running]
     cmds:
-      - semgrep --config=p/golang --config=p/security-audit --config=p/secrets --metrics=off --error .
+      - >-
+        {{.EXEC}} semgrep --config=p/golang --config=p/security-audit
+        --config=p/secrets --metrics=off --error .
 
   vulncheck:
     desc: govulncheck
@@ -298,6 +315,8 @@ tasks:
       - {task: 'test:contract'}
       - {task: lint}
       - {task: 'lint:pins'}
+      - {task: 'lint:tools'}
+      - {task: 'lint:actions'}
       - {task: semgrep}
       - {task: py}
       - {task: 'tf:fmt:check'}
@@ -330,3 +349,4 @@ tasks:
       - '{{.EXEC}} uv --version'
       - '{{.EXEC}} uv run ruff --version'
       - '{{.EXEC}} uv run ty --version'
+      - '{{.EXEC}} semgrep --version'

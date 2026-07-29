@@ -1,0 +1,106 @@
+# Acceptance tests against the real lab.
+#
+# The whole fixture is containers pinned by digest — two authoritative servers
+# on two backends, a recursor and a dnsdist — so unlike most provider
+# repositories this one can run its acceptance suite on a hosted runner with
+# nothing to authenticate against. That is the reason this workflow exists.
+#
+# Not on pull requests, yet. Five services, a 90-minute ceiling and a first
+# run that has never happened on hardware nobody here controls: making every
+# pull request wait on it before it has proven itself would buy an unreliable
+# gate rather than a slow one. It runs on main, nightly, and on demand; it
+# moves to pull requests once a run history says it is stable (ADR 0009).
+name: Acceptance
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '41 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acceptance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    name: Lab acceptance (auth gpgsql + lmdb · recursor · dnsdist)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      TF_ACC: '1'
+      # Two authoritative endpoints, not one: views and networks are
+      # unimplemented by gpgsql, so a single backend cannot cover the provider
+      # (ADR 0005). The suite reads both and skips what a backend cannot do.
+      PDNS_SERVER_URL: http://127.0.0.1:18081
+      PDNS_SERVER_URL_LMDB: http://127.0.0.1:18091
+      PDNS_RECURSOR_SERVER_URL: http://127.0.0.1:18082
+      PDNS_DNSDIST_SERVER_URL: http://127.0.0.1:18083
+      PDNS_API_KEY: labapikey
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          # The lab pulls four images and the suite talks to them over
+          # loopback; a blocking policy here would need an allow-list that
+          # goes stale on the next digest bump.
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install Terraform
+        # Pinned, and handed to the test framework explicitly. Left alone the
+        # framework downloads whatever is current, which would mean the
+        # acceptance result depends on the day it ran.
+        run: |
+          curl -fsSL -o /tmp/tf.zip \
+            "https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_linux_amd64.zip" # pin: TERRAFORM_VERSION
+          sudo unzip -o -d /usr/local/bin /tmp/tf.zip
+          echo "TF_ACC_TERRAFORM_PATH=/usr/local/bin/terraform" >> "$GITHUB_ENV"
+
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.33" # pin: UV_VERSION
+
+      - name: Install the lab driver
+        # podman is on the runner image; podman-compose and podman-py are not.
+        # lab.py prefers the REST socket and falls back to the CLI, so the
+        # socket is an optimisation rather than a requirement.
+        run: |
+          uv tool install podman-compose
+          uv pip install --system "podman==5.7.0" # pin: PODMAN_PY_VERSION
+          systemctl --user enable --now podman.socket || \
+            echo "podman socket unavailable — lab.py will use the CLI"
+
+      - name: Start the lab
+        run: python3 scripts/automation/lab.py up
+
+      - name: The lab is the pinned PowerDNS versions
+        # An acceptance pass against the wrong server proves nothing about the
+        # server the claims were written from.
+        run: python3 scripts/automation/lab.py verify
+
+      - name: Acceptance
+        run: go test -tags acceptance ./internal/... -race -count=1 -timeout 60m -v
+
+      - name: Diagnostics
+        if: failure()
+        run: |
+          python3 scripts/automation/lab.py status || true
+          for c in pdns-lab-pg pdns-lab-auth-pg pdns-lab-auth-lmdb \
+                   pdns-lab-rec pdns-lab-dnsdist; do
+            echo "::group::$c"
+            podman logs --tail 200 "$c" 2>&1 || true
+            echo "::endgroup::"
+          done
+
+      - name: Tear down
+        if: always()
+        run: python3 scripts/automation/lab.py down || true

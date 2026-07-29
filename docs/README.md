@@ -4,7 +4,6 @@
 | --- | --- |
 | [`../AGENTS.md`](../AGENTS.md) | **Start here.** Golden rules, architecture, workflow, gates. |
 | [`methodology.md`](methodology.md) | Delivery method, roles, phase gates, Definition of Done. |
-| [`adr/0008-github-only-review.md`](adr/0008-github-only-review.md) | Review happens on GitHub only; `.gitlab-ci.yml` is unexecuted |
 | [`contract.md`](contract.md) | What the provider promises to users, and what it does not |
 | [`plan.md`](plan.md) | **Live delivery plan.** Task status, updated with the work. |
 
@@ -39,6 +38,8 @@ editing one.
 | [`adr/0005`](adr/0005-two-backend-test-matrix.md) | Acceptance on two authoritative backends. |
 | [`adr/0006`](adr/0006-dnsdist-scope.md) | dnsdist in scope, sized to its API. |
 | [`adr/0007`](adr/0007-taskfile-over-make.md) | Task is the command interface. |
+| [`adr/0008`](adr/0008-github-only-review.md) | Review happens on GitHub only. |
+| [`adr/0009`](adr/0009-github-actions-is-the-gate.md) | GitHub Actions runs the gate; `.gitlab-ci.yml` removed. |
 
 ## Related
 

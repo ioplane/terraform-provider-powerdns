@@ -143,7 +143,7 @@ documentation and a user reading ours must find the same word.
 | Fix | `fix/<scope>/<name>` | `fix/zone/ipv6-masters` |
 | Chore | `chore/<scope>/<name>` | `chore/deps/framework-bump` |
 | Build | `build/<scope>/<name>` | `build/repo/taskfile` |
-| CI | `ci/<scope>/<name>` | `ci/gitlab/acceptance-matrix` |
+| CI | `ci/<scope>/<name>` | `ci/actions/acceptance-lab` |
 | Docs | `docs/<scope>/<name>` | `docs/standards/naming` |
 
 `<type>` is a Conventional Commits type; `<scope>` is one of the scopes in

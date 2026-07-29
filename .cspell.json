@@ -41,6 +41,7 @@
     "Containerfile", "Taskfile", "taskfile", "commitlintrc", "pyproject",
     "pathlib", "isort", "pyupgrade", "govulncheck", "shieldcn", "venv",
     "worktree", "getkin", "gorillamux",
+    "actionlint", "codeql", "dependabot", "SARIF", "scorecard", "syft",
 
     // This repository's own test identifiers and container names.
     "testutil", "testacc", "testkey", "labapikey", "capprobe", "fixtureview",

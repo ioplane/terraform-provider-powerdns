@@ -40,7 +40,7 @@ while IFS= read -r ref; do
     printf 'skip      %s (skopeo unavailable)\n' "${ref%%@*}"
   fi
 done < <(grep -rhoE '(docker\.io|ghcr\.io|quay\.io)/[a-z0-9./_-]+:[a-zA-Z0-9._-]+(@sha256:[0-9a-f]{64})?' \
-           deployments/ .gitlab-ci.yml .github/ 2>/dev/null | sort -u)
+           deployments/ .github/ 2>/dev/null | sort -u)
 
 echo
 echo "== unpinned FROM in Containerfiles =="
@@ -54,22 +54,31 @@ fi
 echo
 echo "== GitHub Actions =="
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  while IFS='@' read -r repo sha; do
-    [ -n "${sha:-}" ] || continue
+  # An action may live in a subdirectory — github/codeql-action/init,
+  # anchore/sbom-action/download-syft. The SHA belongs to the repository, so
+  # the first two segments are what the API is asked about; matching
+  # owner/repo greedily against the whole reference instead reads
+  # `codeql-action/init` as a repository and reports a valid pin as missing.
+  while IFS= read -r ref; do
+    [ -n "$ref" ] || continue
+    action="${ref%@*}"
+    sha="${ref##*@}"
+    repo="$(printf '%s' "$action" | cut -d/ -f1,2)"
+
+    if ! [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+      printf 'FLOATING  %s — pin the commit SHA\n' "$ref" >&2
+      bad+=1
+      continue
+    fi
     if gh api "repos/${repo}/commits/${sha}" --jq .sha >/dev/null 2>&1; then
-      printf 'ok        %-34s %s\n' "$repo" "${sha:0:12}"
+      printf 'ok        %-34s %s\n' "$action" "${sha:0:12}"
       ok+=1
     else
-      printf 'NOT FOUND %s@%s\n' "$repo" "$sha" >&2
+      printf 'NOT FOUND %s\n' "$ref" >&2
       bad+=1
     fi
-  done < <(grep -rhoE '[A-Za-z0-9._-]+/[A-Za-z0-9._-]+@[0-9a-f]{40}' .github/ 2>/dev/null | sort -u)
-
-  if grep -rhoE 'uses:[[:space:]]*[A-Za-z0-9._-]+/[A-Za-z0-9._-]+@[^ ]+' .github/ 2>/dev/null \
-     | grep -vE '@[0-9a-f]{40}'; then
-    echo "  the action above floats; pin the commit SHA" >&2
-    bad+=1
-  fi
+  done < <(grep -rhoE 'uses:[[:space:]]*[A-Za-z0-9._-]+/[A-Za-z0-9._/-]+@[^[:space:]]+' .github/ 2>/dev/null \
+             | sed -E 's/^uses:[[:space:]]*//' | sort -u)
 else
   echo "skip      gh unavailable or unauthenticated; CI runs the same check"
 fi

@@ -45,8 +45,18 @@ repos:
       - id: check-pins
         name: verify image digests and action pins
         language: system
-        files: '^(\.github/workflows/|\.gitlab-ci\.yml|deployments/)'
+        files: '^(\.github/workflows/|deployments/)'
         entry: scripts/check-pins.sh
+
+      # Touching a workflow or the dev image is exactly when the two
+      # toolchains diverge, so the check runs at that moment rather than
+      # waiting for `task all`.
+      - id: check-tool-versions
+        name: CI and the dev image agree on tool versions
+        language: system
+        pass_filenames: false
+        files: '^(\.github/workflows/|deployments/containers/)'
+        entry: scripts/check-tool-versions.sh
 
       - id: no-ai-attribution
         name: no AI attribution

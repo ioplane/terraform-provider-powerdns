@@ -206,21 +206,30 @@ and the rule applies from phase 5 onward.
 6. Open a pull request titled as a Conventional Commit subject; squash-merge
 7. `scripts/worktree.sh rm <branch>` once it is merged
 
-Reviews happen on GitHub. `.gitlab-ci.yml` is kept for a mirror that does not
-exist yet, so nothing currently runs it — see [ADR 0008](docs/adr/0008-github-only-review.md).
+Reviews happen on GitHub — see [ADR 0008](docs/adr/0008-github-only-review.md).
 
 ## Pipelines
 
-Two, with a deliberate split:
+Everything runs in GitHub Actions ([ADR 0009](docs/adr/0009-github-actions-is-the-gate.md)).
 
-| System | File | Owns |
+| Workflow | Owns | Runs on |
 | --- | --- | --- |
-| **GitLab CI** | `.gitlab-ci.yml` | The quality gate: build, unit, contract, acceptance matrix, lint, security, docs |
-| **GitHub Actions** | `.github/workflows/release.yml` | Release only — goreleaser, GPG signing, Terraform Registry publication |
+| `ci.yml` | The gate — build, test, lint, docs, commits. Job for job, this is `task all` | every push and pull request |
+| `acceptance.yml` | `task testacc` against the five-container lab | main, nightly, on demand |
+| `security.yml` | CodeQL, Semgrep, osv-scanner, Trivy — findings become code-scanning alerts | push, pull request, weekly |
+| `scorecard.yml` | OpenSSF Scorecard | main, weekly |
+| `dependency-review.yml` | New dependencies: severity and licence | pull request |
+| `release.yml` | GoReleaser, SBOMs, GPG signing, Registry publication | `v*.*.*` tags |
 
-The registry publishes from GitHub tags and signed releases, which is why the
-release path cannot move. Everything else runs in GitLab. The two do not
-overlap, so they cannot drift into disagreement.
+The toolchain is pinned in one place. `deployments/containers/Containerfile.dev`
+holds every version; a workflow line naming one carries `# pin: <ARG>`; and
+`task lint:tools` fails if the two disagree or if a marker is deleted. Without
+that, CI and a developer's machine run different linters and argue about which
+is right.
+
+`.gitlab-ci.yml` is gone. It was never executed, and by the time it was removed
+it referred to two scripts that do not exist and ran the contract tests with a
+build tag they do not carry — which is what an unexecuted pipeline becomes.
 
 ## Quality gates
 
@@ -233,6 +242,8 @@ overlap, so they cannot drift into disagreement.
 | golangci-lint v2 | `task lint` |
 | Python — ruff + ty | `task py` |
 | Pins resolve, none float | `task lint:pins` |
+| CI and the dev image agree on tool versions | `task lint:tools` |
+| Workflows parse and their expressions resolve | `task lint:actions` |
 | Semantic security scan | `task semgrep` |
 | Vulnerabilities | `task vulncheck` · `task osv-scan` |
 | Registry docs | `task docs:check` |

@@ -63,8 +63,10 @@ scripts/worktree.sh rm sprint/<phase>-<name>
 podman rm -f terraform-provider-powerdns-dev-<name>
 ```
 
-Reviews happen on GitHub only ([ADR 0008](../../docs/adr/0008-github-only-review.md)).
-`.gitlab-ci.yml` has never run: no GitLab remote is configured.
+Reviews happen on GitHub only ([ADR 0008](../../docs/adr/0008-github-only-review.md)),
+and the gate runs there too ([ADR 0009](../../docs/adr/0009-github-actions-is-the-gate.md)).
+`task all` before the pull request is still the fast loop — CI runs the same
+jobs, so a failure there is one you could have seen first.
 
 ## Commit messages
 
