@@ -12,7 +12,7 @@ task lab:up    # five services, three products, two authoritative backends
 
 ## The loop
 
-1. `scripts/worktree.sh new <type>/<scope>/<name>` — `main` is never committed
+1. `task worktree:new BRANCH=<type>/<scope>/<name>` — `main` is never committed
    to directly.
 2. Develop in the container. Use `gopls`, and `context7` for current library
    documentation.

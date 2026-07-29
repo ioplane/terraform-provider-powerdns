@@ -75,8 +75,52 @@ The mapping between commit type, changelog section and version bump is in
   after the first audit found it had rotted; the counter beside it was left
   hand-maintained and rotted the same way.
 
+- The acceptance suite runs as a matrix over the authoritative branch. The
+  fixture takes `--auth`, and `compose.lab-auth-50.yml` overrides exactly two
+  lines: the images of the authoritative pair, pinned by digest to 5.0.6. Every
+  other service, configuration file and port stays put, so a difference between
+  the two runs is attributable to the branch and to nothing else. Both are
+  identical — 203 assertions, no failures, the same two skips — which turns
+  "supports 5.0 and 5.1" from a sentence into two jobs a reader can open.
+- `task worktree:new`, `task worktree:rm`, `task worktree:ls`.
+- `task py:test` — pytest over `test/scripts/`, part of `task py` and so of
+  `task all`.
+- `scripts/automation/opentofu_submission.py` prints the two OpenTofu Registry
+  submission links with every field the form accepts prefilled, reading the
+  signing key back from the Terraform Registry rather than carrying a copy. The
+  registry's templates refuse submissions made anywhere but the issue form UI,
+  so this shortens the manual step rather than replacing it.
+
+### Changed
+
+- The gate's nine checks are Python, not shell. 961 lines of bash under
+  `scripts/` became `scripts/checks/`, one module per check, imported by
+  `test/scripts/` and covered by 87 assertions — including the cases the shell
+  versions could not reach: a retried timeout, a badge answering 200 with an
+  error card, a drifted counter, a line added to a released changelog section.
+  Each conversion was checked against the script it replaced, on the same
+  inputs, before that script was deleted. The badge check is also eight times
+  faster, a hundred independent requests being a thread pool rather than a loop.
+- The two agent hooks under `.claude/hooks/` are Python and no longer need `jq`.
+- `lint:shell` lints the `terraform import` snippets under `examples/`, which
+  are now the only shell in the repository and the only shell a reader copies.
+  `shfmt` is gone, having nothing left to format; `shellcheck` stays, because
+  actionlint hands it every `run:` block in a workflow.
+
 ### Fixed
 
+- `task py:typecheck` resolved `boto3` and `tenacity` only when a previous
+  `task e2e` had left them in the virtualenv, so whether the Python gate passed
+  depended on what had been run before it. It now names `--group e2e`.
+- `_lab-running` asserted `podman container exists`, which is also true for a
+  *stopped* container, so the precondition would pass on a lab that was down and
+  leave every acceptance test to fail on a refused connection instead. It now
+  filters on `--filter status=running`. The first replacement used
+  `--format '{{.State.Running}}'` and was worse: Task interpolates Go template
+  braces as its own before podman sees them, so the check compared an empty
+  string and failed open in the other direction.
+- `ruff` and `ty` ran over `scripts/` only, so nothing under `test/` was linted
+  or type-checked. Both now cover `test/scripts/` as well.
 - `task docs:drift` compared the whole `docs/` tree against the generator's
   output. `tfplugindocs` writes six paths; `docs/` also holds the plan, the
   contract, the standards and the ADRs, so editing any of those made the check

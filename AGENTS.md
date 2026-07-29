@@ -56,7 +56,7 @@ This is not a fork. Prior analysis of the ecosystem lives in the sibling
 2. **Latest, pinned by hash.** Newest releases, then pinned exactly: Go modules
    by version and `go.sum`, container images by `sha256:` digest, CI actions by
    commit SHA. A floating tag is a mutable reference and is rejected by
-   `scripts/check-pins.sh`.
+   `scripts/checks/pins.py`.
 3. **Evidence before facts.** No claim about PowerDNS behaviour goes in without
    the **sources** (`PowerDNS/pdns` at the pinned tag) and a **live round-trip**
    against the lab. The published OpenAPI is not sufficient — it diverges from
@@ -197,14 +197,14 @@ squash-merged. Phases 0 to 4 were committed straight to `main`, which is the
 rule being broken rather than an exception to it — the history is what it is,
 and the rule applies from phase 5 onward.
 
-1. `scripts/worktree.sh new sprint/<phase>-<name>`
+1. `task worktree:new BRANCH=sprint/<phase>-<name>`
 2. Develop in the container: `task up && task shell`
 3. Before pushing: `task all`. Resource changes also need `task verify`; quote
    the acceptance result in the commit body.
 4. Update `CHANGELOG.md` under `[Unreleased]` and the task in `docs/plan.md`
 5. Regenerate registry docs with `task docs` if the schema changed
 6. Open a pull request titled as a Conventional Commit subject; squash-merge
-7. `scripts/worktree.sh rm <branch>` once it is merged
+7. `task worktree:rm BRANCH=<branch>` once it is merged
 
 Reviews happen on GitHub — see [ADR 0008](docs/adr/0008-github-only-review.md).
 

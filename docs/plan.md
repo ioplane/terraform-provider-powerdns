@@ -11,7 +11,7 @@
 
 ![phase 9_of_10](https://shieldcn.dev/badge/phase-9_of_10-0969da.svg?variant=secondary)
 ![phases_closed 8](https://shieldcn.dev/badge/phases_closed-8-3fb950.svg?variant=secondary)
-![tasks_done 88](https://shieldcn.dev/badge/tasks_done-88-3fb950.svg?variant=secondary)
+![tasks_done 91](https://shieldcn.dev/badge/tasks_done-91-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -34,11 +34,11 @@ not CI work.
 One worktree per sprint, one pull request per sprint, squash-merged.
 
 ```console
-scripts/worktree.sh new sprint/<phase>-<name>
+task worktree:new BRANCH=sprint/<phase>-<name>
 # ... work, task all, task verify ...
 gh pr create --fill
 # ... squash-merge ...
-scripts/worktree.sh rm sprint/<phase>-<name>
+task worktree:rm BRANCH=sprint/<phase>-<name>
 ```
 
 Phases 0 to 4 were committed directly to `main`. That contradicted
@@ -865,12 +865,44 @@ copies the caveat with it.
 | S7-00 | Data sources for recursor and dnsdist — deferred from S5-05 | DEV | `[x]` |
 | S7-01 | Examples for every resource, action, function, data source and ephemeral | DEV | `[x]` |
 | S7-02 | Registry documentation generated and validated | DEV | `[x]` |
-| S7-03 | Version matrix: acceptance against auth 5.0.x as well as 5.1.3 | QA | `[ ]` |
+| S7-03 | Version matrix: acceptance against auth 5.0.x as well as 5.1.3 | QA | `[x]` 5.0.6 and 5.1.3, identical results |
 | S7-04 | Signed `v0.1.0` | PM | `[x]` |
-| S7-05 | Terraform Registry submission | PM | `[~]` every prerequisite met; the submission itself is browser-only |
-| S7-07 | **Added.** OpenTofu Registry submission | PM | `[~]` same — two issue forms, and they must be filled in by hand |
+| S7-05 | Terraform Registry submission | PM | `[x]` published, `v0.1.1`, 13 platforms, protocol 6.0 |
+| S7-07 | **Added.** OpenTofu Registry submission | PM | `[~]` prepared to two prefilled links; the forms refuse anything but the browser |
 | S7-08 | **Added.** `v0.1.1` — the release the Registry will accept | OPS | `[x]` |
 | S7-06 | **Added.** An RSA-4096 signing key, and `GPG_PRIVATE_KEY`/`PASSPHRASE` in repository secrets | PM | `[x]` |
+
+### The version matrix, and what it did not find
+
+S7-03 asked whether the provider works on the 5.0 branch as well as 5.1, and
+the honest answer before this sprint was that nobody knew — every acceptance
+run in the project's history had used one image.
+
+The fixture now takes `--auth`, and `compose.lab-auth-50.yml` overrides exactly
+two lines: the images of the authoritative pair, pinned by digest to 5.0.6, the
+last release on that branch. PostgreSQL, the recursor, dnsdist, every
+configuration file and every port stay where they were. That restraint is the
+whole design — if the two runs differ, the difference is attributable to the
+authoritative branch and to nothing else.
+
+**Both runs are identical: 203 assertions, 0 failures, the same two skips.**
+Views and networks work on LMDB under 5.0.6, `/views` answers, and no
+capability diagnostic changed. The matrix found no defect, which is the result
+it was most likely to have and still worth the run: "supports 5.0 and 5.1" was
+a sentence in the documentation and is now two green jobs a reader can open.
+
+Acceptance in CI is a matrix over the two branches with `fail-fast: false`.
+When one breaks, the useful question is whether the other did too, and
+cancelling the sibling job destroys that answer.
+
+**A precondition that failed open.** `_lab-running` asserted
+`podman container exists`, which is also true for a *stopped* container — the
+same defect found in the end-to-end driver a sprint earlier and not looked for
+anywhere else. The first replacement used `--format '{{.State.Running}}'` and
+was worse: Task interpolates Go template braces as its own before podman sees
+them, so the check silently compared an empty string and failed open in the
+other direction. It now filters on `--filter status=running`, which needs no
+template at all.
 
 ### v0.1.0 was refused, and why nothing caught it
 
@@ -1144,6 +1176,7 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
 | S8-14 | **Added.** Repository hygiene: CODEOWNERS, templates, code of conduct, settings, branch protection | OPS | `[x]` |
+| S8-15 | **Added.** The gate's checks move from shell to Python, with tests | OPS | `[x]` |
 
 ---
 
@@ -1578,6 +1611,49 @@ unreliable gate rather than a slow one. Branch protection is worth setting only
 once the checks it would require have a run history to point at.
 
 ---
+
+### The checks were shell, and shell has no tests
+
+Nine scripts under `scripts/`, 961 lines of bash, ran the gate. Their only test
+was running them against the repository's own state, which means a branch that
+had never executed was indistinguishable from one that worked — and two of them
+had shipped with exactly that defect: `check-pins.sh` passed locally and failed
+in CI because the two machines took different paths through it, and the
+`_lab-running` precondition asserted `container exists`, which is also true for
+a stopped container, so it had never once done its job.
+
+They are now `scripts/checks/`, one module per check, with `test/scripts/`
+importing them. Eighty-seven assertions, and the ones worth naming are the
+cases the shell could not reach at all:
+
+| What is now tested | Why the shell version could not |
+| --- | --- |
+| A single timeout is retried, three are unreachable | Would need an outage to reproduce |
+| A dynamic badge answering 200 with an error card | Would need a broken endpoint |
+| The task and phase counters drifting | Would need a hand-edited plan |
+| A line added to a released changelog section | Would need a tag and a rewrite |
+| `codeql-action/init` reduced to `github/codeql-action` | Reachable, never asserted |
+| A comment satisfying a version pin on its own | Reachable, never asserted |
+
+Every conversion was checked against the script it replaced before the script
+was deleted: the same corpus of commit messages through both attribution
+checkers, the same 27 pins, the same 106 badges, the same verdicts from the
+release gate. The badge check also came out eight times faster, because a
+hundred independent HTTP requests are a thread pool in Python and a loop in
+bash.
+
+**Two defects the rewrite surfaced rather than introduced.** `task py:typecheck`
+resolved `boto3` and `tenacity` only when a previous `task e2e` had left them in
+the virtualenv, so whether the gate passed depended on what had been run before
+it; it now names `--group e2e`. And `lint:shell` had been linting `scripts/*.sh`
+— with those gone it now checks the `terraform import` snippets under
+`examples/`, which are the only shell left and the only shell a reader copies.
+`shfmt` went with them, having nothing left to format.
+
+**What this cost.** `scripts/check-pins.sh` and its eight siblings are named
+throughout `CHANGELOG.md` and in the older entries of this document. Those are
+records of what was true when they were written and are left alone; the rename
+is recorded here so a reader who finds one can follow it.
 
 ## Audit, 2026-07-29 — before phase 7
 

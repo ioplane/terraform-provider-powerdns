@@ -103,6 +103,23 @@ Plus five provider functions and two ephemeral resources.
 downstream servers are Lua or YAML and are not reachable over HTTP. See
 [ADR 0006](docs/adr/0006-dnsdist-scope.md).
 
+## Tested against
+
+| Product | Versions the acceptance suite runs against |
+| --- | --- |
+| Authoritative | 5.1.3 and 5.0.6 |
+| Recursor | 5.4.4 |
+| dnsdist | 2.1.0 |
+
+The authoritative branch is a matrix, not a single pin: the same 203
+assertions run on 5.1.3 and on 5.0.6, and both must pass. Nothing else in the
+fixture moves between the two runs, so a difference is attributable to the
+branch. The API facts in this repository are cited against `auth-5.1.3` —
+that is the tag they were read from, and it is a different claim from the
+range the provider is exercised over.
+
+Run either yourself: `task lab:up AUTH=5.0 && task testacc`.
+
 ## Surface
 
 ```mermaid

@@ -40,7 +40,7 @@
 
 Point 6 is the one that matters. `golang:1.26-trixie` is a moving reference; a
 digest is not. A build that is reproducible only until the upstream tag moves is
-not reproducible. `scripts/check-pins.sh` enforces it.
+not reproducible. `scripts/checks/pins.py` enforces it.
 
 ## Consequences
 

@@ -26,7 +26,7 @@ repos:
         # absolute path into the main checkout's .git — which does not exist
         # inside the container. Reading the file on the host and piping it in
         # works from any checkout.
-        entry: scripts/commitlint.sh
+        entry: python3 -m scripts.checks.commitlint
 
       # golangci-lint fmt, not gofumpt directly: .golangci.yml already
       # enables gofmt, gofumpt and goimports with the local-prefixes setting,
@@ -46,7 +46,7 @@ repos:
         name: verify image digests and action pins
         language: system
         files: '^(\.github/workflows/|deployments/)'
-        entry: scripts/check-pins.sh
+        entry: python3 -m scripts.checks.pins
 
       # Touching a workflow or the dev image is exactly when the two
       # toolchains diverge, so the check runs at that moment rather than
@@ -56,10 +56,10 @@ repos:
         language: system
         pass_filenames: false
         files: '^(\.github/workflows/|deployments/containers/)'
-        entry: scripts/check-tool-versions.sh
+        entry: python3 -m scripts.checks.tool_versions
 
       - id: no-ai-attribution
         name: no AI attribution
         language: system
         stages: [commit-msg]
-        entry: scripts/check-no-ai-attribution.sh
+        entry: python3 -m scripts.checks.no_ai_attribution

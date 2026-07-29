@@ -17,13 +17,25 @@
 
 # Python tooling
 
-The repository's automation — the lab lifecycle, and build helpers as they
-appear — is Python. It is held to the same standard as the Go: an explicit
-allowlist, strict by default, one declared configuration, everything pinned.
+The repository's automation is Python: the lab lifecycle, the end-to-end
+fixture, the worktree helper, and every check the gate runs. It is held to the
+same standard as the Go — an explicit allowlist, strict by default, one declared
+configuration, everything pinned.
 
-There is no Python package to publish here. `pyproject.toml` exists so the
-tools have a configuration file rather than a growing list of command-line
-flags.
+There is no Python package to publish here. `pyproject.toml` exists so the tools
+have a configuration file rather than a growing list of command-line flags.
+
+**The checks were shell until they grew branches nobody could test.** Nine
+scripts under `scripts/`, 961 lines of bash, exercised only by running them
+against the repository's own state — so a branch that had never executed was
+indistinguishable from one that worked. Two of them shipped with exactly that
+defect. They are now `scripts/checks/`, one module per check, imported by
+`test/scripts/` and covered by 87 assertions, including the negative cases the
+shell versions asserted by hand and the ones nobody could reach at all.
+
+What is left in shell is the `terraform import` snippets under `examples/`,
+which `tfplugindocs` renders verbatim into the registry pages. They are
+documentation, not programs.
 
 ## The toolchain
 
@@ -32,6 +44,7 @@ flags.
 | [`uv`](https://docs.astral.sh/uv/) | 0.11.33 | Environment and tool installation. Not `pip`, not `venv` by hand. |
 | [`ruff`](https://docs.astral.sh/ruff/) | 0.16.0 | Linter **and** formatter. Replaces flake8, isort, black, pyupgrade, bandit. |
 | [`ty`](https://docs.astral.sh/ty/) | 0.0.64 | Type checker. |
+| [`pytest`](https://docs.pytest.org/) | 9.1.1 | The checks' tests. `test/scripts/` for the gate's own checks, `test/e2e/` for the consumer path. |
 
 Pinned exactly, mirrored between `Containerfile.dev` build arguments and
 `compose.dev.yml`, per the dependency policy in
@@ -43,7 +56,8 @@ Pinned exactly, mirrored between `Containerfile.dev` build arguments and
 task py:lint        # ruff check + ruff format --check
 task py:fmt         # ruff format + ruff check --fix
 task py:typecheck   # ty check
-task py             # lint-py + typecheck-py
+task py:test        # pytest over test/scripts/
+task py             # all four
 ```
 
 `task py` is part of `task all`, so the Python gate blocks a pull request in
@@ -64,7 +78,8 @@ Four suppressions, each with a reason:
 | `T201` (`print` found) | The scripts are operator-facing command-line tools; stdout is their output, not a debugging leftover. |
 | `D203`, `D213` | Mutually exclusive with the Google docstring convention selected below. |
 | `ISC001` | Conflicts with the formatter. |
-| `S603`, `S607` in `scripts/automation/` | `subprocess` is the point of the automation. Every call site is a fixed argument list, with no shell and no interpolated input. |
+| `S603`, `S607` in `scripts/automation/` and `scripts/checks/` | `subprocess` is the point of the automation. Every call site is a fixed argument list, with no shell and no interpolated input. |
+| `S101`, `ANN001`, `ANN201`, `INP001`, `PLR2004` in `test/` | Each inverts in a test: `assert` is how pytest reports, fixtures are typed at the call site, a test directory must not be importable as a package, and the comparison value *is* the assertion. |
 
 A suppression added without a reason in this table is a review finding.
 
@@ -113,10 +128,16 @@ differ.
 Inside the dev container, through `uv`:
 
 ```sh
-uv run ruff check scripts/
-uv run ruff format scripts/
-uv run ty check scripts/
+uv run ruff check scripts/ test/scripts/
+uv run ruff format scripts/ test/scripts/
+uv run --group e2e ty check scripts/ test/scripts/
+uv run pytest
 ```
+
+`ty` is run with `--group e2e` because `scripts/automation/e2e.py` imports
+`boto3` and `tenacity`, which live in that group. Without it the imports
+resolved only when a previous `task e2e` had left them in the virtualenv, so
+whether the gate passed depended on what had been run before it.
 
 `uv run` resolves the environment declared in `pyproject.toml`, so the versions
 in the gate and the versions on a developer's machine are the same by

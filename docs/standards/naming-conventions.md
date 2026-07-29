@@ -95,6 +95,8 @@ checked — see §8.
 | Audit records | `AUDIT-NN-kebab.md` | `AUDIT-01-baseline.md` |
 | Directories | `kebab-case` or one word | `deployments/`, `internal/api/` |
 | YAML / config | `kebab-case.yml` | `compose.dev.yml` |
+| Python modules | `snake_case.py` | `tool_versions.py`, `release_artifacts.py` |
+| Python tests | `test_<module>.py` | `test_tool_versions.py` |
 | Terraform files | `snake_case.tf` | `main.tf` |
 | Environment variables | `SCREAMING_SNAKE_CASE` | `PDNS_SERVER_URL` |
 | Container images | `lowercase-with-dashes` | `terraform-provider-powerdns-dev` |
@@ -192,9 +194,9 @@ IT Glue's point, made operational. A rule nobody checks is a preference:
 | Spelling and abbreviations | `cspell` against `.cspell.json` |
 | Markdown file conventions | `markdownlint-cli2` |
 | Changelog section vocabulary | nobody — read in review |
-| Changelog: nothing added to a released section | `scripts/check-release.sh` |
-| Version format, and `VERSION` agreeing with the tag | `scripts/check-release.sh` |
-| Image and action pins by hash | `scripts/check-pins.sh` |
+| Changelog: nothing added to a released section | `scripts/checks/release.py` |
+| Version format, and `VERSION` agreeing with the tag | `scripts/checks/release.py` |
+| Image and action pins by hash | `scripts/checks/pins.py` |
 
 The remainder — branch names, document codes — is checked at review. Where a
 rule proves worth enforcing, it moves into this table rather than staying an

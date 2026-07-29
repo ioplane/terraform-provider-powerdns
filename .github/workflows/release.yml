@@ -73,7 +73,7 @@ jobs:
       - name: Version, changelog, manifest, tag
         env:
           REF_NAME: ${{ github.ref_name }}
-        run: scripts/check-release.sh "$REF_NAME"
+        run: python3 -m scripts.checks.release "$REF_NAME"
 
       - name: The tag is on main
         # Otherwise any branch can be tagged and published. The Registry does
@@ -127,7 +127,7 @@ jobs:
         run: |
           go install github.com/anchore/syft/cmd/syft@v1.50.0 # pin: SYFT_VERSION
           goreleaser release --snapshot --clean --skip=publish,sign
-          scripts/check-release-artifacts.sh dist
+          python3 -m scripts.checks.release_artifacts dist
           rm -rf dist
 
       - name: The registry documentation is in sync

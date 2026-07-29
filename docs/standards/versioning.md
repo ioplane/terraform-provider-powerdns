@@ -83,8 +83,8 @@ offers one:
 | Kind | Pinned by | Verified by |
 | --- | --- | --- |
 | Go modules | exact version | `go.sum` |
-| Container base images | `sha256:` digest | `scripts/check-pins.sh` |
-| GitHub Actions | commit SHA | `scripts/check-pins.sh` |
+| Container base images | `sha256:` digest | `scripts/checks/pins.py` |
+| GitHub Actions | commit SHA | `scripts/checks/pins.py` |
 | Go tools in the image | exact version tag | build reproducibility |
 | Python tools | exact version in `pyproject.toml` | `uv.lock` |
 

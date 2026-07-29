@@ -89,5 +89,5 @@ Closes: #12
 
 No mention of AI, assistants or generated authorship in any part of a commit —
 subject, body, footer or trailer. Enforced by
-`scripts/check-no-ai-attribution.sh` in the `commit-msg` hook. Human
+`scripts/checks/no_ai_attribution.py` in the `commit-msg` hook. Human
 co-authorship uses the ordinary `Co-Authored-By:` trailer.

@@ -9,7 +9,7 @@ rules:
     # tomorrow — is one this repository already answers, twice: the version is
     # exact, and npm publishes are immutable, so `cspell@10.0.1` resolves to the
     # same tarball forever. It is also written in exactly one place,
-    # `Containerfile.dev`, with `scripts/check-tool-versions.sh` failing the
+    # `Containerfile.dev`, with `scripts/checks/tool_versions.py` failing the
     # build if the workflow and the image disagree.
     #
     # A package-lock.json for four global CLI tools would be a lockfile nothing

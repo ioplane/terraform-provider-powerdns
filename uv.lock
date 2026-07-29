@@ -363,6 +363,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "pytest" },
     { name = "ruff" },
     { name = "ty" },
 ]
@@ -381,6 +382,7 @@ requires-dist = [{ name = "podman", specifier = "==5.8.0" }]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "pytest", specifier = "==9.1.1" },
     { name = "ruff", specifier = "==0.16.0" },
     { name = "ty", specifier = "==0.0.64" },
 ]

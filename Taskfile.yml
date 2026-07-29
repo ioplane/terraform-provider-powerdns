@@ -63,7 +63,12 @@ tasks:
   _lab-running:
     internal: true
     preconditions:
-      - sh: podman container exists pdns-lab-auth-pg
+      # `container exists` is also true for a stopped container, so it would
+      # pass on a lab that is down and leave every test to fail on a refused
+      # connection instead. Filtering on status avoids `--format`, whose Go
+      # template braces Task would interpolate as its own before podman sees
+      # them — which is how the first attempt at this check failed open.
+      - sh: podman ps --quiet --filter name=pdns-lab-auth-pg --filter status=running | grep -q .
         msg: "lab is not running — run: task lab:up"
 
   # === Git hooks ===
@@ -83,7 +88,7 @@ tasks:
   hooks:verify:
     desc: Assert the commit-msg hook actually rejects AI attribution
     cmds:
-      - scripts/check-hooks.sh
+      - python3 -m scripts.checks.hooks
 
   # === Dev container ===
 
@@ -109,23 +114,44 @@ tasks:
     desc: Follow the dev container log
     cmds: ['{{.DC}} logs -f dev']
 
+  # === Worktrees ===
+
+  worktree:new:
+    desc: Create a worktree cut from origin/main — task worktree:new BRANCH=sprint/S1-x
+    requires:
+      vars: [BRANCH]
+    cmds: ['python3 -m scripts.automation.worktree new {{.BRANCH}}']
+
+  worktree:rm:
+    desc: Remove a worktree and delete its branch — task worktree:rm BRANCH=sprint/S1-x
+    requires:
+      vars: [BRANCH]
+    cmds: ['python3 -m scripts.automation.worktree rm {{.BRANCH}}']
+
+  worktree:ls:
+    desc: List worktrees
+    cmds: ['python3 -m scripts.automation.worktree ls']
+
   # === Lab (host-side) ===
 
+  # AUTH selects the authoritative branch — 5.1 (default) or 5.0. The other
+  # three services do not move: a difference between two acceptance runs has to
+  # be attributable to the branch and to nothing else.
   lab:up:
-    desc: Start the five-service lab and wait for every API
-    cmds: [python3 scripts/automation/lab.py up]
+    desc: Start the five-service lab and wait for every API — task lab:up AUTH=5.0
+    cmds: ['python3 scripts/automation/lab.py up --auth {{.AUTH | default "5.1"}}']
 
   lab:down:
     desc: Remove the lab, including volumes
-    cmds: [python3 scripts/automation/lab.py down]
+    cmds: ['python3 scripts/automation/lab.py down --auth {{.AUTH | default "5.1"}}']
 
   lab:status:
     desc: Report lab container state and reported versions
-    cmds: [python3 scripts/automation/lab.py status]
+    cmds: ['python3 scripts/automation/lab.py status --auth {{.AUTH | default "5.1"}}']
 
   lab:verify:
     desc: Assert the lab matches the pinned PowerDNS versions
-    cmds: [python3 scripts/automation/lab.py verify]
+    cmds: ['python3 scripts/automation/lab.py verify --auth {{.AUTH | default "5.1"}}']
 
   # === Build ===
 
@@ -201,11 +227,11 @@ tasks:
 
   lint:pins:
     desc: Every image digest and action SHA resolves, and none float
-    cmds: [scripts/check-pins.sh]
+    cmds: [python3 -m scripts.checks.pins]
 
   lint:tools:
     desc: CI installs the same tool versions the dev image is built with
-    cmds: [scripts/check-tool-versions.sh]
+    cmds: [python3 -m scripts.checks.tool_versions]
 
   lint:actions:
     desc: actionlint, shellcheck and zizmor over the workflows
@@ -222,11 +248,15 @@ tasks:
       - '{{.EXEC}} zizmor --format plain .github/workflows/'
 
   lint:shell:
-    desc: shellcheck and shfmt over the scripts
+    desc: shellcheck over the import snippets
     deps: [_dev-running]
+    # The repository's own automation is Python; `task py` is its gate. What is
+    # left in shell is the import snippets, which tfplugindocs renders into the
+    # registry pages and readers copy from there.
+    # -s bash, not a shebang: tfplugindocs renders these files verbatim into
+    # the registry pages, and a shebang would appear in the published example.
     cmds:
-      - '{{.EXEC}} shellcheck scripts/*.sh'
-      - '{{.EXEC}} shfmt -d -i 2 -ci scripts/'
+      - '{{.EXEC}} shellcheck -s bash examples/resources/*/import.sh'
 
   lint:containers:
     desc: hadolint over the Containerfiles
@@ -260,24 +290,35 @@ tasks:
     desc: ruff check and format check
     deps: [_dev-running]
     cmds:
-      - '{{.EXEC}} uv run --locked ruff check scripts/'
-      - '{{.EXEC}} uv run --locked ruff format --check scripts/'
+      - '{{.EXEC}} uv run --locked ruff check scripts/ test/scripts/'
+      - '{{.EXEC}} uv run --locked ruff format --check scripts/ test/scripts/'
 
   py:fmt:
     desc: ruff format and autofix
     deps: [_dev-running]
     cmds:
-      - '{{.EXEC}} uv run --locked ruff format scripts/'
-      - '{{.EXEC}} uv run --locked ruff check --fix scripts/'
+      - '{{.EXEC}} uv run --locked ruff format scripts/ test/scripts/'
+      - '{{.EXEC}} uv run --locked ruff check --fix scripts/ test/scripts/'
 
   py:typecheck:
     desc: ty type check (pre-1.0 — a ty-only failure is reviewed, not obeyed)
     deps: [_dev-running]
-    cmds: ['{{.EXEC}} uv run --locked ty check scripts/']
+    # --group e2e: scripts/automation/e2e.py imports boto3 and tenacity, which
+    # live in that group. Without it ty resolved them only when a previous
+    # `task e2e` had left them in the virtualenv, so whether the gate passed
+    # depended on what had been run before it.
+    cmds: ['{{.EXEC}} uv run --locked --group e2e ty check scripts/ test/scripts/']
+
+  py:test:
+    desc: pytest over the checks under scripts/checks/
+    deps: [_dev-running]
+    # The checks were shell scripts whose only test was running them, so a
+    # branch that never executed shipped several times. These are the branches.
+    cmds: ['{{.EXEC}} uv run --locked pytest']
 
   py:
     desc: The Python gate
-    cmds: [{task: 'py:lint'}, {task: 'py:typecheck'}]
+    cmds: [{task: 'py:lint'}, {task: 'py:typecheck'}, {task: 'py:test'}]
 
   # === Terraform ===
 
@@ -314,7 +355,7 @@ tasks:
       - '{{.EXEC}} markdownlint-cli2 "**/*.md" "#node_modules" "#bin" "#dist"'
       - '{{.EXEC}} uv run --locked yamllint -c .yamllint.yaml .'
       - '{{.EXEC}} cspell --no-progress --no-summary --config .cspell.json "**/*.md" "**/*.go"'
-      - scripts/check-badges.sh
+      - python3 -m scripts.checks.badges
 
   # === End-to-end ===
 
@@ -348,7 +389,7 @@ tasks:
     # the Registry accepts. Twenty seconds here answers that.
     cmds:
       - '{{.EXEC}} goreleaser release --snapshot --clean --skip=publish,sign'
-      - scripts/check-release-artifacts.sh dist
+      - python3 -m scripts.checks.release_artifacts dist
 
   release:check:
     desc: Everything about a release that can be checked before building
@@ -358,7 +399,7 @@ tasks:
     # wrong release is corrected by publishing another and leaving the wrong
     # one visible forever.
     cmds:
-      - scripts/check-release.sh {{.VERSION_ARG}}
+      - python3 -m scripts.checks.release {{.VERSION_ARG}}
       - '{{.EXEC}} goreleaser check'
       - task: 'docs:drift'
       - task: 'release:dryrun'

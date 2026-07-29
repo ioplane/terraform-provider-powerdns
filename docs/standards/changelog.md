@@ -65,12 +65,12 @@ fixed:
 describes what went out and nothing is added to it — a later entry claims the
 change shipped when it did not, and the release cut reads only `[Unreleased]`,
 so it would be dropped as well as being wrong. Twelve entries accumulated in
-`[0.1.1]` before anybody noticed; `scripts/check-release.sh` now fails on a
+`[0.1.1]` before anybody noticed; `scripts/checks/release.py` now fails on a
 released section that has gained a line since its tag. Removing a line still
 passes, because that is how this mistake is corrected.
 
 Step 5 parses the file mechanically, so the heading format is exact.
-`scripts/check-release.sh` verifies it before the tag — that the section
+`scripts/checks/release.py` verifies it before the tag — that the section
 exists, and that it is not empty — and the release workflow refuses to build
 without it.
 
