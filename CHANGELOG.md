@@ -18,6 +18,13 @@ The mapping between commit type, changelog section and version bump is in
   updated in the same commit, and which backend a bug was seen on, because
   gpgsql and LMDB differ.
 - A "Using it" section in the README, with the `required_providers` block.
+- Branch protection on `main`: nine required checks, branches current before
+  merge, linear history, no force-push or deletion. Administrators are not
+  included on purpose — a required check hanging on somebody else's outage
+  would otherwise leave a one-maintainer project unable to merge the fix.
+- Repository settings brought in line with the documented workflow: squash-only
+  merges, branches deleted after merge, secret scanning and push protection on,
+  topics and homepage set.
 
 ### Fixed
 

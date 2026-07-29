@@ -11,7 +11,7 @@
 
 ![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 79](https://shieldcn.dev/badge/tasks_done-79-3fb950.svg?variant=secondary)
+![tasks_done 80](https://shieldcn.dev/badge/tasks_done-80-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1082,7 +1082,7 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-06 | `release.yml` — pinned, tested, SBOMs, notes by version | OPS | `[x]` |
 | S8-07 | `check-tool-versions.sh` and `lint:actions` in the gate | OPS | `[x]` |
 | S8-08 | Acceptance moves to pull requests once its run history says it is stable | QA | `[ ]` |
-| S8-09 | Branch protection: require the gate before merge | PM | `[ ]` |
+| S8-09 | Branch protection: require the gate before merge | PM | `[x]` |
 | S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[x]` |
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
@@ -1133,6 +1133,16 @@ today would have failed after the tests, the GPG import and the syft download,
 having pushed the tag. It now fails in the first job, before anything is built,
 and names the file to edit.
 
+### The settings, which nobody had looked at either
+
+| Was | Is | Why |
+| --- | --- | --- |
+| merge commits and rebase allowed | squash only | the documented workflow is one squash-merged PR per sprint; the other two buttons contradicted it |
+| branches kept after merge | deleted | every sprint left a branch behind |
+| no topics, no homepage | ten topics, homepage set | the only discovery surface a repository has before it is in a registry |
+| secret scanning off | on, with push protection | it is free on a public repository, and this one handles DNSSEC keys and TSIG secrets |
+| description omitted the scale | names all 68 operations | "supports PowerDNS" is what every abandoned provider also says |
+
 ### What the repository looked like from outside
 
 Everything inside was gated; the repository itself had never been read as a
@@ -1159,7 +1169,18 @@ two skips it has locally, in 2m23s including pulling four images. That is the
 claim this phase existed to make good: the gate is no longer something a
 developer asserts having run.
 
-S8-08 and S8-09 are deliberately open. Acceptance is five services and a
+**S8-09 is done, now that the checks have a run history to point at.** Nine
+required contexts on `main`, branches must be current before merging, linear
+history, no force-push, no deletion, conversations resolved. Administrators are
+deliberately *not* included: a required check that hangs on somebody else's
+outage would otherwise leave a one-maintainer project with no way to merge a
+fix, and this repository has already met two such outages in a day. The
+protection is the default path, not a cage.
+
+Acceptance is not among the nine — that is S8-08, and it is still open for the
+reason below.
+
+S8-08 is deliberately open. Acceptance is five services and a
 ninety-minute ceiling, and it has never run on hardware nobody here controls;
 making every pull request wait on it before it has proven itself buys an
 unreliable gate rather than a slow one. Branch protection is worth setting only
