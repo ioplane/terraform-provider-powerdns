@@ -9,16 +9,18 @@
 # that agree are what turns "supports 5.0 and 5.1" from a sentence in the
 # documentation into something a reader can check.
 #
-# Not on pull requests, yet. Five services, a 90-minute ceiling and a first
-# run that has never happened on hardware nobody here controls: making every
-# pull request wait on it before it has proven itself would buy an unreliable
-# gate rather than a slow one. It runs on main, nightly, and on demand; it
-# moves to pull requests once a run history says it is stable (ADR 0009).
+# On pull requests since 2026-07-30. It was withheld from them until it had a
+# run history, on the reasoning that a gate nobody has watched succeed buys
+# unreliability rather than assurance (ADR 0009). Fifteen consecutive green runs
+# on main, the last of them as the two-branch matrix, and three to four minutes
+# each: the condition it set for itself is met, and the cost is a rounding error
+# next to CI.
 name: Acceptance
 
 on:
   push:
     branches: [main]
+  pull_request:
   schedule:
     - cron: '41 2 * * *'
   workflow_dispatch:
@@ -102,12 +104,12 @@ jobs:
             echo "podman socket unavailable — lab.py will use the CLI"
 
       - name: Start the lab
-        run: uv run --locked scripts/automation/lab.py up --auth "${{ matrix.auth }}"
+        run: uv run --locked python -m scripts.automation.lab up --auth "${{ matrix.auth }}"
 
       - name: The lab is the pinned PowerDNS versions
         # An acceptance pass against the wrong server proves nothing about the
         # server the claims were written from.
-        run: uv run --locked scripts/automation/lab.py verify --auth "${{ matrix.auth }}"
+        run: uv run --locked python -m scripts.automation.lab verify --auth "${{ matrix.auth }}"
 
       - name: Acceptance
         run: go test -tags acceptance ./internal/... -race -count=1 -timeout 60m -v
@@ -115,7 +117,7 @@ jobs:
       - name: Diagnostics
         if: failure()
         run: |
-          uv run --locked scripts/automation/lab.py status --auth "${{ matrix.auth }}" || true
+          uv run --locked python -m scripts.automation.lab status --auth "${{ matrix.auth }}" || true
           for c in pdns-lab-pg pdns-lab-auth-pg pdns-lab-auth-lmdb \
                    pdns-lab-rec pdns-lab-dnsdist; do
             echo "::group::$c"
@@ -125,4 +127,4 @@ jobs:
 
       - name: Tear down
         if: always()
-        run: uv run --locked scripts/automation/lab.py down --auth "${{ matrix.auth }}" || true
+        run: uv run --locked python -m scripts.automation.lab down --auth "${{ matrix.auth }}" || true

@@ -80,6 +80,8 @@ Four suppressions, each with a reason:
 | `ISC001` | Conflicts with the formatter. |
 | `S603`, `S607` in `scripts/automation/` and `scripts/checks/` | `subprocess` is the point of the automation. Every call site is a fixed argument list, with no shell and no interpolated input. |
 | `S101`, `ANN001`, `ANN201`, `INP001`, `PLR2004` in `test/` | Each inverts in a test: `assert` is how pytest reports, fixtures are typed at the call site, a test directory must not be importable as a package, and the comparison value *is* the assertion. |
+| `ARG002` in `test/e2e/` | A fixture requested only for its side effect — a zone that has to exist before the scenario runs — is unused by name and load-bearing in fact. |
+| `PLR0913` on `scripts/automation/run.py:run` | Every parameter is a `subprocess` option a caller needs; a `**kwargs` passthrough cannot be type-checked. |
 
 A suppression added without a reason in this table is a review finding.
 

@@ -41,7 +41,7 @@
     // Tooling and configuration file names.
     "Containerfile", "Taskfile", "taskfile", "commitlintrc", "pyproject",
     "pathlib", "isort", "pyupgrade", "govulncheck", "shieldcn", "venv",
-    "virtualenv", "worktrees",
+    "virtualenv", "worktrees", "kwargs",
     "worktree", "getkin", "gorillamux",
     "actionlint", "codeql", "dependabot", "SARIF", "scorecard", "syft",
     "shellcheck", "shfmt", "hadolint", "zizmor", "pipefail", "Containerfiles",

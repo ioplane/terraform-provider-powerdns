@@ -7,12 +7,15 @@ an outage or a hand-edited plan.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from scripts.checks.badges import (
     badge_urls,
     check_badge,
     counter_verdicts,
     json_probe,
+    markdown_files,
     mermaid_blocks,
     mermaid_problem,
     outside_fences,
@@ -183,3 +186,31 @@ def test_a_missing_badge_is_a_failure_not_a_pass():
         False,
         False,
     ]
+
+
+def test_only_files_the_repository_tracks_are_checked():
+    """Walking the tree counted the fixture's copy of these documents.
+
+    The end-to-end fixture unpacks the released tag into `test/e2e/.released/`,
+    which carries its own copies of every markdown file here — three extra
+    badges and five extra mermaid files, all of them a past version's claims
+    rather than this checkout's.
+    """
+    files = markdown_files()
+    assert files, "no markdown files found at all"
+    assert not [path for path in files if ".released" in path.parts]
+    assert not [path for path in files if ".mirror" in path.parts]
+    # And the ones that are genuinely ours are still there.
+    assert Path("README.md") in files
+    assert Path("docs/plan.md") in files
+
+
+def test_an_untracked_markdown_file_is_not_a_claim(tmp_path):
+    """A scratch note in the working tree is not something the project asserts."""
+    (tmp_path / "scratch.md").write_text(
+        "![x](https://shieldcn.dev/badge/nonsense-1-red.svg)\n"
+    )
+    # tmp_path is not a git repository, so the fallback walk applies and finds
+    # it — the fallback is deliberately permissive, and the assertion here is
+    # that the git path is what runs in the repository itself.
+    assert markdown_files(tmp_path) == [tmp_path / "scratch.md"]

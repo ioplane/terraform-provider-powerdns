@@ -14,7 +14,7 @@ The mapping between commit type, changelog section and version bump is in
 - `test/e2e` — the path a consumer's configuration travels, which the
   acceptance suite never touched: Terragrunt over an S3 backend on SeaweedFS, the
   module fetched over HTTP from a private Forgejo repository, against the
-  running lab. Forty-four scenarios across eight units on pytest, asking through the interfaces a consumer uses — boto3
+  running lab. Fifty-nine scenarios across ten units on pytest, asking through the interfaces a consumer uses — boto3
   for the bucket, dnspython for what DNS answers, psycopg for what the backend
   stored — rather than by parsing `dig` and `psql`. It also runs on OpenTofu,
   which Terragrunt selects by default and which nothing had exercised before.
@@ -116,8 +116,44 @@ The mapping between commit type, changelog section and version bump is in
   `shfmt` is gone, having nothing left to format; `shellcheck` stays, because
   actionlint hands it every `run:` block in a workflow.
 
+- End-to-end coverage of a provider upgrade against existing state. The fixture
+  mirrors two builds — 0.1.1 from the released tag and 0.1.2 from the working
+  tree — so the state read in the second phase was written by different code.
+  Nine scenarios: the released build applies, the lock file proves which build
+  ran, `init -upgrade` moves it, the plan is empty, nothing is scheduled for
+  replacement, every resource is still in state, and the metadata survived.
+  Building HEAD twice would have exercised the mechanism and answered nothing.
+- End-to-end coverage of adopting a record by identity. The provider declares
+  identity schemas for nine resources and the contract table has been checked
+  against them in both directions, but nothing had ever written one into an
+  `import` block — the form a consumer commits rather than types once. Six
+  scenarios, on a record and a zone created outside Terraform, asserting the
+  identity as the engine stored it.
+- `scripts/checks/protection.py` — every required status check must name a job
+  that exists. The names live in workflow YAML and the requirement lives in a
+  repository setting, so nothing coupled them; the audit compared them by hand,
+  which is how it drifts. It expands matrix job names, which is the fragile
+  case, and warns rather than fails where the protection rule is unreadable.
+- `task lint:protection`, and `task worktree:*` for the helper.
+- Acceptance runs on pull requests. It was withheld from them until it had a run
+  history, on the reasoning that a gate nobody has watched succeed buys
+  unreliability rather than assurance. Fifteen consecutive green runs on `main`,
+  the last as the two-branch matrix, three to four minutes each.
+- Every subprocess the fixture drivers issue carries a deadline and says what it
+  was doing if the deadline passes (`scripts/automation/run.py`). A stalled image
+  pull consumed a whole sixty-minute end-to-end job and left nothing behind: the
+  step was killed at the job ceiling, GitHub reported "cancelled" rather than a
+  failure, and no log for the step was ever written. The re-run took two minutes.
+- The lab and end-to-end drivers are invoked as `python3 -m scripts.automation.*`
+  rather than by file path.
+
 ### Fixed
 
+- Running `scripts/automation/lab.py` by path stopped working the moment it
+  imported from `scripts.` — the file's own directory goes on `sys.path`, not
+  the repository root, so the lab failed with `No module named 'scripts'`. Both
+  drivers are now invoked as modules. Caught locally by running them; the
+  acceptance and end-to-end workflows would have failed on the next push.
 - `task py:typecheck` resolved `boto3` and `tenacity` only when a previous
   `task e2e` had left them in the virtualenv, so whether the Python gate passed
   depended on what had been run before it. It now names `--group e2e`.
@@ -161,7 +197,7 @@ The mapping between commit type, changelog section and version bump is in
   has gained a line since its tag. Removals still pass, because that is how one
   of these is corrected.
 - `e2e.yml` — the end-to-end suite in CI: the lab, the S3 gateway, the forge,
-  both engines, eight units. On `main`, nightly and on demand, not on pull
+  both engines, ten units. On `main`, nightly and on demand, not on pull
   requests, for the reason `acceptance.yml` was not either.
 - The e2e driver runs its commands locally when no dev container is present,
   and derives every path from the checkout rather than writing `/app`. One

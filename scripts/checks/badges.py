@@ -11,6 +11,7 @@ Run as: python -m scripts.checks.badges
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 import time
 import urllib.error
@@ -209,8 +210,28 @@ def counter_verdicts(plan: str) -> list[tuple[bool, str]]:
 
 
 def markdown_files(root: Path = Path()) -> list[Path]:
-    """Every markdown file in the tree, excluding what is not ours."""
-    skip = {".git", "node_modules", ".venv", ".worktrees"}
+    """Every markdown file the repository tracks.
+
+    Asked of git rather than walked. Walking found 109 badges where the
+    repository has 106: the end-to-end fixture unpacks the released tag into
+    `test/e2e/.released/`, and that tree carries its own copies of these
+    documents. Anything ignored is by definition not this repository's claim,
+    and the ignore list is already maintained in one place.
+
+    Falls back to a walk when git cannot answer, so the check still runs in a
+    tarball or a container without the git directory — with an ignore list that
+    covers what is known to appear there.
+    """
+    listed = subprocess.run(
+        ["git", "-C", str(root or Path()), "ls-files", "-z", "*.md"],
+        capture_output=True,
+        check=False,
+    )
+    if listed.returncode == 0 and listed.stdout:
+        names = listed.stdout.decode("utf-8").split("\0")
+        return sorted(root / name for name in names if name)
+
+    skip = {".git", "node_modules", ".venv", ".worktrees", ".released", ".mirror"}
     return sorted(
         path
         for path in root.rglob("*.md")

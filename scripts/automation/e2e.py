@@ -24,11 +24,13 @@ from __future__ import annotations
 import argparse
 import base64
 import contextlib
+import io
 import json
 import os
+import shutil
 import ssl
-import subprocess
 import sys
+import tarfile
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -43,6 +45,8 @@ from tenacity import (
     stop_after_delay,
     wait_fixed,
 )
+
+from scripts.automation.run import COMMAND, LOCAL, PULL, run
 
 try:
     from podman import PodmanClient
@@ -80,12 +84,24 @@ PTR_NAME = "10.100.51.198.in-addr.arpa."
 HTTP_OK = 200
 
 PROVIDER_VERSION = "0.1.1"
+# The version the mirror publishes for the code under development, so an
+# upgrade from PROVIDER_VERSION to it is an upgrade between two different
+# builds rather than the same binary twice. Ahead of VERSION on purpose: this
+# is not a release, it is "whatever is being worked on", and the upgrade
+# scenario needs a number Terraform will resolve as newer.
+NEXT_VERSION = "0.1.2"
+# The released tag PROVIDER_VERSION is built from. State written by that build
+# is what the upgrade scenario asks the current one to read — a question the
+# suite cannot answer by building HEAD twice.
+RELEASED_TAG = "v0.1.1"
 BINARY_PREFIX = "terraform-provider-powerdns_v"
 # Derived from the checkout rather than written as a container path. Inside
 # the dev container the repository is /app, so this is the same string it
 # always was; on a runner it is wherever the checkout landed. One definition,
 # correct in both places.
 MIRROR = str(E2E_DIR / ".mirror")
+# Where the released tag's tree is unpacked so the container can build it.
+RELEASED_DIR = E2E_DIR / ".released"
 
 # A home of its own for local execution.
 #
@@ -126,7 +142,7 @@ class Runner:
         # Running, not merely existing. `podman container exists` is true for a
         # stopped container, and the driver then tried to exec into one and got
         # 255 with the command echoed back at it.
-        probe = subprocess.run(
+        probe = run(
             [
                 "podman",
                 "container",
@@ -135,6 +151,8 @@ class Runner:
                 "{{.State.Running}}",
                 self.container,
             ],
+            what=f"asking whether {self.container} is running",
+            timeout=LOCAL,
             check=False,
             capture_output=True,
             text=True,
@@ -178,14 +196,21 @@ class Runner:
                 "-c",
                 command,
             ]
-            completed = subprocess.run(
-                argv, capture_output=True, text=True, check=False
+            completed = run(
+                argv,
+                what=f"in {self.container}: {command[:60]}",
+                timeout=COMMAND,
+                capture_output=True,
+                text=True,
+                check=False,
             )
         else:
             FIXTURE_HOME.mkdir(parents=True, exist_ok=True)
-            completed = subprocess.run(
+            completed = run(
                 ["bash", "-c", command],
-                cwd=workdir if Path(workdir).is_dir() else str(REPO_ROOT),
+                what=command[:60],
+                timeout=COMMAND,
+                cwd=Path(workdir) if Path(workdir).is_dir() else REPO_ROOT,
                 env={
                     **os.environ,
                     **environment,
@@ -209,9 +234,10 @@ class Runner:
 
 def compose(*args: str) -> None:
     """Run podman-compose against the end-to-end compose file."""
-    subprocess.run(
+    run(
         ["podman-compose", "-f", str(COMPOSE_FILE), *args],
-        check=True,
+        what=f"podman-compose {' '.join(args)}",
+        timeout=PULL,
         cwd=REPO_ROOT,
     )
 
@@ -343,7 +369,7 @@ def make_tls_certificate() -> None:
     if (tls / TLS_CERT_NAME).is_file() and (tls / TLS_KEY_NAME).is_file():
         return
 
-    subprocess.run(
+    run(
         [
             "openssl",
             "req",
@@ -362,7 +388,8 @@ def make_tls_certificate() -> None:
             "-out",
             str(tls / TLS_CERT_NAME),
         ],
-        check=True,
+        what="generating the fixture's TLS certificate",
+        timeout=LOCAL,
         capture_output=True,
     )
     (tls / TLS_KEY_NAME).chmod(0o644)
@@ -398,7 +425,7 @@ def make_bucket() -> None:
 
 def forgejo_admin() -> None:
     """Create the administrator, if the fixture does not already have one."""
-    subprocess.run(
+    run(
         [
             "podman",
             "exec",
@@ -416,6 +443,8 @@ def forgejo_admin() -> None:
             "e2e@example.com",
             "--must-change-password=false",
         ],
+        what="creating the Forgejo administrator",
+        timeout=LOCAL,
         check=False,
         capture_output=True,
     )
@@ -518,6 +547,80 @@ def seed_module_repo(runner: Runner, token: str) -> None:
     runner.exec(script, check=True)
 
 
+def tag_present() -> bool:
+    """Whether RELEASED_TAG resolves to a tree in this checkout."""
+    return (
+        run(
+            [
+                "git",
+                "-C",
+                str(REPO_ROOT),
+                "rev-parse",
+                "--verify",
+                f"{RELEASED_TAG}^{{tree}}",
+            ],
+            what=f"looking for {RELEASED_TAG}",
+            timeout=LOCAL,
+            check=False,
+            capture_output=True,
+        ).returncode
+        == 0
+    )
+
+
+def unpack_released() -> None:
+    """Unpack the released tag's tree into RELEASED_DIR, on the host.
+
+    Removed and rewritten every time: a stale tree would silently make the
+    upgrade scenario compare HEAD against HEAD, which is the one thing it must
+    not do.
+    """
+    if RELEASED_DIR.exists():
+        shutil.rmtree(RELEASED_DIR)
+    RELEASED_DIR.mkdir(parents=True)
+
+    # A hosted checkout is shallow and carries no tags — `actions/checkout`
+    # fetches one commit by default — so the tag has to be fetched before it can
+    # be read. Verified rather than assumed: a `--depth=1 --no-tags` clone
+    # answers "Needed a single revision" for this, and one targeted fetch fixes
+    # it without pulling the history.
+    if not tag_present():
+        run(
+            [
+                "git",
+                "-C",
+                str(REPO_ROOT),
+                "fetch",
+                "--depth=1",
+                "origin",
+                "tag",
+                RELEASED_TAG,
+            ],
+            what=f"fetching {RELEASED_TAG}",
+            timeout=LOCAL,
+            capture_output=True,
+        )
+    if not tag_present():
+        message = (
+            f"{RELEASED_TAG} does not resolve in this checkout and could not be "
+            "fetched. The upgrade scenario needs it to build the version being "
+            "upgraded from."
+        )
+        raise RuntimeError(message)
+
+    archive = run(
+        ["git", "-C", str(REPO_ROOT), "archive", RELEASED_TAG],
+        what=f"reading the tree at {RELEASED_TAG}",
+        timeout=LOCAL,
+        capture_output=True,
+    )
+    with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
+        # filter="data" refuses absolute paths, traversal and device nodes. The
+        # archive is this repository's own tag, but a tar extractor that trusts
+        # its input is a habit rather than a decision.
+        tar.extractall(RELEASED_DIR, filter="data")
+
+
 def build_provider_mirror(runner: Runner) -> None:
     """Build the provider into a filesystem mirror laid out like the registry.
 
@@ -549,11 +652,26 @@ def build_provider_mirror(runner: Runner) -> None:
     )
     plat = platform.strip().splitlines()[-1].strip()
 
-    dest = f"{MIRROR}/registry.terraform.io/ioplane/powerdns/{PROVIDER_VERSION}/{plat}"
+    def slot(version: str) -> str:
+        return f"{MIRROR}/registry.terraform.io/ioplane/powerdns/{version}/{plat}"
+
+    released, current = slot(PROVIDER_VERSION), slot(NEXT_VERSION)
+
+    # The released tag's tree, unpacked on the host. `git archive` cannot run in
+    # the container: /app is a bind mount of a worktree whose `.git` is a file
+    # pointing at the main checkout's git directory, which is not mounted, so
+    # every git command in there fails with "not a git repository".
+    unpack_released()
+
+    # Two builds, from two revisions. Building HEAD twice would exercise the
+    # upgrade mechanism and answer nothing about compatibility; the question is
+    # whether the code under development reads state the released build wrote.
     script = (
         "set -eu; "
-        f"rm -rf {MIRROR} && mkdir -p {dest} && "
-        f"cd {REPO_ROOT} && go build -o {dest}/{BINARY_PREFIX}{PROVIDER_VERSION} . && "
+        f"rm -rf {MIRROR} && mkdir -p {released} {current} && "
+        f"cd {REPO_ROOT} && go build -o {current}/{BINARY_PREFIX}{NEXT_VERSION} . && "
+        f"cd {RELEASED_DIR} && "
+        f"go build -o {released}/{BINARY_PREFIX}{PROVIDER_VERSION} . && "
         f"cat > {MIRROR}/terraform.rc <<'RC'\n"
         "provider_installation {\n"
         f'  filesystem_mirror {{\n    path    = "{MIRROR}"\n'
@@ -613,7 +731,10 @@ def cmd_up() -> int:
     print(f"ok    token written to {token_file.name}")
 
     build_provider_mirror(runner)
-    print(f"ok    provider {PROVIDER_VERSION} in a filesystem mirror")
+    print(
+        f"ok    provider {PROVIDER_VERSION} (from {RELEASED_TAG}) and "
+        f"{NEXT_VERSION} (from HEAD) in a filesystem mirror"
+    )
     return 0
 
 
@@ -626,6 +747,8 @@ MANAGED_ZONES = (
     ("gpgsql", "imperative.e2e.example."),
     ("gpgsql", "viewed-gpgsql.e2e.example."),
     ("gpgsql", "imported.e2e.example."),
+    ("gpgsql", "upgraded.e2e.example."),
+    ("gpgsql", "adopted.e2e.example."),
     ("lmdb", "viewed.e2e.example."),
     ("recursor", "internal.e2e.example."),
 )

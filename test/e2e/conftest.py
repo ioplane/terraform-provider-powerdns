@@ -248,6 +248,18 @@ def terragrunt_engines() -> Terragrunt:
 
 
 @pytest.fixture(scope="session")
+def terragrunt_identity() -> Terragrunt:
+    """The unit that adopts a record by identity — pinned to Terraform."""
+    return Terragrunt(workdir=f"{LIVE_DIR}-identity")
+
+
+@pytest.fixture(scope="session")
+def terragrunt_upgrade() -> Terragrunt:
+    """The unit whose provider version is generated, so it can be changed."""
+    return Terragrunt(workdir=f"{LIVE_DIR}-upgrade")
+
+
+@pytest.fixture(scope="session")
 def terragrunt_views_gpgsql() -> Terragrunt:
     """The views unit pointed at gpgsql, to see what the provider says."""
     return Terragrunt(workdir=f"{LIVE_DIR}-views-gpgsql")
