@@ -11,7 +11,7 @@
 
 ![phase 9_of_10](https://shieldcn.dev/badge/phase-9_of_10-0969da.svg?variant=secondary)
 ![phases_closed 8](https://shieldcn.dev/badge/phases_closed-8-3fb950.svg?variant=secondary)
-![tasks_done 92](https://shieldcn.dev/badge/tasks_done-92-3fb950.svg?variant=secondary)
+![tasks_done 95](https://shieldcn.dev/badge/tasks_done-95-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1170,13 +1170,14 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-05 | `scorecard.yml`, `dependency-review.yml`, `dependabot.yml` | OPS | `[x]` |
 | S8-06 | `release.yml` — pinned, tested, SBOMs, notes by version | OPS | `[x]` |
 | S8-07 | `check-tool-versions.sh` and `lint:actions` in the gate | OPS | `[x]` |
-| S8-08 | Acceptance moves to pull requests once its run history says it is stable | QA | `[ ]` |
+| S8-08 | Acceptance moves to pull requests once its run history says it is stable | QA | `[x]` 15 consecutive green runs on `main` |
 | S8-09 | Branch protection: require the gate before merge | PM | `[x]` |
 | S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[x]` |
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[x]` the Python move replaced them with six agent-safety findings, all fixed |
 | S8-14 | **Added.** Repository hygiene: CODEOWNERS, templates, code of conduct, settings, branch protection | OPS | `[x]` |
 | S8-15 | **Added.** The gate's checks move from shell to Python, with tests | OPS | `[x]` |
+| S8-16 | **Added.** Required status checks are compared against the jobs that exist | OPS | `[x]` |
 
 ---
 
@@ -1510,6 +1511,7 @@ simply down now fails the test instead of passing it.
 | S9-04 | The suite on pytest, with boto3, dnspython and psycopg | QA | `[x]` |
 | S9-05 | The e2e suite in CI | OPS | `[x]` |
 | S9-06 | DNSSEC and the second backend in the e2e path | QA | `[x]` |
+| S9-08 | **Added.** Provider upgrade against existing state, and adoption by identity | QA | `[x]` |
 | S9-07 | **Added.** Secrets, drift, both engines, both other products, actions and ephemeral | QA | `[x]` |
 | S8-13 | A release gate: nothing is built until the release is checkable | OPS | `[x]` |
 
@@ -1673,6 +1675,61 @@ aimed at code an agent invokes, which is exactly what this repository is, and
 `task worktree:new BRANCH=../../elsewhere` really does put a worktree outside
 `.worktrees`. `scripts/checks/paths.py` now bounds all six, and the branch-name
 rule is the one the naming standard already stated, enforced for the first time.
+
+### An hour of nothing, and the deadline that replaces it
+
+The end-to-end job on `main` was killed at its sixty-minute ceiling with the
+lab still starting. GitHub records a timeout as "cancelled", the step's log was
+never written, and the re-run finished in two minutes — so the diagnosis, a
+stalled image pull, was an inference rather than a reading. Nothing in the
+driver bounded anything: `wait_for_apis` had a 120-second deadline, and the
+`podman-compose up` in front of it had none at all.
+
+`scripts/automation/run.py` now carries every subprocess the drivers issue, with
+a deadline and a sentence about what it was doing. Ten minutes for anything that
+pulls, one for anything local, and ten for a terragrunt command — under pytest's
+own 900-second ceiling on purpose, because when both would fire the failure that
+names the command is the useful one.
+
+**And the packaging trap underneath it.** `lab.py` was invoked by path, so
+`sys.path[0]` was `scripts/automation/` and the new `from scripts.automation.run
+import …` failed with `No module named 'scripts'`. Both drivers are modules now.
+It was caught by running them; the acceptance and end-to-end workflows would
+have found it on the next push, which is later and more expensively.
+
+### The two things the end-to-end suite had never asked
+
+**Whether a new version reads an old version's state.** Every scenario until now
+applied one build to state that same build had written. The fixture now mirrors
+two: 0.1.1 built from the released tag, 0.1.2 built from the working tree, with
+`git archive` unpacking the tag on the host — the container cannot run git,
+because `/app` is a worktree whose `.git` points at a directory that is not
+mounted. Nine scenarios follow a consumer's bump: apply, check the *lock file*
+to prove which build ran, `init -upgrade`, then an empty plan, no replacement,
+every resource still in state.
+
+Building HEAD twice would have been far less work and would have proved only
+that Terraform can change a version number.
+
+**Whether anyone can use an identity.** Nine resources declare identity schemas,
+and the contract table has been compared against those declarations in both
+directions — which establishes that the code and the document agree, and nothing
+about whether the schema is usable. Six scenarios adopt a record through an
+`import { identity = … }` block, against a record and zone created outside
+Terraform, and read the identity back out of state. The unit is pinned to
+Terraform: OpenTofu has neither the block nor the plumbing.
+
+### Required checks now have to name a job that exists
+
+The audit compared branch protection's contexts against the workflows' job names
+by hand and found them consistent. `scripts/checks/protection.py` does it every
+run, expanding matrix names — the fragile case, and the one that just became
+real: `Lab acceptance (auth ${{ matrix.auth }} · …)` is two contexts whose names
+change when the axis does. It warns rather than fails where the protection rule
+is unreadable, so the gate does not depend on who is running it.
+
+Writing it found the first regex counting nine spaces where the schema puts
+eight, which returned the job name with the interpolation still in it.
 
 ## Audit, 2026-07-29 — before phase 7
 

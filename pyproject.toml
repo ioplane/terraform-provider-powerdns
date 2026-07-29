@@ -163,6 +163,9 @@ ignore = [
     # assert is how pytest reports. Rewriting these as raise would remove the
     # introspection that makes a failure readable.
     "S101",
+    # A fixture requested only for its side effect — a zone that has to exist
+    # before the scenario runs — is unused by name and load-bearing in fact.
+    "ARG002",
     # Fixtures are typed by pytest at the call site; annotating every fixture
     # parameter restates what the fixture already declares.
     "ANN001",

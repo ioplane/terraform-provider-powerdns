@@ -25,13 +25,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+
+from scripts.automation.run import LOCAL, PULL, run
 
 try:
     from podman import PodmanClient
@@ -113,9 +114,10 @@ def compose(overlay: Path | None, *args: str) -> None:
     files = ["-f", str(COMPOSE_FILE)]
     if overlay is not None:
         files += ["-f", str(overlay)]
-    subprocess.run(
+    run(
         ["podman-compose", *files, *args],
-        check=True,
+        what=f"podman-compose {' '.join(args)}",
+        timeout=PULL,
         cwd=REPO_ROOT,
     )
 
@@ -191,7 +193,7 @@ def container_states() -> dict[str, str]:
             file=sys.stderr,
         )
 
-    result = subprocess.run(
+    result = run(
         [
             "podman",
             "ps",
@@ -201,9 +203,10 @@ def container_states() -> dict[str, str]:
             "--format",
             "{{.Names}}\t{{.State}}",
         ],
+        what="listing the lab containers",
+        timeout=LOCAL,
         capture_output=True,
         text=True,
-        check=True,
     )
     states: dict[str, str] = {}
     for line in result.stdout.splitlines():

@@ -96,10 +96,10 @@ jobs:
             echo "podman socket unavailable — the driver will use the CLI"
 
       - name: Start the lab
-        run: uv run --locked --group e2e python scripts/automation/lab.py up
+        run: uv run --locked --group e2e python -m scripts.automation.lab up
 
       - name: The lab is the pinned PowerDNS versions
-        run: uv run --locked --group e2e python scripts/automation/lab.py verify
+        run: uv run --locked --group e2e python -m scripts.automation.lab verify
 
       # `--locked` on every one of these: uv.lock resolves the Python
       # dependencies, and a run that quietly resolves something else is a run
@@ -109,7 +109,7 @@ jobs:
       # No dev container here. The driver runs its commands locally when there
       # is none, which is why it exists in one piece rather than two.
       - name: Start the end-to-end fixture
-        run: uv run --locked --group e2e python scripts/automation/e2e.py up
+        run: uv run --locked --group e2e python -m scripts.automation.e2e up
 
       - name: End-to-end
         run: uv run --locked --group e2e pytest test/e2e -v --timeout=900
@@ -117,8 +117,8 @@ jobs:
       - name: Diagnostics
         if: failure()
         run: |
-          uv run --locked --group e2e python scripts/automation/e2e.py status || true
-          uv run --locked --group e2e python scripts/automation/lab.py status || true
+          uv run --locked --group e2e python -m scripts.automation.e2e status || true
+          uv run --locked --group e2e python -m scripts.automation.lab status || true
           for c in pdns-e2e-s3 pdns-e2e-forgejo pdns-lab-auth-pg pdns-lab-auth-lmdb \
                    pdns-lab-rec pdns-lab-dnsdist pdns-lab-pg; do
             echo "::group::$c"
@@ -129,5 +129,5 @@ jobs:
       - name: Tear down
         if: always()
         run: |
-          uv run --locked --group e2e python scripts/automation/e2e.py down || true
-          uv run --locked --group e2e python scripts/automation/lab.py down || true
+          uv run --locked --group e2e python -m scripts.automation.e2e down || true
+          uv run --locked --group e2e python -m scripts.automation.lab down || true

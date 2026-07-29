@@ -112,7 +112,8 @@ downstream servers are Lua or YAML and are not reachable over HTTP. See
 | dnsdist | 2.1.0 |
 
 The authoritative branch is a matrix, not a single pin: the same 203
-assertions run on 5.1.3 and on 5.0.6, and both must pass. Nothing else in the
+assertions run on 5.1.3 and on 5.0.6, on every pull request, and both must
+pass. Nothing else in the
 fixture moves between the two runs, so a difference is attributable to the
 branch. The API facts in this repository are cited against `auth-5.1.3` —
 that is the tag they were read from, and it is a different claim from the

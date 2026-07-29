@@ -139,19 +139,19 @@ tasks:
   # be attributable to the branch and to nothing else.
   lab:up:
     desc: Start the five-service lab and wait for every API — task lab:up AUTH=5.0
-    cmds: ['python3 scripts/automation/lab.py up --auth {{.AUTH | default "5.1"}}']
+    cmds: ['python3 -m scripts.automation.lab up --auth {{.AUTH | default "5.1"}}']
 
   lab:down:
     desc: Remove the lab, including volumes
-    cmds: ['python3 scripts/automation/lab.py down --auth {{.AUTH | default "5.1"}}']
+    cmds: ['python3 -m scripts.automation.lab down --auth {{.AUTH | default "5.1"}}']
 
   lab:status:
     desc: Report lab container state and reported versions
-    cmds: ['python3 scripts/automation/lab.py status --auth {{.AUTH | default "5.1"}}']
+    cmds: ['python3 -m scripts.automation.lab status --auth {{.AUTH | default "5.1"}}']
 
   lab:verify:
     desc: Assert the lab matches the pinned PowerDNS versions
-    cmds: ['python3 scripts/automation/lab.py verify --auth {{.AUTH | default "5.1"}}']
+    cmds: ['python3 -m scripts.automation.lab verify --auth {{.AUTH | default "5.1"}}']
 
   # === Build ===
 
@@ -228,6 +228,13 @@ tasks:
   lint:pins:
     desc: Every image digest and action SHA resolves, and none float
     cmds: [python3 -m scripts.checks.pins]
+
+  lint:protection:
+    desc: Required status checks name jobs that exist
+    # Host-side: it asks GitHub for the protection rule. Without the
+    # administration scope it warns and passes, so the gate does not depend on
+    # who is running it.
+    cmds: ['python3 -m scripts.checks.protection']
 
   lint:tools:
     desc: CI installs the same tool versions the dev image is built with
@@ -363,15 +370,15 @@ tasks:
     desc: Bring up the end-to-end fixture — MinIO, git, the bucket, the module
     # Host-side, like the lab: it drives podman rather than running inside it.
     deps: [_lab-running]
-    cmds: ['uv run --group e2e python scripts/automation/e2e.py up']
+    cmds: ['uv run --group e2e python -m scripts.automation.e2e up']
 
   e2e:down:
     desc: Remove the end-to-end fixture, including its volumes
-    cmds: ['uv run --group e2e python scripts/automation/e2e.py down']
+    cmds: ['uv run --group e2e python -m scripts.automation.e2e down']
 
   e2e:status:
     desc: Report what the end-to-end fixture is running
-    cmds: ['uv run --group e2e python scripts/automation/e2e.py status']
+    cmds: ['uv run --group e2e python -m scripts.automation.e2e status']
 
   e2e:
     desc: The end-to-end suite — terragrunt, S3 state, git module, real DNS
@@ -443,6 +450,7 @@ tasks:
       - {task: lint}
       - {task: 'lint:pins'}
       - {task: 'lint:tools'}
+      - {task: 'lint:protection'}
       - {task: 'lint:actions'}
       - {task: 'lint:shell'}
       - {task: 'lint:containers'}
