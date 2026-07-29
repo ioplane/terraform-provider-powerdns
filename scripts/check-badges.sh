@@ -36,8 +36,14 @@ else
     # displays "not found". Ask the .json for the resolved value.
     case "$url" in
       *shieldcn.dev/github/*)
-        json_url="${url%%\?*}"
-        json_url="${json_url%.svg}.json"
+        # Keep the query string. `github/ci` needs ?workflow=… to name which
+        # workflow it reports, and dropping it asks a different question than
+        # the badge does — one that answers "not found" for a repository whose
+        # badge renders correctly.
+        base="${url%%\?*}"
+        query=""
+        [ "$url" != "$base" ] && query="?${url#*\?}"
+        json_url="${base%.svg}.json${query}"
         if curl -s --max-time 15 "$json_url" | grep -q '"error"'; then
           printf 'FAIL  %s  (endpoint resolves to an error)\n' "${url#https://shieldcn.dev}" >&2
           badges_bad+=1
