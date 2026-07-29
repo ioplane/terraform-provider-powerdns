@@ -62,4 +62,10 @@ fixed:
    feeds it to goreleaser as the release notes.
 
 Step 5 parses the file mechanically, so the heading format is exact.
-`scripts/check-changelog.sh` verifies it before the tag.
+`scripts/check-release.sh` verifies it before the tag — that the section
+exists, and that it is not empty — and the release workflow refuses to build
+without it.
+
+This paragraph named `scripts/check-changelog.sh` until the release gate was
+written. That script never existed. It is the same failure as the pipeline
+nobody ran: a documented check reads as a check, and enforces nothing.

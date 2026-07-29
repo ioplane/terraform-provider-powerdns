@@ -9,6 +9,8 @@ The mapping between commit type, changelog section and version bump is in
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-07-29
+
 ### Added
 
 - Repository foundation: `AGENTS.md` with `CLAUDE.md` and `CODEX.md` as
@@ -414,4 +416,5 @@ from the published trivy image, pinned by digest, which resolves from anywhere.
   sibling key, and `autoprimaries_url` is sent by every `Server` object while
   the schema omits it under `additionalProperties: false`.
 
-[Unreleased]: https://github.com/ioplane/terraform-provider-powerdns/commits/main
+[Unreleased]: https://github.com/ioplane/terraform-provider-powerdns/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/ioplane/terraform-provider-powerdns/releases/tag/v0.1.0

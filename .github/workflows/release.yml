@@ -205,6 +205,10 @@ jobs:
               if (capture) exit
               if ($0 ~ "^## \\[" ver "\\]") { capture = 1; next }
             }
+            # The link-reference block at the foot of the file. Without this
+            # the oldest section runs to end-of-file and the release notes end
+            # with a list of markdown link definitions.
+            /^\[[^]]+\]:[[:space:]]*http/ { if (capture) exit }
             capture { print }
           ' CHANGELOG.md > dist/release-notes.md
           if [ ! -s dist/release-notes.md ]; then
