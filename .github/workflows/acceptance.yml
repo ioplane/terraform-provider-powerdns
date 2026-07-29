@@ -83,7 +83,12 @@ jobs:
         # socket is an optimisation rather than a requirement.
         run: |
           uv tool install "podman-compose==1.6.0"
-          uv pip install --system "podman==5.8.0" # pin: PODMAN_PY_VERSION
+          # --break-system-packages because the runner's interpreter is
+          # Debian-managed and refuses otherwise (PEP 668). lab.py is run as
+          # `python3 scripts/automation/lab.py`, so podman-py has to be
+          # importable by that interpreter rather than by a tool environment.
+          # The dev image installs it the same way, for the same reason.
+          uv pip install --system --break-system-packages "podman==5.8.0" # pin: PODMAN_PY_VERSION
           systemctl --user enable --now podman.socket || \
             echo "podman socket unavailable — lab.py will use the CLI"
 
