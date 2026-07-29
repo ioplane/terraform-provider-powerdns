@@ -1243,6 +1243,22 @@ predictable name under a shared `/tmp`. The `NOSONAR` markers added first are
 gone — a suppression that survives is a finding nobody fixed, and this
 repository has a standard about checks that only look like checks.
 
+### The changelog had been rewriting history
+
+Twelve entries had been written into `[0.1.1]` after that version shipped, and
+two into `[0.1.0]`. Each was true about the work and false about the release:
+the section says what went out under that tag, and these had not.
+
+It would also have lost them. The release cut reads `[Unreleased]` and nothing
+else, so entries parked in a closed section are dropped from the next set of
+notes as well as being wrong in this one.
+
+`check-release.sh` compares each released section against its tag and fails on
+a line that has appeared since. Removals pass — that is how the mistake is
+corrected, and the check had to permit the correction it was written to
+prompt. It found the two lines in `[0.1.0]` immediately, which I had put there
+myself when recording that `v0.1.0` was released.
+
 ### Four defects a reviewer found that the suite could not
 
 The suite was green throughout, and none of these would have made it red —

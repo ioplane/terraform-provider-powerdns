@@ -54,35 +54,6 @@ The mapping between commit type, changelog section and version bump is in
   with, and separates "no such digest" from "the request did not get through".
 
 
-## [0.1.1] — 2026-07-29
-
-### Fixed
-
-- The Terraform Registry refused `v0.1.0` with "missing files in request body",
-  naming all thirteen SBOMs. It parses `SHA256SUMS` as the list of files
-  belonging to the version, and goreleaser had folded the SBOMs into it — so
-  every line the Registry could not resolve to a file it accepts failed the
-  whole submission. `checksum.ids` now restricts the file to the archives; the
-  SBOMs are still published beside them.
-
-  Nothing caught it because nothing asked the right question. Every check
-  established that the artefacts were correct — signed, digested, complete —
-  and none established that they were the ones the Registry ingests.
-  `scripts/check-release-artifacts.sh` asks that now, of a snapshot build,
-  before a tag exists: `SHA256SUMS` may list archives and the manifest and
-  nothing else, every archive must match its digest, and the manifest must be
-  the repository's own and declare a protocol.
-
-### Added
-
-- `syft` in the dev image, and `task release:dryrun`. The release could not be
-  rehearsed locally — the image had no syft, so `goreleaser release --snapshot`
-  failed on a machine where the failure was cheap and succeeded in CI where it
-  was not.
-
-
-### Added
-
 - `CODEOWNERS`, a pull-request template, issue templates and a code of conduct
   — the four files GitHub looks for, and the ones that tell somebody arriving
   how this project works before they have read a standard. They carry the rules
@@ -100,6 +71,13 @@ The mapping between commit type, changelog section and version bump is in
 
 ### Fixed
 
+- Twelve entries had been written into `[0.1.1]` after that version shipped,
+  and two into `[0.1.0]`. A released section describes what went out; adding to
+  it claims a change shipped when it did not, and the next release cut — which
+  reads only `[Unreleased]` — would have dropped them. They are under
+  `[Unreleased]` now, and `check-release.sh` fails on a released section that
+  has gained a line since its tag. Removals still pass, because that is how one
+  of these is corrected.
 - The e2e provider mirror is built for the container's own architecture rather
   than for `linux_amd64`. On an arm64 host the engine looked in a directory the
   binary was not in and reported the provider as unavailable.
@@ -127,10 +105,34 @@ The mapping between commit type, changelog section and version bump is in
   Registry", under a heading called *Planned* surface, on a repository with a
   signed `v0.1.0` and every API operation covered.
 
-## [0.1.0] — 2026-07-29
+## [0.1.1] — 2026-07-29
 
-First release. 29 artefacts across 13 platforms, `SHA256SUMS` signed with an
-RSA-4096 key, an SBOM beside every archive, protocol 6.
+### Fixed
+
+- The Terraform Registry refused `v0.1.0` with "missing files in request body",
+  naming all thirteen SBOMs. It parses `SHA256SUMS` as the list of files
+  belonging to the version, and goreleaser had folded the SBOMs into it — so
+  every line the Registry could not resolve to a file it accepts failed the
+  whole submission. `checksum.ids` now restricts the file to the archives; the
+  SBOMs are still published beside them.
+
+  Nothing caught it because nothing asked the right question. Every check
+  established that the artefacts were correct — signed, digested, complete —
+  and none established that they were the ones the Registry ingests.
+  `scripts/check-release-artifacts.sh` asks that now, of a snapshot build,
+  before a tag exists: `SHA256SUMS` may list archives and the manifest and
+  nothing else, every archive must match its digest, and the manifest must be
+  the repository's own and declare a protocol.
+
+### Added
+
+- `syft` in the dev image, and `task release:dryrun`. The release could not be
+  rehearsed locally — the image had no syft, so `goreleaser release --snapshot`
+  failed on a machine where the failure was cheap and succeeded in CI where it
+  was not.
+
+
+## [0.1.0] — 2026-07-29
 
 
 ### Added
