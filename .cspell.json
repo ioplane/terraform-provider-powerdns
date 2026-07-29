@@ -47,6 +47,7 @@
     "NXDOMAIN", "dnspython", "pytest", "boto", "psycopg", "tenacity", "terragrunt",
     "MinIO", "minio", "rcode", "tflock", "REFUSED",
     "Forgejo", "forgejo", "gitea", "codeberg", "rootless",
+    "mktemp", "NOSONAR", "autoprimary", "ephemerally",
 
     // This repository's own test identifiers and container names.
     "testutil", "testacc", "testkey", "labapikey", "capprobe", "fixtureview",

@@ -307,35 +307,34 @@ def make_module_repo(token: str) -> None:
 def seed_module_repo(runner: Runner, token: str) -> None:
     """Publish the module to the Forgejo repository, from the dev container.
 
-    Pushed over HTTP with a token rather than bind-mounted: Terragrunt must
-    fetch it from a remote that asks who is calling, which is the shape every
-    real module source has and the one an anonymous daemon could not test.
+    Pushed to a remote that asks who is calling, rather than bind-mounted:
+    that is the shape every real module source has, and the one an anonymous
+    daemon could not test.
+
+    The credential goes into git's credential store rather than into the URL.
+    Terragrunt logs a module source verbatim, so a token embedded in the URL
+    is a token in every log line that mentions the module — and in the process
+    list of every git it spawns.
     """
-    # Plain HTTP to loopback, deliberately. The remote is a fixture on
-    # 127.0.0.1 that lives for the length of a test run; terminating TLS on it
-    # would mean generating a certificate and teaching every client to trust
-    # it, to protect a token from an attacker who would already be inside the
-    # container. The token is a fixture credential and is regenerated on every
-    # `task e2e:up`.
-    push_url = (  # NOSONAR - loopback fixture, see above
-        f"http://{FORGEJO_USER}:{token}@127.0.0.1:19300/"
-        f"{FORGEJO_USER}/{FORGEJO_REPO}.git"
-    )
+    credentials = f"http://{FORGEJO_USER}:{token}@127.0.0.1:19300"
+    remote = f"http://127.0.0.1:19300/{FORGEJO_USER}/{FORGEJO_REPO}.git"
+
     script = (
         "set -eu; "
-        "rm -rf /tmp/modrepo && mkdir -p /tmp/modrepo && cd /tmp/modrepo && "
-        "git init -q -b main && "
-        "git config user.email e2e@example.com && "
-        "git config user.name 'e2e fixture' && "
-        "cp -r /app/test/e2e/modules . && "
-        "git add -A && git commit -q -m 'module under test' && "
-        f"git push -q --force {push_url} main"
+        # A generated directory, not a fixed name. A predictable path in a
+        # shared temporary directory is a name something else can claim first.
+        'work="$(mktemp -d)"; trap \'rm -rf "$work"\' EXIT; cd "$work"; '
+        "git config --global credential.helper store; "
+        f"umask 077; printf '%s\\n' '{credentials}' > ~/.git-credentials; "
+        "git init -q -b main; "
+        "git config user.email e2e@example.com; "
+        "git config user.name 'e2e fixture'; "
+        "cp -r /app/test/e2e/modules .; "
+        "git add -A; "
+        "git commit -q -m 'module under test'; "
+        f"git push -q --force {remote} main"
     )
-    # The path is inside the dev container, which is discarded with it. The
-    # rule is about a shared host /tmp where another user can win a race to
-    # the name; there is one user here and the filesystem does not outlive the
-    # run.
-    runner.exec(script, workdir="/tmp", check=True)  # noqa: S108  # NOSONAR
+    runner.exec(script, workdir="/app", check=True)
 
 
 def build_provider_mirror(runner: Runner) -> None:
@@ -411,10 +410,11 @@ def cmd_up() -> int:
 
     seed_module_repo(runner, token)
     print("ok    module pushed over HTTP with the token")
+    print("ok    credential store configured for the module remote")
 
-    # The token is what a configuration authenticates with, so it has to reach
-    # the configuration. A file the fixture writes, not an environment variable
-    # a test has to remember to set.
+    # The token is still written out, but for the tests rather than for the
+    # configuration: one scenario deliberately fetches with a wrong one, and
+    # needs a right one to restore afterwards.
     token_file = E2E_DIR / ".token"
     token_file.write_text(token)
     token_file.chmod(0o600)

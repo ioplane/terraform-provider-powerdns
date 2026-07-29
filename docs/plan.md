@@ -1158,7 +1158,7 @@ test still fails in somebody's pipeline, and none of it had ever been exercised.
 
 `test/e2e` runs that path. Terragrunt over an S3 backend on MinIO, the module
 fetched over HTTP from a private Forgejo repository, against the running lab —
-forty-two scenarios across eight units, all green, repeatable back to back.
+forty-three scenarios across eight units, all green, repeatable back to back.
 
 | Scenario | Establishes |
 | --- | --- |
@@ -1198,7 +1198,7 @@ cache is part of the scenario: Terragrunt keys its download on the source with
 the credentials stripped, so with the module already cached a wrong token never
 reaches the network.
 
-### Forty-two scenarios, and what the last twenty-nine established
+### Forty-three scenarios, and what the last thirty established
 
 Thirteen covered the happy path. The rest cover what the provider actually
 promises.
@@ -1214,6 +1214,24 @@ promises.
 | **Actions** | `rectify` and `notify` attached to a lifecycle, reported by Terraform as invoked |
 | **Ephemeral** | a secret read and provably not stored |
 | **Autoprimary** | a server-side list with no other manager |
+
+### The fixture was leaking its own token
+
+Terragrunt prints a module source verbatim, and the source carried
+`http://e2e:<token>@…`. Every log line naming the module printed the
+credential, and every `git` it spawned carried it in the process list.
+
+It is a fixture token that is regenerated on every `task e2e:up`, so nothing
+was at risk — but the shape is the one that leaks a real credential in a real
+pipeline, and a test suite is a place people copy from. The credential now
+lives in git's credential store, the source URL has none, and a scenario
+asserts the URL stays that way.
+
+Two scanner findings went away as a consequence rather than by suppression:
+the plain-HTTP URL no longer carries a secret, and the push works in a
+`mktemp -d` directory rather than a predictable name under a shared `/tmp`.
+The `NOSONAR` markers that had been added first are gone; a suppression that
+survives is a finding nobody fixed.
 
 ### ADR 0005 is imprecise, and the provider is not
 

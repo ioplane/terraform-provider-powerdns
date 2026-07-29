@@ -100,32 +100,43 @@ class TestModuleSource:
     is a credential one, and nothing here could produce it.
     """
 
-    def test_a_bad_token_fails_and_says_so(self, terragrunt):
-        """A wrong token stops the run, and the message names the remote.
+    def test_a_bad_credential_fails_and_says_so(self, terragrunt):
+        """A wrong credential stops the run, and the message names the remote.
+
+        The credential lives in git's store, so this corrupts the store rather
+        than an environment variable — which is also why it restores it in a
+        `finally`: every later test fetches the same module.
 
         Not merely "it fails": a module source that fails opaquely sends
         somebody looking at their provider configuration for an hour.
         """
-        # Both caches. Terragrunt keys its download on the source with the
-        # credentials stripped — sensible, so a rotated token does not force a
-        # re-clone, and fatal here: with the module already cached, a wrong
-        # token never reaches the network and the test passes having proved
-        # nothing.
-        clear_module_cache(terragrunt)
+        store = Path("/root/.git-credentials")
+        good = store.read_text()
+        try:
+            store.write_text("http://e2e:0000000000000000000000000000000000000000@127.0.0.1:19300\n")
+            clear_module_cache(terragrunt)
 
-        result = terragrunt.run(
-            "init",
-            expect_success=False,
-            env_overrides={"E2E_TOKEN": "0000000000000000000000000000000000000000"},
-        )
-        combined = result.stdout + result.stderr
-        assert result.returncode != 0, combined[-1500:]
-        assert "uthenticat" in combined or "redential" in combined, combined[-1500:]
+            result = terragrunt.run("init", expect_success=False)
+            combined = result.stdout + result.stderr
+            assert result.returncode != 0, combined[-1500:]
+            assert "uthenticat" in combined or "redential" in combined, combined[-1500:]
+        finally:
+            store.write_text(good)
+            clear_module_cache(terragrunt)
 
-        # And a good token still works afterwards, so the failure was the
+        # And the right credential still works, so the failure was the
         # credential and not the fixture falling over.
-        clear_module_cache(terragrunt)
         terragrunt.run("init")
+
+    def test_the_token_is_not_in_the_module_source(self, terragrunt):
+        """The source URL carries no credential.
+
+        Terragrunt prints it verbatim, so a token in the URL is a token in
+        every log line naming the module — and in the process list of every
+        git it spawns. It was written that way first.
+        """
+        source = Path(terragrunt.workdir, "terragrunt.hcl").read_text()
+        assert "@127.0.0.1:19300" not in source, source
 
 
 class TestServerState:

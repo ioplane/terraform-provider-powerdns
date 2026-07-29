@@ -12,9 +12,11 @@ terraform {
   # `git://` skips the part that actually breaks in people's pipelines:
   # authenticating to the module source.
   #
-  # The token is read from a file the fixture writes, so it is never in the
-  # configuration and never in the state.
-  source = "git::http://e2e:${get_env("E2E_TOKEN")}@127.0.0.1:19300/e2e/dns-modules.git//modules/secrets?ref=main"
+  # No credentials in the URL. Git finds them through a credential helper the
+  # fixture configures, which keeps the token out of the configuration, out of
+  # Terragrunt's log — it prints the source URL verbatim — and out of the
+  # process list.
+  source = "git::http://127.0.0.1:19300/e2e/dns-modules.git//modules/secrets?ref=main"
 }
 
 remote_state {

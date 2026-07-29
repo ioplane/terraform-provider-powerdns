@@ -14,7 +14,7 @@ The mapping between commit type, changelog section and version bump is in
 - `test/e2e` — the path a consumer's configuration travels, which the
   acceptance suite never touched: Terragrunt over an S3 backend on MinIO, the
   module fetched over HTTP from a private Forgejo repository, against the
-  running lab. Forty-two scenarios across eight units on pytest, asking through the interfaces a consumer uses — boto3
+  running lab. Forty-three scenarios across eight units on pytest, asking through the interfaces a consumer uses — boto3
   for the bucket, dnspython for what DNS answers, psycopg for what the backend
   stored — rather than by parsing `dig` and `psql`. It also runs on OpenTofu,
   which Terragrunt selects by default and which nothing had exercised before.
@@ -36,6 +36,11 @@ The mapping between commit type, changelog section and version bump is in
 - Actions, ephemeral resources and an autoprimary. The actions unit is pinned
   to Terraform and asserts that OpenTofu refuses the configuration: actions are
   a Terraform 1.14 feature and the other engine does not have them.
+- The module remote's credential moved out of the source URL and into git's
+  credential store. Terragrunt prints a module source verbatim, so a token in
+  the URL was printed in every log line naming the module and carried in the
+  process list of every `git` it spawned. A scenario asserts the URL stays
+  free of it.
 - `check-pins.sh` asks the registry over HTTP instead of asking a container
   client. skopeo consults local storage, mirrors and caches, and resolved a
   digest that the registry answers 404 for — the pin read as verified locally

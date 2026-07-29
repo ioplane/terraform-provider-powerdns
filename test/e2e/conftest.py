@@ -105,10 +105,6 @@ class Terragrunt:
                 "TF_CLI_CONFIG_FILE": f"{fixture.MIRROR}/terraform.rc",
                 "TF_IN_AUTOMATION": "1",
                 "TG_NON_INTERACTIVE": "true",
-                # The module source authenticates. The token comes from the
-                # file the fixture wrote, so it is never in the configuration
-                # and never in a shell history.
-                "E2E_TOKEN": _token(),
                 **(env_overrides or {}),
             },
         )
