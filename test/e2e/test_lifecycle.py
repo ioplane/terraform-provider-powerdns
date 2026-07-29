@@ -18,6 +18,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from conftest import GIT_CREDENTIALS, TERRAGRUNT_CACHE
 
 ZONE = "e2e.example."
 FQDN = "www.e2e.example."
@@ -32,7 +33,7 @@ pytestmark = pytest.mark.timeout(600)
 def clear_module_cache(terragrunt) -> None:
     """Remove every copy of the fetched module, local and shared."""
     shutil.rmtree(Path(terragrunt.workdir) / ".terragrunt-cache", ignore_errors=True)
-    shutil.rmtree(Path("/root/.cache/terragrunt"), ignore_errors=True)
+    shutil.rmtree(TERRAGRUNT_CACHE, ignore_errors=True)
 
 
 def pdns_call(method: str, url: str, body: bytes | None = None) -> None:
@@ -111,7 +112,7 @@ class TestModuleSource:
         Not merely "it fails": a module source that fails opaquely sends
         somebody looking at their provider configuration for an hour.
         """
-        store = Path("/root/.git-credentials")
+        store = GIT_CREDENTIALS
         good = store.read_text()
         try:
             store.write_text(

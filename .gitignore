@@ -29,3 +29,4 @@ test/e2e/**/provider.tf
 .task/
 .token
 .tls/
+test/e2e/.home/

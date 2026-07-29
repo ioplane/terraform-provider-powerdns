@@ -260,20 +260,20 @@ tasks:
     desc: ruff check and format check
     deps: [_dev-running]
     cmds:
-      - '{{.EXEC}} uv run ruff check scripts/'
-      - '{{.EXEC}} uv run ruff format --check scripts/'
+      - '{{.EXEC}} uv run --locked ruff check scripts/'
+      - '{{.EXEC}} uv run --locked ruff format --check scripts/'
 
   py:fmt:
     desc: ruff format and autofix
     deps: [_dev-running]
     cmds:
-      - '{{.EXEC}} uv run ruff format scripts/'
-      - '{{.EXEC}} uv run ruff check --fix scripts/'
+      - '{{.EXEC}} uv run --locked ruff format scripts/'
+      - '{{.EXEC}} uv run --locked ruff check --fix scripts/'
 
   py:typecheck:
     desc: ty type check (pre-1.0 — a ty-only failure is reviewed, not obeyed)
     deps: [_dev-running]
-    cmds: ['{{.EXEC}} uv run ty check scripts/']
+    cmds: ['{{.EXEC}} uv run --locked ty check scripts/']
 
   py:
     desc: The Python gate
@@ -312,7 +312,7 @@ tasks:
     deps: [_dev-running]
     cmds:
       - '{{.EXEC}} markdownlint-cli2 "**/*.md" "#node_modules" "#bin" "#dist"'
-      - '{{.EXEC}} uv run yamllint -c .yamllint.yaml .'
+      - '{{.EXEC}} uv run --locked yamllint -c .yamllint.yaml .'
       - '{{.EXEC}} cspell --no-progress --no-summary --config .cspell.json "**/*.md" "**/*.go"'
       - scripts/check-badges.sh
 
@@ -431,6 +431,6 @@ tasks:
       - '{{.EXEC}} terragrunt --version'
       - '{{.EXEC}} golangci-lint version --short'
       - '{{.EXEC}} uv --version'
-      - '{{.EXEC}} uv run ruff --version'
-      - '{{.EXEC}} uv run ty --version'
+      - '{{.EXEC}} uv run --locked ruff --version'
+      - '{{.EXEC}} uv run --locked ty --version'
       - '{{.EXEC}} semgrep --version'

@@ -25,6 +25,7 @@ import argparse
 import base64
 import contextlib
 import json
+import os
 import ssl
 import subprocess
 import sys
@@ -80,7 +81,23 @@ HTTP_OK = 200
 
 PROVIDER_VERSION = "0.1.1"
 BINARY_PREFIX = "terraform-provider-powerdns_v"
-MIRROR = "/app/test/e2e/.mirror"
+# Derived from the checkout rather than written as a container path. Inside
+# the dev container the repository is /app, so this is the same string it
+# always was; on a runner it is wherever the checkout landed. One definition,
+# correct in both places.
+MIRROR = str(E2E_DIR / ".mirror")
+
+# A home of its own for local execution.
+#
+# The fixture configures `credential.helper store` and writes
+# `~/.git-credentials`. Run against a developer's real home that is not a test
+# fixture, it is a change to their machine: the helper then captures every
+# credential git handles and writes it in plaintext, and the file write
+# truncates whatever was there. Both happened here before this existed.
+#
+# HOME is redirected for anything the driver runs locally, so `--global` means
+# this directory and nothing else.
+FIXTURE_HOME = E2E_DIR / ".home"
 TLS_DIR_NAME = ".tls"
 TLS_CERT_NAME = "cert.pem"
 TLS_KEY_NAME = "key.pem"
@@ -88,30 +105,70 @@ TLS_KEY_NAME = "key.pem"
 
 @dataclass
 class Runner:
-    """Commands executed inside the dev container, where the toolchain lives."""
+    """Commands run where the toolchain is.
+
+    On a developer's machine that is the dev container, and the paths the
+    fixture uses are the container's. On a hosted runner there is no dev
+    container — CI installs the toolchain onto the runner itself — so the same
+    commands run locally against the checkout.
+
+    One driver either way. The alternative was building the dev image in CI to
+    have somewhere to exec into, which costs more per run than the run.
+    """
 
     container: str
+
+    @property
+    def in_container(self) -> bool:
+        """Whether a dev container is available to execute in."""
+        if not self.container:
+            return False
+        # Running, not merely existing. `podman container exists` is true for a
+        # stopped container, and the driver then tried to exec into one and got
+        # 255 with the command echoed back at it.
+        probe = subprocess.run(
+            [
+                "podman",
+                "container",
+                "inspect",
+                "--format",
+                "{{.State.Running}}",
+                self.container,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        return probe.returncode == 0 and probe.stdout.strip() == "true"
 
     def exec(
         self,
         command: str,
         *,
-        workdir: str = "/app/test/e2e/live",
+        workdir: str = "",
         check: bool = True,
     ) -> tuple[int, str]:
-        """Run a shell command in the dev container and return its status and output."""
-        completed = subprocess.run(
-            [
-                "podman",
-                "exec",
-                "-w",
-                workdir,
-                "-e",
-                f"TF_CLI_CONFIG_FILE={MIRROR}/terraform.rc",
-                "-e",
-                "TF_IN_AUTOMATION=1",
-                "-e",
-                "TG_NON_INTERACTIVE=true",
+        """Run a shell command where the toolchain is, and return status and output."""
+        workdir = workdir or str(REPO_ROOT)
+        environment = {
+            "TF_CLI_CONFIG_FILE": f"{MIRROR}/terraform.rc",
+            "TF_IN_AUTOMATION": "1",
+            "TG_NON_INTERACTIVE": "true",
+        }
+
+        if self.in_container:
+            # Commands are written in the checkout's own paths. Inside the
+            # container the checkout is bind-mounted at /app, so the one
+            # translation happens here rather than in every caller.
+            command = command.replace(str(REPO_ROOT), "/app")
+            workdir = workdir.replace(str(REPO_ROOT), "/app")
+            environment = {
+                k: v.replace(str(REPO_ROOT), "/app") for k, v in environment.items()
+            }
+            argv = ["podman", "exec", "-w", workdir]
+            for key, value in environment.items():
+                argv += ["-e", f"{key}={value}"]
+            argv += [
                 self.container,
                 "bash",
                 # -c, not -lc: a login shell re-reads the profile and drops
@@ -120,11 +177,28 @@ class Runner:
                 # moment earlier.
                 "-c",
                 command,
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+            ]
+            completed = subprocess.run(
+                argv, capture_output=True, text=True, check=False
+            )
+        else:
+            FIXTURE_HOME.mkdir(parents=True, exist_ok=True)
+            completed = subprocess.run(
+                ["bash", "-c", command],
+                cwd=workdir if Path(workdir).is_dir() else str(REPO_ROOT),
+                env={
+                    **os.environ,
+                    **environment,
+                    # `--global` and `~` resolve here, not in the home of
+                    # whoever ran this.
+                    "HOME": str(FIXTURE_HOME),
+                    "XDG_CACHE_HOME": str(FIXTURE_HOME / ".cache"),
+                },
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
         output = completed.stdout + completed.stderr
         if check and completed.returncode != 0:
             print(output[-4000:], file=sys.stderr)
@@ -436,12 +510,12 @@ def seed_module_repo(runner: Runner, token: str) -> None:
         "git init -q -b main; "
         "git config user.email e2e@example.com; "
         "git config user.name 'e2e fixture'; "
-        "cp -r /app/test/e2e/modules .; "
+        f"cp -r {E2E_DIR}/modules .; "
         "git add -A; "
         "git commit -q -m 'module under test'; "
         f"git push -q --force {remote} main"
     )
-    runner.exec(script, workdir="/app", check=True)
+    runner.exec(script, check=True)
 
 
 def build_provider_mirror(runner: Runner) -> None:
@@ -458,11 +532,10 @@ def build_provider_mirror(runner: Runner) -> None:
     # removes: every unit, not the two that existed when this was written.
     runner.exec(
         "set -eu; "
-        "rm -rf /app/test/e2e/live*/.terraform.lock.hcl "
-        "/app/test/e2e/live*/.terragrunt-cache "
+        f"rm -rf {E2E_DIR}/live*/.terraform.lock.hcl "
+        f"{E2E_DIR}/live*/.terragrunt-cache "
         "/root/.cache/terragrunt "
         "/root/.terraform.d/plugin-cache/registry.terraform.io/ioplane",
-        workdir="/app",
         check=False,
     )
 
@@ -472,7 +545,6 @@ def build_provider_mirror(runner: Runner) -> None:
     # Containerfile.dev supports both architectures on purpose.
     _, platform = runner.exec(
         'printf "%s_%s" "$(go env GOOS)" "$(go env GOARCH)"',
-        workdir="/app",
         check=True,
     )
     plat = platform.strip().splitlines()[-1].strip()
@@ -481,7 +553,7 @@ def build_provider_mirror(runner: Runner) -> None:
     script = (
         "set -eu; "
         f"rm -rf {MIRROR} && mkdir -p {dest} && "
-        f"cd /app && go build -o {dest}/{BINARY_PREFIX}{PROVIDER_VERSION} . && "
+        f"cd {REPO_ROOT} && go build -o {dest}/{BINARY_PREFIX}{PROVIDER_VERSION} . && "
         f"cat > {MIRROR}/terraform.rc <<'RC'\n"
         "provider_installation {\n"
         f'  filesystem_mirror {{\n    path    = "{MIRROR}"\n'
@@ -490,7 +562,7 @@ def build_provider_mirror(runner: Runner) -> None:
         "}\n"
         "RC"
     )
-    runner.exec(script, workdir="/app", check=True)
+    runner.exec(script, check=True)
 
 
 # --- lifecycle -----------------------------------------------------------
