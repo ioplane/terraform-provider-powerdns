@@ -941,6 +941,13 @@ and a named exception in the checker for one action is how a rule becomes a
 preference — so the action was replaced by the published trivy image, pinned
 by digest, which skopeo resolves from anywhere.
 
+The acceptance workflow then failed its own first run on `main`, which is what
+it was merged to find out. `uv pip install --system` is refused by the runner's
+Debian-managed interpreter (PEP 668) — the dev image passes
+`--break-system-packages` for exactly that reason and the workflow did not.
+It is the same class as the `sh`-not-`bash` finding: a difference between the
+image and the runner that no amount of reading catches, and one run does.
+
 One thing still fails, and it is not a change to this repository:
 
 - SonarCloud's quality gate — it objects to `go install pkg@v1.2.3` on the
