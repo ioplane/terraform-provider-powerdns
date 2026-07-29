@@ -393,4 +393,9 @@ stable. Until then the promise it verifies is verified on `main` and nightly,
 not on the branch.
 
 A released version carries a `SHA256SUMS` signed with the key the Terraform
-Registry holds, and an SBOM per archive.
+Registry holds, and an SBOM per archive. It is also, by construction, a commit
+for which `CI` and `Acceptance` both concluded successfully: `release.yml`
+checks that before it builds anything, and refuses a tag that is not on `main`
+or whose generated documentation has drifted from the schema. A Registry
+version cannot be amended once published, which is why those questions are
+asked before the artefacts exist rather than after.

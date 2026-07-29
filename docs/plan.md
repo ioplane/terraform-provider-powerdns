@@ -11,7 +11,7 @@
 
 ![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 75](https://shieldcn.dev/badge/tasks_done-75-3fb950.svg?variant=secondary)
+![tasks_done 76](https://shieldcn.dev/badge/tasks_done-76-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1027,6 +1027,7 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[x]` |
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
+| S8-13 | A release gate: nothing is built until the release is checkable | OPS | `[x]` |
 
 S8-10 reopened something S0-21 closed. A `github/ci` badge was removed then
 because it rendered "not found": the endpoint answered `200`, but GitHub held
@@ -1038,6 +1039,39 @@ told which one it means, `?workflow=ci.yml`. And `check-badges.sh` was dropping
 the query string before asking the `.json` endpoint, so it would have rejected
 a badge that renders correctly. It keeps the query now, because a check that
 asks a different question than the badge does is not checking the badge.
+
+### The release path had no gate
+
+`release.yml` ran `go test` and then built, signed and published. That is the
+one path in this repository where a mistake cannot be corrected: the Terraform
+Registry treats a published version as immutable, so a wrong release is
+answered by publishing another one and leaving the wrong one visible forever.
+
+Everything answerable before building is now answered before building:
+
+| Asserted | Why it cannot wait until after |
+| --- | --- |
+| the signing secrets exist | discovering it at the signing step spends the tag — it is pushed, and the fix is a new version |
+| `VERSION` and the tag agree | `versioning.md` calls `VERSION` the source of truth, and the Registry will believe the tag |
+| the changelog has a non-empty section for this version | the release notes come from it; without it a release ships nothing, or `[Unreleased]` |
+| the manifest's protocol matches what the provider serves | the Registry advertises the manifest, so a wrong number breaks every consumer's `terraform init` |
+| the tag is an ancestor of `main` | otherwise any branch can be tagged and published |
+| `CI` and `Acceptance` were green **for that commit** | not re-run — a re-run proves a different execution, not the one anyone looked at |
+| the generated documentation is in sync | stale pages are published as describing this version and cannot be corrected in place |
+| the tag does not already exist elsewhere | moving a tag changes what a signature covers without changing what anyone downloaded |
+| the working tree is clean | `git describe` would stamp `-dirty` on an archive corresponding to no commit |
+
+`scripts/check-release.sh` and `task release:check` are the local half, so the
+answer is reachable before the tag is pushed rather than after. Verified
+against five reintroduced faults — a version that disagrees with `VERSION`, one
+that is not semver, a manifest claiming protocol 5, a missing changelog section
+and an empty one.
+
+**It already found the thing blocking S7-04.** `CHANGELOG.md` has no
+`## [0.1.0]` section — everything is still under `[Unreleased]` — so tagging
+today would have failed after the tests, the GPG import and the syft download,
+having pushed the tag. It now fails in the first job, before anything is built,
+and names the file to edit.
 
 **The acceptance workflow is green on `main`.** 203 assertions across eight
 packages against the real five-container lab on a hosted runner, with the same

@@ -316,6 +316,36 @@ tasks:
       - '{{.EXEC}} cspell --no-progress --no-summary --config .cspell.json "**/*.md" "**/*.go"'
       - scripts/check-badges.sh
 
+  # === Release ===
+
+  release:check:
+    desc: Everything about a release that can be checked before building
+    deps: [_dev-running]
+    # Cheap checks first, and all of them before goreleaser is asked to build
+    # anything: the Registry treats a published version as immutable, so a
+    # wrong release is corrected by publishing another and leaving the wrong
+    # one visible forever.
+    cmds:
+      - scripts/check-release.sh {{.VERSION_ARG}}
+      - '{{.EXEC}} goreleaser check'
+      - task: 'docs:drift'
+
+  docs:drift:
+    desc: The generated registry documentation matches the schema and examples
+    deps: [_dev-running]
+    # Regenerate and diff. Stale pages are shipped to the Registry as if they
+    # described this version, and cannot be corrected in place afterwards.
+    cmds:
+      - '{{.EXEC}} tfplugindocs generate --provider-name {{.TYPE}}'
+      - cmd: |
+          if ! git diff --quiet -- docs/; then
+            echo 'the generated documentation is out of date — run `task docs` and commit the result' >&2
+            git --no-pager diff --stat -- docs/ >&2
+            exit 1
+          fi
+          echo 'ok    generated documentation is in sync'
+        silent: true
+
   # === Dependencies ===
 
   tidy:
