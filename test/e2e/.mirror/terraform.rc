@@ -1,9 +1,0 @@
-provider_installation {
-  filesystem_mirror {
-    path    = "/app/test/e2e/.mirror"
-    include = ["registry.terraform.io/ioplane/*"]
-  }
-  direct {
-    exclude = ["registry.terraform.io/ioplane/*"]
-  }
-}
