@@ -191,8 +191,9 @@ IT Glue's point, made operational. A rule nobody checks is a preference:
 | Go identifier and file case | `golangci-lint` (`revive`, `gofumpt`) |
 | Spelling and abbreviations | `cspell` against `.cspell.json` |
 | Markdown file conventions | `markdownlint-cli2` |
-| Changelog section vocabulary | `scripts/check-changelog.sh` |
-| Version format | `scripts/check-version.sh` |
+| Changelog section vocabulary | nobody — read in review |
+| Changelog: nothing added to a released section | `scripts/check-release.sh` |
+| Version format, and `VERSION` agreeing with the tag | `scripts/check-release.sh` |
 | Image and action pins by hash | `scripts/check-pins.sh` |
 
 The remainder — branch names, document codes — is checked at review. Where a

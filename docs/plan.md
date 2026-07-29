@@ -10,7 +10,7 @@
 <div align="center">
 
 ![phase 9_of_10](https://shieldcn.dev/badge/phase-9_of_10-0969da.svg?variant=secondary)
-![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
+![phases_closed 8](https://shieldcn.dev/badge/phases_closed-8-3fb950.svg?variant=secondary)
 ![tasks_done 88](https://shieldcn.dev/badge/tasks_done-88-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
@@ -1147,7 +1147,7 @@ distribution — which is arbitrary Python at install time — now refused by
 
 ---
 
-## Phase 9 — The consumer's path · `[~]` in progress
+## Phase 9 — The consumer's path · `[x]` closed 2026-07-29
 
 ### What the acceptance suite never touched
 
@@ -1579,7 +1579,7 @@ once the checks it would require have a run history to point at.
 
 ---
 
-## Audit, 2026-07-29
+## Audit, 2026-07-29 — before phase 7
 
 A full re-check of the project against itself before phase 7: contract against
 code, plan against its own tables, changelog against the surface, and the whole
@@ -1626,6 +1626,73 @@ state file is written against — and it is also the check most likely to pass
 for the wrong reason, since both sides were written by the same hand on the
 same day. The mechanical comparison above is what makes it more than an
 opinion.
+
+## Audit, 2026-07-29 — after phase 9
+
+The second full re-check, this time with a released provider, a published
+registry entry and an end-to-end fixture behind it. The question was narrower
+than the first audit's: not "does the code match the contract" — that check is
+now mechanical and ran again clean — but "does every claim this repository
+makes about its own enforcement still name something that exists".
+
+### What was verified mechanically
+
+| Check | Result |
+| --- | --- |
+| Surface counts in code | 11 resources, 7 data sources, 4 actions, 5 functions, 2 ephemeral |
+| Type names, code against `docs/contract.md`, both directions | no difference either way |
+| Generated registry pages | 29, in sync with the schema |
+| `task …` references in documentation | 26, all resolve to a real task |
+| Released changelog sections against their tags | `[0.1.1]` and `[0.1.0]` have gained nothing |
+| Branch protection contexts against CI job names | 9 required, 9 jobs, exact match |
+| `task all`, `task lab:verify` | green |
+| `task testacc` | 8 packages ok |
+| `task e2e` | 44 scenarios passed |
+| Workflows on `main` | CI, Acceptance, End-to-end, Security, Scorecard all green |
+
+### What it found
+
+**Four standards named enforcement that does not exist.** A standard that cites
+a script is making a promise the reader cannot check without looking, and three
+of these had been wrong since the file was written:
+
+| Document | Claimed | Reality |
+| --- | --- | --- |
+| `go-1.26-style.md` | layout `internal/resources/<area>`, `internal/client/pdns` | `internal/provider`, `internal/api/{transport,auth,rec,dnsdist}`, `internal/testutil` |
+| `go-1.26-style.md` | paralleltest excluded for `test/acceptance/` | excluded by the `_acc_test.go` suffix; there is no such directory |
+| `verified-identifiers.md` | `scripts/check-action-pins.sh` | renamed to `scripts/check-pins.sh` when it grew image checks |
+| `naming-conventions.md` | `scripts/check-changelog.sh`, `scripts/check-version.sh` | neither was ever written; both jobs live in `scripts/check-release.sh` |
+
+The last row is the interesting one. The naming standard listed those two
+scripts in a table headed "enforced by", and the release gate did in fact
+enforce both rules — under a different name. The table was aspirational at the
+time it was written and nothing ever reconciled it. Three other references —
+`scripts/check-changelog.sh` in the changelog standard and the plan,
+`scripts/ci/*.sh` in ADR 0009 — are deliberate narration about things that
+never existed, and are left as they are.
+
+**The phase counter had drifted, the same way the task counter did.** The badge
+read 6 against 8 phases marked `[x]` — and phase 9 was itself still `[~]`
+although every one of S9-01…S9-07 was closed. The first audit derived the task
+counter from the tables and added a check; it did not occur to me that the
+counter sitting next to it had the same defect. `scripts/check-badges.sh` now
+verifies both, and the phase check has a negative test.
+
+**`task docs:drift` compared the whole `docs/` tree.** `tfplugindocs` writes six
+paths; `docs/` also holds the plan, the contract, the standards and the ADRs.
+Editing any of those and running the check reported "the generated
+documentation is out of date", naming files no generator touches. The release
+workflow was never actually exposed to this — it asserts a clean tree first —
+but the standalone task lied, and a check that lies is worse than no check.
+It now diffs only the generated paths.
+
+### What it did not find
+
+No drift between the contract and the code, and nothing added to a released
+changelog section since the tag. Both were defects the first audit or a review
+caught, both now have a script behind them, and both stayed clean without
+anyone thinking about them. That is the whole argument for turning a finding
+into a check rather than a resolution.
 
 ## Risk register
 

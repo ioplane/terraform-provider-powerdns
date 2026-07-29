@@ -81,11 +81,11 @@ issue. They are listed because they are the mistakes this domain invites.
 | --- | --- |
 | Module path | `github.com/ioplane/terraform-provider-powerdns`. |
 | Go directive | `go 1.26.5`. |
-| Layout | `internal/provider`, `internal/resources/<area>`, `internal/client/pdns`. Framework resources are unexported under `internal/`. |
+| Layout | `internal/provider` for the framework surface, `internal/api/{transport,auth,rec,dnsdist}` for the clients, `internal/testutil` for the contract layer. Everything unexported under `internal/`. |
 | Vendoring | None. `vendor/` is removed; the module cache and `go.sum` are the reproducibility mechanism. |
 | Imports | `gofumpt` order; `goimports.local-prefixes` set to the module path. |
 | Test names | `Test<Subject>_<Behaviour>`; acceptance `TestAcc<Resource>_<Case>`. |
-| Test parallelism | `t.Parallel()` mandatory in unit tests; forbidden in acceptance tests that share a lab instance. Enforced by `paralleltest` with an exclusion for `test/acceptance/`. |
+| Test parallelism | `t.Parallel()` mandatory in unit tests; forbidden in acceptance tests that share a lab instance. Enforced by `paralleltest`, relaxed for `_acc_test.go` — the suffix, not a directory: acceptance tests live beside the code they exercise. |
 | Race detector | `-race` always, in `task test` and in CI. |
 | Build tags | `//go:build acceptance` for lab-dependent tests. |
 | Vulnerability gate | `govulncheck` and `osv-scanner`; an allow-listed advisory needs a documented reason. |
