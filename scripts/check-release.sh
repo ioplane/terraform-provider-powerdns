@@ -22,7 +22,7 @@ pass() { printf 'ok    %s\n' "$1"; }
 
 # --- the version everything else is checked against ---
 
-if [ ! -f VERSION ]; then
+if [[ ! -f VERSION ]]; then
   echo "VERSION does not exist; run this from the repository root" >&2
   exit 2
 fi
@@ -31,7 +31,7 @@ version="${1:-$file_version}"
 version="${version#v}"
 
 echo "== version =="
-if [ "$version" = "$file_version" ]; then
+if [[ "$version" = "$file_version" ]]; then
   pass "VERSION and the release agree on ${version}"
 else
   # docs/standards/versioning.md calls VERSION the source of truth and says the
@@ -52,7 +52,7 @@ echo "== the tag is new =="
 if git rev-parse -q --verify "refs/tags/v${version}" >/dev/null 2>&1; then
   head_sha="$(git rev-parse HEAD)"
   tag_sha="$(git rev-parse "v${version}^{commit}")"
-  if [ "$head_sha" = "$tag_sha" ]; then
+  if [[ "$head_sha" = "$tag_sha" ]]; then
     pass "v${version} already points at HEAD"
   else
     fail "v${version} exists and points at ${tag_sha:0:12}, not at HEAD"
@@ -72,7 +72,7 @@ else
     /^## \[/ { if (capture) exit; if ($0 ~ "^## \\[" ver "\\]") { capture = 1; next } }
     capture { print }
   ' CHANGELOG.md | grep -c '[^[:space:]]' || true)"
-  if [ "$body" -eq 0 ]; then
+  if [[ "$body" -eq 0 ]]; then
     fail "the '## [${version}]' section is empty"
   else
     pass "changelog section present, ${body} non-blank lines"
@@ -84,7 +84,7 @@ echo "== the manifest matches the protocol the provider serves =="
 # The Registry advertises what this file says. If it says 5.0 and the binary
 # speaks 6, every consumer's `terraform init` negotiates a protocol the plugin
 # does not implement — and the version cannot be withdrawn.
-if [ ! -f "$MANIFEST" ]; then
+if [[ ! -f "$MANIFEST" ]]; then
   fail "${MANIFEST} does not exist"
 else
   declared="$(grep -oE '"[0-9]+\.[0-9]+"' "$MANIFEST" | tr -d '"' | tr '\n' ' ' | sed 's/ $//')"
@@ -94,7 +94,7 @@ else
   else
     served=6.0
   fi
-  if [ "$declared" = "$served" ]; then
+  if [[ "$declared" = "$served" ]]; then
     pass "manifest declares ${declared}, and the provider serves it"
   else
     fail "manifest declares '${declared}' but the provider serves ${served}"
@@ -103,7 +103,7 @@ fi
 
 echo
 echo "== the working tree is the thing being released =="
-if [ -n "$(git status --porcelain)" ]; then
+if [[ -n "$(git status --porcelain)" ]]; then
   # goreleaser stamps the build with `git describe`, which would carry -dirty,
   # and the archive would not correspond to any commit anyone can check out.
   fail "the working tree has uncommitted changes"
@@ -113,7 +113,7 @@ else
 fi
 
 echo
-if [ "$bad" -gt 0 ]; then
+if [[ "$bad" -gt 0 ]]; then
   printf 'check-release: %d problem(s) — not releasable\n' "$bad" >&2
   exit 1
 fi

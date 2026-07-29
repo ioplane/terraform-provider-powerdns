@@ -9,9 +9,9 @@
 
 <div align="center">
 
-![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
+![phase 9_of_10](https://shieldcn.dev/badge/phase-9_of_10-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 81](https://shieldcn.dev/badge/tasks_done-81-3fb950.svg?variant=secondary)
+![tasks_done 87](https://shieldcn.dev/badge/tasks_done-87-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1144,6 +1144,225 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
 | S8-14 | **Added.** Repository hygiene: CODEOWNERS, templates, code of conduct, settings, branch protection | OPS | `[x]` |
+
+---
+
+## Phase 9 — The consumer's path · `[~]` in progress
+
+### What the acceptance suite never touched
+
+It proves the provider is correct against PowerDNS. It says nothing about the
+path a configuration travels to reach it: remote state, a module fetched from a
+remote, an engine holding a lock. That is where a provider which passes every
+test still fails in somebody's pipeline, and none of it had ever been exercised.
+
+`test/e2e` runs that path. Terragrunt over an S3 backend on MinIO, the module
+fetched over HTTP from a private Forgejo repository, against the running lab —
+forty-four scenarios across eight units, all green, repeatable back to back.
+
+| Scenario | Establishes |
+| --- | --- |
+| apply fetches the module over an authenticated remote | it comes from a remote that asks who is calling, not from a path beside the configuration |
+| a bad token fails and says so | the credential error people actually meet, which an anonymous remote could not produce |
+| the second plan is empty | idempotence, the property the whole normalisation layer serves |
+| DNS answers the forward records | a name resolves — an HTTP 200 did not establish that |
+| DNS answers the reverse record | the PTR sits where the provider function computed it |
+| the RRSet holds both values | one set with two values, not two resources fighting over a name |
+| the database holds the rows | gpgsql, past both the API and anything caching in front of it |
+| state is in the bucket | S3, not on disk beside the configuration |
+| no lock is left behind | a finished run releases it; a stale lock is indistinguishable from a live one |
+| a held lock blocks a second run | the lock is planted rather than raced, so it fails for one reason only |
+| a TTL change does not replace the record | a replacement is an outage nobody asked for |
+| an out-of-band zone imports | adoption, in its own unit with its own state |
+| destroy removes it everywhere | gone from DNS and from storage, not merely from state |
+
+### The module remote is a forge, and the second attempt is the honest one
+
+It was `git daemon` first, on the argument that a daemon is smaller and adds no
+image to pin. The argument was wrong about what was being tested. `git://` is
+anonymous, and nobody sources a production module that way — real
+configurations use HTTPS with a token or SSH with a key, and the failure people
+actually meet when wiring one up is a credential error. An anonymous remote
+cannot produce that failure, so the scenario could not exist.
+
+Forgejo rootless, 74 MB, the whole fixture built through its REST API: create
+the administrator, issue a token, create the repository, push the module. The
+rootless variant also drops privilege by construction rather than because a
+scanner asked, which is what had just happened to the daemon.
+
+**And the first version of the authentication scenario proved nothing.** The
+repository was created public, so the token in the source URL was decoration
+and a deliberately wrong token still fetched the module. The test failed,
+which is how that surfaced. The repository is private now, and clearing the
+cache is part of the scenario: Terragrunt keys its download on the source with
+the credentials stripped, so with the module already cached a wrong token never
+reaches the network.
+
+### Forty-four scenarios, and what the last thirty-one established
+
+Thirteen covered the happy path. The rest cover what the provider actually
+promises.
+
+| Area | What it establishes |
+| --- | --- |
+| **Secrets in remote state** | the DNSSEC private key and the TSIG secret are absent from the state object **in the bucket** — the risk the claim exists to answer, checked for the first time where it lives rather than in a local file |
+| **DNSSEC** | the zone serves a DNSKEY and answers carry an RRSIG: signed, not merely holding a key |
+| **Recursor and dnsdist** | two of the three products, which no consumer path had reached |
+| **Views and networks** | the LMDB-only resources, and the capability diagnostic when they are asked of gpgsql |
+| **Drift** | a value changed, a TTL changed and a record deleted behind Terraform's back, each visible in the plan and repaired by apply |
+| **Both engines** | the same unit under `tofu` and `terraform`, each verified from its own log prefix |
+| **Actions** | `rectify` and `notify` attached to a lifecycle, reported by Terraform as invoked |
+| **Ephemeral** | a secret read and provably not stored |
+| **Autoprimary** | a server-side list with no other manager |
+
+### The fixture was leaking its own token
+
+Terragrunt prints a module source verbatim, and the source carried
+`http://e2e:<token>@…`. Every log line naming the module printed the
+credential, and every `git` it spawned carried it in the process list.
+
+It is a fixture token that is regenerated on every `task e2e:up`, so nothing
+was at risk — but the shape is the one that leaks a real credential in a real
+pipeline, and a test suite is a place people copy from. The credential now
+lives in git's credential store, the source URL has none, and a scenario
+asserts the URL stays that way.
+
+The remote also serves TLS now. A self-signed certificate for `127.0.0.1`,
+generated before the fixture starts, and the dev container told to trust that
+one certificate for that one host — not `sslVerify = false`, which would have
+worked and taught the wrong lesson. A scenario overrides the URL-specific
+`sslCAInfo` and asserts git refuses with "certificate signer not trusted";
+the first version of that check overrode the *generic* `http.sslCAInfo`, which
+git ignores when a more specific one exists, and so passed against a broken
+premise.
+
+Every scanner finding on this driver went away as a consequence rather than
+by suppression: the credential is no longer in a URL, the URL is no longer
+plain HTTP, and the push runs in a `mktemp -d` directory rather than a
+predictable name under a shared `/tmp`. The `NOSONAR` markers added first are
+gone — a suppression that survives is a finding nobody fixed, and this
+repository has a standard about checks that only look like checks.
+
+### Four defects a reviewer found that the suite could not
+
+The suite was green throughout, and none of these would have made it red —
+which is the point of them being found by reading rather than by running.
+
+**The mirror was built for one architecture.** `linux_amd64`, hard-coded, in a
+dev image whose Containerfile supports amd64 and arm64 on purpose. On an arm64
+host the engine looks in `linux_arm64`, finds nothing, and reports the provider
+unavailable — a wrong path presenting itself as a missing provider. It now
+asks `go env`.
+
+**The lock-file cleanup covered two units of eight.** It was written when there
+were two. Rebuilding the provider — the ordinary reason to run this suite —
+changes the binary's checksum, and any unit whose lock file was not cleared
+refuses the rebuilt package. It clears every `live*` unit now, which is also
+the shape that survives the ninth.
+
+**Every command was a bare `terragrunt apply`.** Terragrunt 1.0 froze the CLI
+contract and `standards/terragrunt-integration.md` requires the `run`
+subcommand. The legacy form still works, which is exactly what makes it easy to
+keep using until it stops.
+
+**`task e2e:down` orphaned the zones.** The lab outlives the fixture, so
+removing MinIO takes the state and leaves the zones; the next `up` starts with
+empty state and meets a 409 on a zone it believes it is creating. `down` now
+deletes them by name first — by name rather than by `terragrunt destroy`,
+because destroy needs the module, the mirror and a reachable remote, and `down`
+has to work when the reason for running it is that one of those is broken.
+
+### ADR 0005 is imprecise, and the provider is not
+
+It says views and networks are "unimplemented by gpgsql". The read endpoint
+exists and answers `200 {"views": []}`; only the write fails, with `405` on a
+`PUT` and `422` on a `POST`. A test asserting a 404 on the read — which this
+suite did first — fails against a server behaving exactly as designed.
+
+The provider's own diagnostic already says it correctly: *"a read returns an
+empty list while a write fails like this. Check the launch= setting."* The ADR
+is the document that is behind, and it is left as written because an ADR
+records what was decided; the precise behaviour is recorded here and asserted
+by `test_family.py`.
+
+### What Terraform enforces that the provider only claims
+
+An ephemeral value could not be got out of the module at all. An ordinary
+output derived from one is refused — "not declared as returning an ephemeral
+value" — and declaring the output ephemeral is refused too, because a root
+module has nowhere to return one to. Both errors were met, in that order,
+writing the module.
+
+And an ephemeral resource is opened while the graph is walked, before the
+resources in the same apply exist. `depends_on` does not defer it. A secret is
+something you read because it is already there, and the module now does.
+
+### Actions exist on one engine
+
+The imperative unit is pinned to Terraform. Actions are a 1.14 feature,
+OpenTofu does not have them, and `test_imperative.py` asserts the refusal
+rather than letting the pin be a preference nobody revisits.
+
+### It runs on OpenTofu, which nobody had checked
+
+Terragrunt drives `tofu`, not `terraform`. ADR 0004 called OpenTofu a co-equal
+target and the dev image has carried it since phase 0, but every test until now
+went through Terraform. The provider's first end-to-end exercise turns out to
+have been on the other engine, and it passed.
+
+### Four defects in the harness, all mine
+
+Written down because each is a class, not a typo.
+
+**`bash -lc` a second time.** A login shell re-reads the profile and drops
+`/usr/local/go/bin` from PATH, so `go build` failed with 127. I had already met
+this exact failure earlier in the day and reintroduced it.
+
+**The lab check asked without the API key.** PowerDNS answers 401, `http_ok`
+saw "not 200", and the driver reported a running lab as absent.
+
+**The import test removed a live resource from state.** It imported into
+`powerdns_zone.this` — the address the live unit manages — and cleaned up with
+`state rm`, orphaning the real zone. Two tests later an apply met a 409 whose
+cause was nowhere near it. The adoption scenario now has its own unit and its
+own state key.
+
+**And one the fixture found in CI, not here — a tag with two digests.**
+`check-pins.sh` blessed the MinIO image locally and CI reported it NOT FOUND.
+Neither was wrong. The tag is published as both an OCI image index and a Docker
+manifest list, which are different documents with different digests, and the
+registry serves whichever the client's `Accept` header allows. The local skopeo
+asks for both and resolved the OCI digest; the older skopeo on a hosted runner
+asks only for the Docker one and could not find it.
+
+The pin is now the Docker manifest list, which every client can fetch. Two
+things follow that are worth keeping: a digest is only as portable as the media
+types the client requesting it accepts, and "verified on my machine" is a
+weaker claim for a digest than it looks. The image check also now separates
+"the registry said no such digest" from "the request did not get through" —
+the same distinction the action check learned earlier in phase 8, which had not
+been carried across.
+
+My first reading of this was that the digest did not exist upstream, on the
+strength of a `curl` whose own `Accept` header excluded the format it was
+looking for. The tool used to check the claim had the same blind spot as the
+tool that produced it.
+
+**A destroyed zone answers REFUSED, not NXDOMAIN.** With the zone gone the
+server is no longer authoritative and declines the name; dnspython raises that
+as "all nameservers failed", which is also what a dead server looks like. The
+suite asks with a low-level query and asserts the rcode, so a server that is
+simply down now fails the test instead of passing it.
+
+| ID | Task | Role | Status |
+| --- | --- | --- | --- |
+| S9-01 | `compose.e2e.yml` — MinIO and a Forgejo remote beside the lab | OPS | `[x]` |
+| S9-02 | A module and a Terragrunt unit that consume the provider | DEV | `[x]` |
+| S9-03 | `e2e.py` — fixture lifecycle on podman-py, driven by uv | OPS | `[x]` |
+| S9-04 | The suite on pytest, with boto3, dnspython and psycopg | QA | `[x]` |
+| S9-05 | The e2e suite in CI | OPS | `[ ]` |
+| S9-06 | DNSSEC and the second backend in the e2e path | QA | `[x]` |
+| S9-07 | **Added.** Secrets, drift, both engines, both other products, actions and ephemeral | QA | `[x]` |
 | S8-13 | A release gate: nothing is built until the release is checkable | OPS | `[x]` |
 
 S8-10 reopened something S0-21 closed. A `github/ci` badge was removed then

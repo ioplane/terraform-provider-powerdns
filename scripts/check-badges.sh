@@ -20,7 +20,7 @@ mapfile -t urls < <(
     sed 's/&amp;/\&/g' | sort -u
 )
 
-if [ ${#urls[@]} -eq 0 ]; then
+if [[ ${#urls[@]} -eq 0 ]]; then
   echo "no badges found"
 else
   for url in "${urls[@]}"; do
@@ -29,11 +29,11 @@ else
     code=000
     for attempt in 1 2 3; do
       code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$url") || code=000
-      [ "$code" = "000" ] || break
+      [[ "$code" = "000" ]] || break
       sleep "$attempt"
     done
 
-    if [ "$code" = "000" ]; then
+    if [[ "$code" = "000" ]]; then
       # Unreachable is not the same claim as wrong, and this check exists to
       # catch a badge URL that is wrong. Unlike check-pins.sh — where an
       # unverifiable pin is a supply-chain claim the repository must not make
@@ -44,7 +44,7 @@ else
       badges_unreachable+=1
       continue
     fi
-    if [ "$code" != "200" ]; then
+    if [[ "$code" != "200" ]]; then
       printf 'FAIL  %s  (HTTP %s)\n' "${url#https://shieldcn.dev}" "$code" >&2
       badges_bad+=1
       continue
@@ -61,7 +61,7 @@ else
         # badge renders correctly.
         base="${url%%\?*}"
         query=""
-        [ "$url" != "$base" ] && query="?${url#*\?}"
+        [[ "$url" != "$base" ]] && query="?${url#*\?}"
         json_url="${base%.svg}.json${query}"
         if curl -s --max-time 15 "$json_url" | grep -q '"error"'; then
           printf 'FAIL  %s  (endpoint resolves to an error)\n' "${url#https://shieldcn.dev}" >&2
@@ -83,9 +83,9 @@ echo "== mermaid blocks =="
 # punctuation that terminates the node early.
 while IFS= read -r file; do
   opens=$(grep -c '^```mermaid' "$file" || true)
-  [ "$opens" -eq 0 ] && continue
+  [[ "$opens" -eq 0 ]] && continue
   fences=$(grep -c '^```' "$file" || true)
-  if [ $((fences % 2)) -ne 0 ]; then
+  if [[ $((fences % 2)) -ne 0 ]]; then
     printf 'FAIL  %s: unbalanced code fences\n' "$file" >&2
     mermaid_bad+=1
     continue
@@ -108,14 +108,14 @@ echo "== the plan's task counter =="
 # fixes the number; only this stops it happening again. A counter nobody
 # recomputes is a guess with a green background.
 declare -i counter_bad=0
-if [ -f docs/plan.md ]; then
+if [[ -f docs/plan.md ]]; then
   claimed="$(grep -oE 'badge/tasks_done-[0-9]+-' docs/plan.md | head -1 | grep -oE '[0-9]+' || true)"
   # shellcheck disable=SC2016  # a regex, not a string meant to expand
   actual="$(grep -cE '^\| S[0-9]+-[0-9]+ \|.*`\[x\]`' docs/plan.md || true)"
-  if [ -z "$claimed" ]; then
+  if [[ -z "$claimed" ]]; then
     echo "FAIL  docs/plan.md has no tasks_done badge" >&2
     counter_bad=1
-  elif [ "$claimed" != "$actual" ]; then
+  elif [[ "$claimed" != "$actual" ]]; then
     printf 'FAIL  badge claims %s done, the tables show %s\n' "$claimed" "$actual" >&2
     counter_bad=1
   else
@@ -124,7 +124,7 @@ if [ -f docs/plan.md ]; then
 fi
 
 echo
-if [ $((badges_bad + mermaid_bad + counter_bad)) -gt 0 ]; then
+if [[ $((badges_bad + mermaid_bad + counter_bad)) -gt 0 ]]; then
   printf 'check-badges: %d badges ok, %d bad; %d files with mermaid ok, %d bad; counter %s\n' \
     "$badges_ok" "$badges_bad" "$mermaid_ok" "$mermaid_bad" \
     "$([ "$counter_bad" -eq 0 ] && echo ok || echo wrong)" >&2

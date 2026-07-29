@@ -46,14 +46,14 @@ cmd_rm() {
 
 case "${1:-}" in
   new)
-    [ $# -eq 2 ] || {
+    [[ $# -eq 2 ]] || {
       usage
       exit 2
     }
     cmd_new "$2"
     ;;
   rm)
-    [ $# -eq 2 ] || {
+    [[ $# -eq 2 ]] || {
       usage
       exit 2
     }
