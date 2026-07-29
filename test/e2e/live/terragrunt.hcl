@@ -16,7 +16,7 @@ terraform {
   # fixture configures, which keeps the token out of the configuration, out of
   # Terragrunt's log — it prints the source URL verbatim — and out of the
   # process list.
-  source = "git::http://127.0.0.1:19300/e2e/dns-modules.git//modules/dns-zone?ref=main"
+  source = "git::https://127.0.0.1:19300/e2e/dns-modules.git//modules/dns-zone?ref=main"
 }
 
 remote_state {

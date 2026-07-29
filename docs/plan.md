@@ -1158,7 +1158,7 @@ test still fails in somebody's pipeline, and none of it had ever been exercised.
 
 `test/e2e` runs that path. Terragrunt over an S3 backend on MinIO, the module
 fetched over HTTP from a private Forgejo repository, against the running lab —
-forty-three scenarios across eight units, all green, repeatable back to back.
+forty-four scenarios across eight units, all green, repeatable back to back.
 
 | Scenario | Establishes |
 | --- | --- |
@@ -1198,7 +1198,7 @@ cache is part of the scenario: Terragrunt keys its download on the source with
 the credentials stripped, so with the module already cached a wrong token never
 reaches the network.
 
-### Forty-three scenarios, and what the last thirty established
+### Forty-four scenarios, and what the last thirty-one established
 
 Thirteen covered the happy path. The rest cover what the provider actually
 promises.
@@ -1227,11 +1227,21 @@ pipeline, and a test suite is a place people copy from. The credential now
 lives in git's credential store, the source URL has none, and a scenario
 asserts the URL stays that way.
 
-Two scanner findings went away as a consequence rather than by suppression:
-the plain-HTTP URL no longer carries a secret, and the push works in a
-`mktemp -d` directory rather than a predictable name under a shared `/tmp`.
-The `NOSONAR` markers that had been added first are gone; a suppression that
-survives is a finding nobody fixed.
+The remote also serves TLS now. A self-signed certificate for `127.0.0.1`,
+generated before the fixture starts, and the dev container told to trust that
+one certificate for that one host — not `sslVerify = false`, which would have
+worked and taught the wrong lesson. A scenario overrides the URL-specific
+`sslCAInfo` and asserts git refuses with "certificate signer not trusted";
+the first version of that check overrode the *generic* `http.sslCAInfo`, which
+git ignores when a more specific one exists, and so passed against a broken
+premise.
+
+Every scanner finding on this driver went away as a consequence rather than
+by suppression: the credential is no longer in a URL, the URL is no longer
+plain HTTP, and the push runs in a `mktemp -d` directory rather than a
+predictable name under a shared `/tmp`. The `NOSONAR` markers added first are
+gone — a suppression that survives is a finding nobody fixed, and this
+repository has a standard about checks that only look like checks.
 
 ### ADR 0005 is imprecise, and the provider is not
 

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import contextlib
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -76,7 +77,7 @@ class TestApply:
         result = terragrunt.run("apply", "-auto-approve")
         combined = result.stdout + result.stderr
         assert "Apply complete" in combined
-        assert "git::http://" in combined, combined[-2000:]
+        assert "git::https://" in combined, combined[-2000:]
         assert "127.0.0.1:19300" in combined, combined[-2000:]
 
         # And the module is on disk where a fetch would have put it.
@@ -113,7 +114,9 @@ class TestModuleSource:
         store = Path("/root/.git-credentials")
         good = store.read_text()
         try:
-            store.write_text("http://e2e:0000000000000000000000000000000000000000@127.0.0.1:19300\n")
+            store.write_text(
+                "https://e2e:0000000000000000000000000000000000000000@127.0.0.1:19300\n"
+            )
             clear_module_cache(terragrunt)
 
             result = terragrunt.run("init", expect_success=False)
@@ -128,8 +131,32 @@ class TestModuleSource:
         # credential and not the fixture falling over.
         terragrunt.run("init")
 
+    def test_the_certificate_is_actually_verified(self):
+        """Trust is configured, not disabled.
+
+        `sslVerify = false` would make the fixture work and would teach the
+        wrong lesson. This overrides the URL-specific `sslCAInfo` — the
+        generic `http.sslCAInfo` is less specific and git ignores it, which
+        made the first version of this check pass against a broken premise.
+        """
+        result = subprocess.run(
+            [
+                "git",
+                "-c",
+                "http.https://127.0.0.1:19300/.sslCAInfo=/dev/null",
+                "ls-remote",
+                "https://127.0.0.1:19300/e2e/dns-modules.git",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd="/tmp",  # noqa: S108
+        )
+        assert result.returncode != 0
+        assert "not trusted" in (result.stdout + result.stderr), result.stderr[-500:]
+
     def test_the_token_is_not_in_the_module_source(self, terragrunt):
-        """The source URL carries no credential.
+        """The source URL is HTTPS and carries no credential.
 
         Terragrunt prints it verbatim, so a token in the URL is a token in
         every log line naming the module — and in the process list of every
@@ -137,6 +164,7 @@ class TestModuleSource:
         """
         source = Path(terragrunt.workdir, "terragrunt.hcl").read_text()
         assert "@127.0.0.1:19300" not in source, source
+        assert "git::https://" in source, source
 
 
 class TestServerState:

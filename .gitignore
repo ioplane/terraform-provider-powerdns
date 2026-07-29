@@ -17,6 +17,7 @@ __pycache__/
 .terragrunt-cache/
 test/e2e/.mirror/
 test/e2e/.token
+test/e2e/.tls/
 test/e2e/**/.terraform.lock.hcl
 test/e2e/**/backend.tf
 test/e2e/**/provider.tf
@@ -27,3 +28,4 @@ test/e2e/**/provider.tf
 # Task's local checksum cache for `sources`/`generates`.
 .task/
 .token
+.tls/

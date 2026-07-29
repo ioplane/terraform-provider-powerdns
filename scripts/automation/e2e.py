@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import ssl
 import subprocess
 import sys
 import urllib.error
@@ -54,7 +55,7 @@ MINIO_CONTAINER = "pdns-e2e-minio"
 FORGEJO_CONTAINER = "pdns-e2e-forgejo"
 
 MINIO_URL = "http://127.0.0.1:19000"
-FORGEJO_URL = "http://127.0.0.1:19300"
+FORGEJO_URL = "https://127.0.0.1:19300"
 FORGEJO_USER = "e2e"
 FORGEJO_PASSWORD = "e2e-fixture-password"  # noqa: S105
 FORGEJO_REPO = "dns-modules"
@@ -132,6 +133,18 @@ def compose(*args: str) -> None:
     )
 
 
+def _tls_context() -> ssl.SSLContext | None:
+    """Trust the fixture's own certificate, and only that one.
+
+    `verify_mode = CERT_NONE` would be one line shorter and would make every
+    later reader wonder whether the suite verifies anything.
+    """
+    cert = E2E_DIR / ".tls" / "cert.pem"
+    if not cert.is_file():
+        return None
+    return ssl.create_default_context(cafile=str(cert))
+
+
 def http_ok(url: str, timeout: float = 3.0, *, api_key: str | None = None) -> bool:
     """Whether a loopback URL answers 200. Constants only; see lab.py.
 
@@ -140,13 +153,15 @@ def http_ok(url: str, timeout: float = 3.0, *, api_key: str | None = None) -> bo
     reports a running lab as absent, which is exactly what the first run of
     this script concluded.
     """
-    if not url.startswith("http://127.0.0.1"):
+    if not url.startswith(("http://127.0.0.1", "https://127.0.0.1")):
         msg = f"refusing to open a non-loopback URL: {url}"
         raise ValueError(msg)
     headers = {"X-API-Key": api_key} if api_key else {}
     request = urllib.request.Request(url, headers=headers)  # noqa: S310
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310  # nosemgrep
+        with urllib.request.urlopen(  # noqa: S310  # nosemgrep
+            request, timeout=timeout, context=_tls_context()
+        ) as response:
             return response.status == HTTP_OK
     except (OSError, TimeoutError):
         return False
@@ -208,6 +223,43 @@ def container_states() -> dict[str, str]:
 # --- fixture setup -------------------------------------------------------
 
 
+def make_tls_certificate() -> None:
+    """Generate the self-signed certificate Forgejo serves and git trusts.
+
+    Before the fixture starts, because Forgejo reads the files at boot. One
+    certificate, one host, regenerated whenever the fixture is rebuilt — there
+    is nothing here worth reusing between runs.
+    """
+    tls = E2E_DIR / ".tls"
+    tls.mkdir(parents=True, exist_ok=True)
+    if (tls / "cert.pem").is_file() and (tls / "key.pem").is_file():
+        return
+
+    subprocess.run(
+        [
+            "openssl",
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-nodes",
+            "-days",
+            "365",
+            "-subj",
+            "/CN=127.0.0.1",
+            "-addext",
+            "subjectAltName=IP:127.0.0.1",
+            "-keyout",
+            str(tls / "key.pem"),
+            "-out",
+            str(tls / "cert.pem"),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    (tls / "key.pem").chmod(0o644)
+
+
 def make_bucket() -> None:
     """Create the state bucket by creating its directory in MinIO's store.
 
@@ -262,7 +314,9 @@ def forgejo_api(
         f"{FORGEJO_URL}/api/v1{path}", data=body, method=method, headers=headers
     )
     try:
-        with urllib.request.urlopen(request, timeout=20) as response:  # noqa: S310  # nosemgrep
+        with urllib.request.urlopen(  # noqa: S310  # nosemgrep
+            request, timeout=20, context=_tls_context()
+        ) as response:
             raw = response.read()
             return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as error:
@@ -316,8 +370,8 @@ def seed_module_repo(runner: Runner, token: str) -> None:
     is a token in every log line that mentions the module — and in the process
     list of every git it spawns.
     """
-    credentials = f"http://{FORGEJO_USER}:{token}@127.0.0.1:19300"
-    remote = f"http://127.0.0.1:19300/{FORGEJO_USER}/{FORGEJO_REPO}.git"
+    credentials = f"https://{FORGEJO_USER}:{token}@127.0.0.1:19300"
+    remote = f"https://127.0.0.1:19300/{FORGEJO_USER}/{FORGEJO_REPO}.git"
 
     script = (
         "set -eu; "
@@ -325,6 +379,10 @@ def seed_module_repo(runner: Runner, token: str) -> None:
         # shared temporary directory is a name something else can claim first.
         'work="$(mktemp -d)"; trap \'rm -rf "$work"\' EXIT; cd "$work"; '
         "git config --global credential.helper store; "
+        # Trust this certificate for this host, and nothing else. `sslVerify
+        # false` would also work and would teach the reader the wrong lesson.
+        'git config --global http."https://127.0.0.1:19300/".sslCAInfo '
+        "/app/test/e2e/.tls/cert.pem; "
         f"umask 077; printf '%s\\n' '{credentials}' > ~/.git-credentials; "
         "git init -q -b main; "
         "git config user.email e2e@example.com; "
@@ -385,6 +443,9 @@ def cmd_up() -> int:
         print("the lab is not running — run: task lab:up", file=sys.stderr)
         return 2
 
+    make_tls_certificate()
+    print("ok    TLS certificate for the module remote")
+
     compose("up", "-d", "--build")
 
     if not wait_for_minio():
@@ -409,7 +470,7 @@ def cmd_up() -> int:
     print(f"ok    repository {FORGEJO_USER}/{FORGEJO_REPO}")
 
     seed_module_repo(runner, token)
-    print("ok    module pushed over HTTP with the token")
+    print("ok    module pushed over HTTPS")
     print("ok    credential store configured for the module remote")
 
     # The token is still written out, but for the tests rather than for the
