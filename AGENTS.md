@@ -239,6 +239,7 @@ build tag they do not carry — which is what an unexecuted pipeline becomes.
 | Unit + race | `task test` |
 | Contract (recorded fixtures) | `task test:contract` |
 | Acceptance, both backends | `task testacc` |
+| End-to-end: Terragrunt, S3 state, private module remote | `task e2e:up` then `task e2e` |
 | golangci-lint v2 | `task lint` |
 | Python — ruff + ty | `task py` |
 | Pins resolve, none float | `task lint:pins` |
