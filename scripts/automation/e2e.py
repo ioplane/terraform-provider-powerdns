@@ -33,6 +33,9 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
+import boto3
+from botocore.client import Config
+from botocore.exceptions import ClientError
 from tenacity import (
     retry,
     retry_if_result,
@@ -52,15 +55,17 @@ COMPOSE_FILE = REPO_ROOT / "deployments" / "compose" / "compose.e2e.yml"
 E2E_DIR = REPO_ROOT / "test" / "e2e"
 
 DEV_CONTAINER_DEFAULT = "terraform-provider-powerdns-dev"
-MINIO_CONTAINER = "pdns-e2e-minio"
+S3_CONTAINER = "pdns-e2e-s3"
 FORGEJO_CONTAINER = "pdns-e2e-forgejo"
 
-MINIO_URL = "http://127.0.0.1:19000"
+S3_URL = "http://127.0.0.1:19000"
 FORGEJO_URL = "https://127.0.0.1:19300"
 FORGEJO_USER = "e2e"
 FORGEJO_PASSWORD = "e2e-fixture-password"  # noqa: S105
 FORGEJO_REPO = "dns-modules"
 BUCKET = "e2e-state"
+S3_ACCESS_KEY = "e2eaccesskey"
+S3_SECRET_KEY = "e2esecretkey"  # noqa: S105
 STATE_KEY = "dns/terraform.tfstate"
 
 AUTH_API = "http://127.0.0.1:18081/api/v1/servers/localhost"
@@ -137,6 +142,22 @@ def compose(*args: str) -> None:
     )
 
 
+def s3_answering() -> bool:
+    """Whether the S3 gateway is serving.
+
+    Any HTTP answer means it is. SeaweedFS replies 403 to an unsigned list,
+    which is a served request and not an outage — treating only 200 as ready
+    waits for something that never happens.
+    """
+    try:
+        with urllib.request.urlopen(S3_URL, timeout=3):  # nosemgrep
+            return True
+    except urllib.error.HTTPError:
+        return True
+    except OSError:
+        return False
+
+
 def _tls_context() -> ssl.SSLContext | None:
     """Trust the fixture's own certificate, and only that one.
 
@@ -182,14 +203,18 @@ def http_ok(url: str, timeout: float = 3.0, *, api_key: str | None = None) -> bo
     retry=retry_if_result(lambda ready: not ready),
     reraise=True,
 )
-def wait_for_minio() -> bool:
-    """Poll MinIO until it answers its health endpoint.
+def wait_for_s3() -> bool:
+    """Poll the S3 gateway until it answers.
+
+    SeaweedFS has no health endpoint on the gateway; a 403 from an
+    unauthenticated list is a served request, which is what is being waited
+    for. Waiting for a 200 would wait forever.
 
     tenacity rather than a hand-rolled loop: the retry policy is then a
     declaration rather than arithmetic on a deadline, and it is the same
     library the tests use.
     """
-    return http_ok(f"{MINIO_URL}/minio/health/live")
+    return s3_answering()
 
 
 @retry(
@@ -217,7 +242,7 @@ def dev_container() -> str:
 
 def container_states() -> dict[str, str]:
     """Report each fixture container's state, or 'absent'."""
-    states = dict.fromkeys((MINIO_CONTAINER, FORGEJO_CONTAINER), "absent")
+    states = dict.fromkeys((S3_CONTAINER, FORGEJO_CONTAINER), "absent")
     try:
         with PodmanClient() as client:
             for container in client.containers.list(all=True):
@@ -270,16 +295,31 @@ def make_tls_certificate() -> None:
 
 
 def make_bucket() -> None:
-    """Create the state bucket by creating its directory in MinIO's store.
+    """Create the state bucket through the S3 API.
 
-    MinIO lays a bucket out as a directory under its data root, so this needs
-    no S3 client and no request signing to set up the thing whose purpose is
-    to be written to over S3.
+    Through the API, because that is the interface. The first version made a
+    directory in the server's data root, which worked against MinIO because
+    MinIO lays a bucket out that way — and stopped meaning anything the moment
+    the server changed, since SeaweedFS keeps buckets in its filer. A fixture
+    that reaches behind an interface is a fixture that passes for the wrong
+    reason.
     """
-    subprocess.run(
-        ["podman", "exec", MINIO_CONTAINER, "mkdir", "-p", f"/data/{BUCKET}"],
-        check=True,
+    client = boto3.client(
+        "s3",
+        endpoint_url=S3_URL,
+        aws_access_key_id=S3_ACCESS_KEY,
+        aws_secret_access_key=S3_SECRET_KEY,
+        region_name="us-east-1",
+        config=Config(s3={"addressing_style": "path"}, signature_version="s3v4"),
     )
+    try:
+        client.create_bucket(Bucket=BUCKET)
+    except ClientError as error:
+        # Already there is the desired end state, not a failure.
+        code = error.response.get("Error", {}).get("Code", "")
+        if code not in ("BucketAlreadyOwnedByYou", "BucketAlreadyExists"):
+            raise
+    client.head_bucket(Bucket=BUCKET)
 
 
 def forgejo_admin() -> None:
@@ -467,10 +507,10 @@ def cmd_up() -> int:
 
     compose("up", "-d", "--build")
 
-    if not wait_for_minio():
-        print("MinIO did not answer within 90 seconds", file=sys.stderr)
+    if not wait_for_s3():
+        print("the S3 gateway did not answer within 90 seconds", file=sys.stderr)
         return 1
-    print("ok    MinIO answering")
+    print("ok    S3 gateway answering")
 
     if not wait_for_forgejo():
         print("Forgejo did not answer within 180 seconds", file=sys.stderr)
@@ -559,8 +599,7 @@ def cmd_status() -> int:
     """Report what is running."""
     for name, state in container_states().items():
         print(f"{state:<10} {name}")
-    minio_state = "up" if http_ok(f"{MINIO_URL}/minio/health/live") else "down"
-    print(f"{minio_state:<10} MinIO API")
+    print(f"{'up' if s3_answering() else 'down':<10} S3 gateway")
     return 0
 
 
