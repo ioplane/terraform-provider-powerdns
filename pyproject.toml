@@ -22,6 +22,10 @@ dependencies = [
 dev = [
     "ruff==0.16.0", # pin: RUFF_VERSION
     "ty==0.0.64", # pin: TY_VERSION
+    # The checks under scripts/checks/ are tested. They were shell scripts
+    # whose only test was running them, which is why several shipped with a
+    # branch that had never executed.
+    "pytest==9.1.1",
 ]
 # The end-to-end suite. Kept out of `dev` because it is the only thing that
 # needs a database driver and an S3 client, and neither belongs in the group
@@ -35,6 +39,18 @@ e2e = [
     "psycopg[binary]==3.3.4",
     "tenacity==9.1.4",
 ]
+
+# --- pytest ----------------------------------------------------------------
+# https://docs.pytest.org/
+[tool.pytest.ini_options]
+# Named, not discovered: `pytest` with no argument would otherwise collect the
+# end-to-end suite, which needs five containers and an S3 endpoint.
+testpaths = ["test/scripts"]
+# The checks are imported, not shelled out to. `python -m` finds them because
+# it puts the working directory first; pytest needs telling.
+pythonpath = ["."]
+addopts = "-ra --strict-markers --strict-config"
+xfail_strict = true
 
 [tool.uv]
 # The scripts are not an installable package; uv should manage the environment
@@ -127,6 +143,19 @@ ignore = [
 # subprocess use is the point of the automation, and every call site is a fixed
 # argument list with no shell and no user input.
 "scripts/automation/*.py" = ["S603", "S607"]
+"scripts/checks/*.py" = ["S603", "S607"]
+
+# The tests for the checks. Relaxed for the same reasons as the end-to-end
+# suite below, and no others.
+"test/scripts/*.py" = [
+    "S101",   # assert is how pytest reports
+    "ANN001", # fixtures are typed by pytest at the call site
+    "ANN201",
+    "INP001", # a test directory is found by pytest, not by the import system
+    "PLR2004", # the comparison value is the assertion
+    "S603",
+    "S607",
+]
 
 # The end-to-end suite. Each of these is relaxed because the rule is aimed at
 # production code and inverts in a test; none is relaxed because it was noisy.
@@ -166,7 +195,7 @@ docstring-code-format = true
 # findings have been accurate here, but a ty-only failure is reviewed rather
 # than trusted blindly — see docs/standards/python-tooling.md.
 [tool.ty.src]
-include = ["scripts"]
+include = ["scripts", "test/scripts"]
 
 [tool.ty.rules]
 possibly-unresolved-reference = "error"

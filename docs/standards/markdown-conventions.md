@@ -191,7 +191,7 @@ Verified dynamic topics for this repository: `license`, `last-commit`,
 available here — see rule 2.
 
 Append `.json` to any badge URL to see the value it will render. That is how
-rule 2 is checked, and `scripts/check-badges.sh` does it for every badge in the
+rule 2 is checked, and `scripts/checks/badges.py` does it for every badge in the
 tree.
 
 ---
@@ -282,10 +282,10 @@ decoration.
 | Heading structure, list style, line length | `markdownlint-cli2` against `.markdownlint-cli2.yaml` |
 | Spelling and accepted abbreviations | `cspell` against `.cspell.json` |
 | Front-matter and code-fence languages | `markdownlint-cli2` |
-| Badge URLs resolve | `scripts/check-badges.sh` |
-| Mermaid blocks parse | `scripts/check-badges.sh` |
+| Badge URLs resolve | `scripts/checks/badges.py` |
+| Mermaid blocks parse | `scripts/checks/badges.py` |
 
-`scripts/check-badges.sh` runs in `task docs:lint`. A badge pointing at a
+`scripts/checks/badges.py` runs in `task docs:lint`. A badge pointing at a
 non-existent endpoint renders as a broken image on the front page of the
 project, which is the kind of defect nobody notices in review and everybody
 notices afterwards.

@@ -1,0 +1,22 @@
+# compose.lab-auth-50.yml — overlay putting the authoritative pair on 5.0.
+#
+# Applied on top of compose.lab.yml, never on its own:
+#
+#     podman-compose -f compose.lab.yml -f compose.lab-auth-50.yml up -d
+#
+# The provider claims a range, not a version. Everything else in the fixture —
+# PostgreSQL, the recursor, dnsdist, the configuration files and the ports —
+# is deliberately unchanged, so a difference between the two acceptance runs is
+# attributable to the authoritative branch and to nothing else.
+#
+# 5.0.6 is the last release on that branch as of this pin. Both images are
+# pinned by digest, for the same reason the base file gives.
+
+name: terraform-provider-powerdns-lab
+
+services:
+  auth-pg:
+    image: docker.io/powerdns/pdns-auth-50:5.0.6@sha256:c6d296669d720dd3f596bf2b42dc25d2e272f40a2b2493a1c476b3007a1a4a75
+
+  auth-lmdb:
+    image: docker.io/powerdns/pdns-auth-50:5.0.6@sha256:c6d296669d720dd3f596bf2b42dc25d2e272f40a2b2493a1c476b3007a1a4a75

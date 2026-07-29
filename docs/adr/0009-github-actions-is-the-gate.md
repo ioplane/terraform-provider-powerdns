@@ -71,7 +71,7 @@ pushing, which is the difference between a gate and an obstacle.
 
 **The toolchain is pinned once.** `deployments/containers/Containerfile.dev`
 holds every version. A workflow line that names one carries `# pin: <ARG>`, and
-`scripts/check-tool-versions.sh` — part of `task all` — fails if the two
+`scripts/checks/tool_versions.py` — part of `task all` — fails if the two
 disagree, or if a marker is deleted. Without this the duplication ADR 0008
 feared is real: a linter at one version locally and another in CI produces an
 argument about which machine is right rather than about the code.

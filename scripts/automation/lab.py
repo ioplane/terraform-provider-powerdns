@@ -14,6 +14,11 @@ Usage:
     lab.py down      remove the fixture, including its volumes
     lab.py status    report container state and reachable API versions
     lab.py verify    assert the fixture matches the pinned reference points
+
+Every subcommand takes --auth to choose the authoritative branch, because the
+provider claims a range and one version cannot demonstrate a range:
+
+    lab.py up --auth 5.0
 """
 
 from __future__ import annotations
@@ -36,16 +41,26 @@ except ImportError:  # pragma: no cover - the dev image always has it
     raise SystemExit(2) from None
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COMPOSE_FILE = REPO_ROOT / "deployments" / "compose" / "compose.lab.yml"
+COMPOSE_DIR = REPO_ROOT / "deployments" / "compose"
+COMPOSE_FILE = COMPOSE_DIR / "compose.lab.yml"
 API_KEY = "labapikey"
 HTTP_OK = 200
 
 # Pinned reference points. When one of these moves, the claims that depend on
 # it are re-verified rather than assumed still correct — see
 # docs/standards/powerdns-api-discipline.md §5.
-EXPECTED_AUTH_VERSION = "5.1.3"
 EXPECTED_REC_VERSION = "5.4.4"
 EXPECTED_DNSDIST_VERSION = "2.1.0"
+
+# The authoritative branches the provider is tested against. The version here
+# and the digest in the corresponding compose file are two halves of one pin:
+# the compose file decides what runs, this decides what the fixture is allowed
+# to be, and `verify` fails when they disagree.
+AUTH_BRANCHES: dict[str, tuple[str, Path | None]] = {
+    "5.1": ("5.1.3", None),
+    "5.0": ("5.0.6", COMPOSE_DIR / "compose.lab-auth-50.yml"),
+}
+DEFAULT_AUTH_BRANCH = "5.1"
 
 
 @dataclass(frozen=True)
@@ -59,42 +74,47 @@ class Service:
     role: str
 
 
-SERVICES: tuple[Service, ...] = (
-    Service(
-        container="pdns-lab-auth-pg",
-        url="http://127.0.0.1:18081/api/v1/servers",
-        daemon_type="authoritative",
-        version=EXPECTED_AUTH_VERSION,
-        role="authoritative on PostgreSQL — the common deployment",
-    ),
-    Service(
-        container="pdns-lab-auth-lmdb",
-        url="http://127.0.0.1:18091/api/v1/servers",
-        daemon_type="authoritative",
-        version=EXPECTED_AUTH_VERSION,
-        role="authoritative on LMDB — the only backend implementing views",
-    ),
-    Service(
-        container="pdns-lab-rec",
-        url="http://127.0.0.1:18082/api/v1/servers",
-        daemon_type="recursor",
-        version=EXPECTED_REC_VERSION,
-        role="recursor with api_dir set — without it every write is 422",
-    ),
-    Service(
-        container="pdns-lab-dnsdist",
-        url="http://127.0.0.1:18083/api/v1/servers/localhost",
-        daemon_type="",
-        version=EXPECTED_DNSDIST_VERSION,
-        role="dnsdist — the only place its two write operations exist",
-    ),
-)
+def services(auth_version: str) -> tuple[Service, ...]:
+    """The fixture's services, with the authoritative pair on `auth_version`."""
+    return (
+        Service(
+            container="pdns-lab-auth-pg",
+            url="http://127.0.0.1:18081/api/v1/servers",
+            daemon_type="authoritative",
+            version=auth_version,
+            role="authoritative on PostgreSQL — the common deployment",
+        ),
+        Service(
+            container="pdns-lab-auth-lmdb",
+            url="http://127.0.0.1:18091/api/v1/servers",
+            daemon_type="authoritative",
+            version=auth_version,
+            role="authoritative on LMDB — the only backend implementing views",
+        ),
+        Service(
+            container="pdns-lab-rec",
+            url="http://127.0.0.1:18082/api/v1/servers",
+            daemon_type="recursor",
+            version=EXPECTED_REC_VERSION,
+            role="recursor with api_dir set — without it every write is 422",
+        ),
+        Service(
+            container="pdns-lab-dnsdist",
+            url="http://127.0.0.1:18083/api/v1/servers/localhost",
+            daemon_type="",
+            version=EXPECTED_DNSDIST_VERSION,
+            role="dnsdist — the only place its two write operations exist",
+        ),
+    )
 
 
-def compose(*args: str) -> None:
-    """Run podman-compose against the lab compose file."""
+def compose(overlay: Path | None, *args: str) -> None:
+    """Run podman-compose against the lab compose file and any overlay."""
+    files = ["-f", str(COMPOSE_FILE)]
+    if overlay is not None:
+        files += ["-f", str(overlay)]
     subprocess.run(
-        ["podman-compose", "-f", str(COMPOSE_FILE), *args],
+        ["podman-compose", *files, *args],
         check=True,
         cwd=REPO_ROOT,
     )
@@ -103,7 +123,7 @@ def compose(*args: str) -> None:
 def api_get(url: str, timeout: float = 3.0) -> list | dict | None:
     """GET a PowerDNS API endpoint, returning None when it is not answering."""
     # urllib honours file:// and other schemes, so anything reaching urlopen is
-    # checked first. Every caller here passes a constant from SERVICES, but the
+    # checked first. Every caller here passes a URL built by services(), but the
     # check costs nothing and keeps that true if a caller ever stops being
     # constant.
     if not url.startswith(("http://", "https://")):
@@ -113,7 +133,7 @@ def api_get(url: str, timeout: float = 3.0) -> list | dict | None:
     request = urllib.request.Request(url, headers={"X-API-Key": API_KEY})  # noqa: S310
 
     # The urlopen below is suppressed for semgrep's dynamic-urllib rule. The URL
-    # is not attacker-controlled — every caller passes a constant from SERVICES,
+    # is not attacker-controlled — every caller passes a URL built by services(),
     # and the scheme is checked above. Adopting requests purely to satisfy the
     # pattern would add a dependency to a loopback health check, which is the
     # worse trade.
@@ -131,10 +151,10 @@ def api_get(url: str, timeout: float = 3.0) -> list | dict | None:
         return None
 
 
-def wait_for_apis(deadline_seconds: int = 120) -> bool:
+def wait_for_apis(fixture: tuple[Service, ...], deadline_seconds: int = 120) -> bool:
     """Block until every service answers its API, or the deadline passes."""
     deadline = time.monotonic() + deadline_seconds
-    pending = {service.container: service for service in SERVICES}
+    pending = {service.container: service for service in fixture}
 
     while pending and time.monotonic() < deadline:
         for name, service in list(pending.items()):
@@ -194,11 +214,12 @@ def container_states() -> dict[str, str]:
     return states
 
 
-def cmd_up() -> int:
+def cmd_up(branch: str) -> int:
     """Start the fixture and wait until every API answers."""
-    compose("up", "-d")
-    print("waiting for APIs")
-    if not wait_for_apis():
+    auth_version, overlay = AUTH_BRANCHES[branch]
+    compose(overlay, "up", "-d")
+    print(f"waiting for APIs (authoritative {auth_version})")
+    if not wait_for_apis(services(auth_version)):
         return 1
     print()
     print("Lab endpoints:")
@@ -210,19 +231,20 @@ def cmd_up() -> int:
     return 0
 
 
-def cmd_down() -> int:
+def cmd_down(branch: str) -> int:
     """Remove the fixture, including its volumes."""
-    compose("down", "-v")
+    _, overlay = AUTH_BRANCHES[branch]
+    compose(overlay, "down", "-v")
     return 0
 
 
-def cmd_status() -> int:
+def cmd_status(branch: str) -> int:
     """Report container state and the version each API reports."""
     states = container_states()
     if not states:
         print("lab is not running")
         return 1
-    for service in SERVICES:
+    for service in services(AUTH_BRANCHES[branch][0]):
         state = states.get(service.container, "absent")
         payload = api_get(service.url)
         if payload:
@@ -234,10 +256,11 @@ def cmd_status() -> int:
     return 0
 
 
-def cmd_verify() -> int:
+def cmd_verify(branch: str) -> int:
     """Assert the fixture is the one the tests were written against."""
+    fixture = services(AUTH_BRANCHES[branch][0])
     failures: list[str] = []
-    for service in SERVICES:
+    for service in fixture:
         payload = api_get(service.url)
         if payload is None:
             failures.append(f"{service.container}: API not answering")
@@ -265,7 +288,7 @@ def cmd_verify() -> int:
     if failures:
         return 1
 
-    for service in SERVICES:
+    for service in fixture:
         print(f"OK   {service.container:24s} {service.role}")
     return 0
 
@@ -274,6 +297,12 @@ def main() -> int:
     """Dispatch the requested subcommand."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("up", "down", "status", "verify"))
+    parser.add_argument(
+        "--auth",
+        choices=tuple(AUTH_BRANCHES),
+        default=DEFAULT_AUTH_BRANCH,
+        help="authoritative branch to run (default: %(default)s)",
+    )
     args = parser.parse_args()
 
     return {
@@ -281,7 +310,7 @@ def main() -> int:
         "down": cmd_down,
         "status": cmd_status,
         "verify": cmd_verify,
-    }[args.command]()
+    }[args.command](args.auth)
 
 
 if __name__ == "__main__":

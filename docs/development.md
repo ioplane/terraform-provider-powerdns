@@ -1,7 +1,14 @@
 # Development
 
 Everything runs inside the dev container. The host needs Podman,
-`podman-compose` and Task — nothing else.
+`podman-compose`, Task and Python 3.12 — nothing else.
+
+Python is on that list because the host-side automation is Python: the lab
+lifecycle, the end-to-end fixture, the worktree helper and every check the gate
+runs. It is not an addition in practice — `podman-compose` is itself a Python
+program and cannot be installed without an interpreter — but the list said
+"nothing else", and a prerequisite that is only true by implication is one a
+contributor discovers by failing.
 
 ## First run
 

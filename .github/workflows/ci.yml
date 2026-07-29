@@ -2,7 +2,7 @@
 #
 # This is `task all`, run on a machine nobody owns. It is not a second gate
 # with its own opinions: every job here corresponds to a task, and
-# `scripts/check-tool-versions.sh` refuses a workflow that installs a version
+# `python3 -m scripts.checks.tool_versions` refuses a workflow that installs a version
 # the dev image is not built with (ADR 0009).
 #
 # Jobs run in the same base image the dev container is built from, pinned by
@@ -59,9 +59,9 @@ jobs:
       - name: Digests and action SHAs resolve
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/check-pins.sh
+        run: python3 -m scripts.checks.pins
       - name: CI and the dev image agree on tool versions
-        run: scripts/check-tool-versions.sh
+        run: python3 -m scripts.checks.tool_versions
 
   # task build, task test, task test:contract
   build-test:
@@ -256,15 +256,17 @@ jobs:
           hd=https://github.com/hadolint/hadolint/releases/download/v2.14.0 # pin: HADOLINT_VERSION
           curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/hadolint "$hd/hadolint-Linux-x86_64"
           sudo install -m 0755 /tmp/hadolint /usr/local/bin/hadolint
-          go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.1             # pin: SHFMT_VERSION
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
       - name: shellcheck
-        run: shellcheck scripts/*.sh
-      - name: shfmt
-        run: shfmt -d -i 2 -ci scripts/
+        # The repository's own automation is Python. What is left in shell is
+        # the import snippets, which are rendered into the registry pages and
+        # copied from there — an unbalanced quote in one is a user's problem.
+        # -s bash, not a shebang: tfplugindocs renders these verbatim into
+        # the registry pages, where a shebang would appear in the example.
+        run: shellcheck -s bash examples/resources/*/import.sh
       - name: hadolint
         run: hadolint deployments/containers/Containerfile.dev
       - name: actionlint
@@ -308,7 +310,7 @@ jobs:
       - run: cspell --no-progress --no-summary --config .cspell.json "**/*.md" "**/*.go"
       # Every shieldcn badge resolves and every mermaid block parses. A broken
       # badge is invisible in review and visible on the front page.
-      - run: scripts/check-badges.sh
+      - run: python3 -m scripts.checks.badges
 
   # The half the commit-msg hook cannot reach: a hook only protects a clone
   # that ran `task hooks`. This protects the branch, and its ancestor caught
@@ -353,13 +355,19 @@ jobs:
         run: |
           set -euo pipefail
           status=0
+          # Under the git directory rather than /tmp: the check refuses a path
+          # resolving outside the repository, and this job is a caller like any
+          # other. Asked of git rather than spelled `.git`, which is a file
+          # rather than a directory in a worktree.
+          scratch="$(git rev-parse --git-dir)/commit-message-check"
+          mkdir -p "$scratch"
           while read -r sha; do
             [ -n "$sha" ] || continue
-            git log -1 --format='%B' "$sha" > /tmp/msg.txt
-            scripts/check-no-ai-attribution.sh /tmp/msg.txt || { echo "  in commit $sha" >&2; status=1; }
+            git log -1 --format='%B' "$sha" > "$scratch/msg.txt"
+            python3 -m scripts.checks.no_ai_attribution "$scratch/msg.txt" || { echo "  in commit $sha" >&2; status=1; }
           done < <(git rev-list "${BASE_SHA}..${HEAD_SHA}")
           # And the squash message, which is the title and body rather than
           # any commit that was checked above.
-          printf '%s\n\n%s\n' "$PR_TITLE" "$PR_BODY" > /tmp/squash.txt
-          scripts/check-no-ai-attribution.sh /tmp/squash.txt || { echo "  in the pull request title or body" >&2; status=1; }
+          printf '%s\n\n%s\n' "$PR_TITLE" "$PR_BODY" > "$scratch/squash.txt"
+          python3 -m scripts.checks.no_ai_attribution "$scratch/squash.txt" || { echo "  in the pull request title or body" >&2; status=1; }
           exit "$status"

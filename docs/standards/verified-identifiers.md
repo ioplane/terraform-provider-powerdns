@@ -60,13 +60,13 @@ state in which this goes wrong.
 
 | Identifier | Gate |
 | --- | --- |
-| Action pins in workflows | `scripts/check-pins.sh` — pre-commit hook, `task lint:pins`, and a CI job |
+| Action pins in workflows | `scripts/checks/pins.py` — pre-commit hook, `task lint:pins`, and a CI job |
 | Go module versions | `go.sum`, and `go mod tidy` in the gate |
 | Container images | pinned tags in `Containerfile.dev`, mirrored into `compose.dev.yml`; `task lab:verify` asserts the running versions |
 | PowerDNS behaviour | [`powerdns-api-discipline.md`](powerdns-api-discipline.md) — sources plus a live round-trip |
 | Source locations in prose | reviewer opens the cited file at the cited tag |
 
-`scripts/check-pins.sh` rejects two things: a SHA that does not resolve
+`scripts/checks/pins.py` rejects two things: a SHA that does not resolve
 upstream, and a floating tag used where a SHA belongs. On its first run it found
 four floating tags in `release.yml` — a file nobody had touched, holding the GPG
 signing key.

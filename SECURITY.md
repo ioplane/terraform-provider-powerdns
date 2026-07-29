@@ -34,7 +34,7 @@ finds key material.
 ## Supply chain
 
 - Container images pinned by `sha256` digest; GitHub Actions by commit SHA.
-  `scripts/check-pins.sh` rejects a floating or unresolvable reference.
+  `scripts/checks/pins.py` rejects a floating or unresolvable reference.
 - Go dependencies pinned exactly, verified by `go.sum`.
 - `govulncheck`, `osv-scanner` and `semgrep` run in CI.
 - Release archives are GPG-signed.

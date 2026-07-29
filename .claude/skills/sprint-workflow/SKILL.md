@@ -14,7 +14,7 @@ document is a rule that gets forgotten at the moment it applies.
 ## Opening
 
 ```console
-scripts/worktree.sh new sprint/<phase>-<name>
+task worktree:new BRANCH=sprint/<phase>-<name>
 cd ../.worktrees/sprint/<phase>-<name>
 task up
 ```
@@ -59,7 +59,7 @@ afterwards is a report, not a control.
 ```console
 gh pr create --fill
 gh pr merge --squash --delete-branch
-scripts/worktree.sh rm sprint/<phase>-<name>
+task worktree:rm BRANCH=sprint/<phase>-<name>
 podman rm -f terraform-provider-powerdns-dev-<name>
 ```
 
@@ -75,7 +75,7 @@ Conventional Commits, enforced by `commitlint` in the `commit-msg` hook:
 - header ≤ 72 characters, body lines ≤ 72
 - subject lower-case — `PowerDNS` in a subject fails `subject-case`
 - scope from the enum in `.commitlintrc.yaml`
-- **no AI attribution**, enforced by `scripts/check-no-ai-attribution.sh`
+- **no AI attribution**, enforced by `scripts/checks/no_ai_attribution.py`
 
 Write the body to a file and use `git commit -F`. Heredocs through the Bash
 tool mangle the wrapping, and the length rules then fail on something invisible.
