@@ -117,6 +117,19 @@ jobs:
           go install github.com/goreleaser/goreleaser/v2@v2.17.1 # pin: GORELEASER_VERSION
           goreleaser check
 
+      - name: The release is shaped the way the Registry ingests
+        # A snapshot build, and an assertion about what it produced. v0.1.0 was
+        # built, signed, published and refused: SBOMs had been added to the
+        # release and goreleaser folded them into SHA256SUMS, which the
+        # Registry reads as the list of files belonging to the version. Every
+        # check asked whether the artefacts were correct; none asked whether
+        # they were the ones the Registry accepts.
+        run: |
+          go install github.com/anchore/syft/cmd/syft@v1.50.0 # pin: SYFT_VERSION
+          goreleaser release --snapshot --clean --skip=publish,sign
+          scripts/check-release-artifacts.sh dist
+          rm -rf dist
+
       - name: The registry documentation is in sync
         # Stale pages are published as if they described this version, and the
         # Registry will not accept a correction to a version already released.

@@ -5,7 +5,8 @@ before:
     - go mod tidy
 
 builds:
-  - env: [CGO_ENABLED=0]
+  - id: provider
+    env: [CGO_ENABLED=0]
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags: [-trimpath]
     ldflags:
@@ -19,10 +20,16 @@ builds:
 
 archives:
   # The name is mandated verbatim by the Terraform Registry.
-  - formats: [zip]
+  - id: provider
+    ids: [provider]
+    formats: [zip]
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 
 checksum:
+  # Archives only. The Registry parses SHA256SUMS and expects every line to be
+  # part of the version it is ingesting; an SBOM listed there is a file it will
+  # not accept, and it rejects the whole submission for it.
+  ids: [provider]
   extra_files:
     - glob: 'terraform-registry-manifest.json'
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'

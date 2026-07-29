@@ -318,6 +318,16 @@ tasks:
 
   # === Release ===
 
+  release:dryrun:
+    desc: Build a snapshot and assert it is shaped the way the Registry ingests
+    deps: [_dev-running]
+    # v0.1.0 was built, signed, published and refused. Every check asked
+    # whether the artefacts were correct; none asked whether they were the ones
+    # the Registry accepts. Twenty seconds here answers that.
+    cmds:
+      - '{{.EXEC}} goreleaser release --snapshot --clean --skip=publish,sign'
+      - scripts/check-release-artifacts.sh dist
+
   release:check:
     desc: Everything about a release that can be checked before building
     deps: [_dev-running]
@@ -329,6 +339,7 @@ tasks:
       - scripts/check-release.sh {{.VERSION_ARG}}
       - '{{.EXEC}} goreleaser check'
       - task: 'docs:drift'
+      - task: 'release:dryrun'
 
   docs:drift:
     desc: The generated registry documentation matches the schema and examples
