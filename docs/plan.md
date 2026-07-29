@@ -9,9 +9,9 @@
 
 <div align="center">
 
-![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
+![phase 9_of_10](https://shieldcn.dev/badge/phase-9_of_10-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 81](https://shieldcn.dev/badge/tasks_done-81-3fb950.svg?variant=secondary)
+![tasks_done 85](https://shieldcn.dev/badge/tasks_done-85-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1144,6 +1144,75 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
 | S8-14 | **Added.** Repository hygiene: CODEOWNERS, templates, code of conduct, settings, branch protection | OPS | `[x]` |
+
+---
+
+## Phase 9 — The consumer's path · `[~]` in progress
+
+### What the acceptance suite never touched
+
+It proves the provider is correct against PowerDNS. It says nothing about the
+path a configuration travels to reach it: remote state, a module fetched from a
+remote, an engine holding a lock. That is where a provider which passes every
+test still fails in somebody's pipeline, and none of it had ever been exercised.
+
+`test/e2e` runs that path. Terragrunt over an S3 backend on MinIO, the module
+fetched over the git protocol from a local `git daemon`, against the running
+lab — twelve scenarios, all green, repeatable back to back.
+
+| Scenario | Establishes |
+| --- | --- |
+| apply fetches the module over git | the module comes from a remote, not from a path beside the configuration |
+| the second plan is empty | idempotence, the property the whole normalisation layer serves |
+| DNS answers the forward records | a name resolves — an HTTP 200 did not establish that |
+| DNS answers the reverse record | the PTR sits where the provider function computed it |
+| the RRSet holds both values | one set with two values, not two resources fighting over a name |
+| the database holds the rows | gpgsql, past both the API and anything caching in front of it |
+| state is in the bucket | S3, not on disk beside the configuration |
+| no lock is left behind | a finished run releases it; a stale lock is indistinguishable from a live one |
+| a held lock blocks a second run | the lock is planted rather than raced, so it fails for one reason only |
+| a TTL change does not replace the record | a replacement is an outage nobody asked for |
+| an out-of-band zone imports | adoption, in its own unit with its own state |
+| destroy removes it everywhere | gone from DNS and from storage, not merely from state |
+
+### It runs on OpenTofu, which nobody had checked
+
+Terragrunt drives `tofu`, not `terraform`. ADR 0004 called OpenTofu a co-equal
+target and the dev image has carried it since phase 0, but every test until now
+went through Terraform. The provider's first end-to-end exercise turns out to
+have been on the other engine, and it passed.
+
+### Four defects in the harness, all mine
+
+Written down because each is a class, not a typo.
+
+**`bash -lc` a second time.** A login shell re-reads the profile and drops
+`/usr/local/go/bin` from PATH, so `go build` failed with 127. I had already met
+this exact failure earlier in the day and reintroduced it.
+
+**The lab check asked without the API key.** PowerDNS answers 401, `http_ok`
+saw "not 200", and the driver reported a running lab as absent.
+
+**The import test removed a live resource from state.** It imported into
+`powerdns_zone.this` — the address the live unit manages — and cleaned up with
+`state rm`, orphaning the real zone. Two tests later an apply met a 409 whose
+cause was nowhere near it. The adoption scenario now has its own unit and its
+own state key.
+
+**A destroyed zone answers REFUSED, not NXDOMAIN.** With the zone gone the
+server is no longer authoritative and declines the name; dnspython raises that
+as "all nameservers failed", which is also what a dead server looks like. The
+suite asks with a low-level query and asserts the rcode, so a server that is
+simply down now fails the test instead of passing it.
+
+| ID | Task | Role | Status |
+| --- | --- | --- | --- |
+| S9-01 | `compose.e2e.yml` — MinIO and a git remote beside the lab | OPS | `[x]` |
+| S9-02 | A module and a Terragrunt unit that consume the provider | DEV | `[x]` |
+| S9-03 | `e2e.py` — fixture lifecycle on podman-py, driven by uv | OPS | `[x]` |
+| S9-04 | The suite on pytest, with boto3, dnspython and psycopg | QA | `[x]` |
+| S9-05 | The e2e suite in CI | OPS | `[ ]` |
+| S9-06 | DNSSEC and the second backend in the e2e path | QA | `[ ]` |
 | S8-13 | A release gate: nothing is built until the release is checkable | OPS | `[x]` |
 
 S8-10 reopened something S0-21 closed. A `github/ci` badge was removed then

@@ -13,8 +13,8 @@ rules:
     - always
     - [provider, zone, record, metadata, view, network, dnssec, tsig,
        autoprimary, recursor, dnsdist, transport, auth, actions, functions,
-       ephemeral, docs, examples, lab, ci, build, deps, release, test, lint,
-       repo, standards]
+       ephemeral, docs, examples, lab, e2e, ci, build, deps, release, test,
+       lint, repo, standards]
   scope-empty: [2, never]
   subject-case: [2, always, [lower-case, sentence-case]]
   subject-full-stop: [2, never, "."]

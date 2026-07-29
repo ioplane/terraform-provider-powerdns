@@ -316,6 +316,28 @@ tasks:
       - '{{.EXEC}} cspell --no-progress --no-summary --config .cspell.json "**/*.md" "**/*.go"'
       - scripts/check-badges.sh
 
+  # === End-to-end ===
+
+  e2e:up:
+    desc: Bring up the end-to-end fixture — MinIO, git, the bucket, the module
+    # Host-side, like the lab: it drives podman rather than running inside it.
+    deps: [_lab-running]
+    cmds: ['uv run --group e2e python scripts/automation/e2e.py up']
+
+  e2e:down:
+    desc: Remove the end-to-end fixture, including its volumes
+    cmds: ['uv run --group e2e python scripts/automation/e2e.py down']
+
+  e2e:status:
+    desc: Report what the end-to-end fixture is running
+    cmds: ['uv run --group e2e python scripts/automation/e2e.py status']
+
+  e2e:
+    desc: The end-to-end suite — terragrunt, S3 state, git module, real DNS
+    deps: [_dev-running, _lab-running]
+    cmds:
+      - '{{.EXEC}} uv run --group e2e pytest test/e2e -v --timeout=900'
+
   # === Release ===
 
   release:dryrun:

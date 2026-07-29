@@ -9,6 +9,19 @@ The mapping between commit type, changelog section and version bump is in
 
 ## [Unreleased]
 
+### Added
+
+- `test/e2e` — the path a consumer's configuration travels, which the
+  acceptance suite never touched: Terragrunt over an S3 backend on MinIO, the
+  module fetched over the git protocol, against the running lab. Twelve
+  scenarios on pytest, asking through the interfaces a consumer uses — boto3
+  for the bucket, dnspython for what DNS answers, psycopg for what the backend
+  stored — rather than by parsing `dig` and `psql`. It also runs on OpenTofu,
+  which Terragrunt selects by default and which nothing had exercised before.
+- `task e2e:up`, `task e2e`, `task e2e:down` — the fixture on podman-py, driven
+  through uv.
+
+
 ## [0.1.1] — 2026-07-29
 
 ### Fixed

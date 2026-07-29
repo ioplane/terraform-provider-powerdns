@@ -23,6 +23,18 @@ dev = [
     "ruff==0.16.0", # pin: RUFF_VERSION
     "ty==0.0.64", # pin: TY_VERSION
 ]
+# The end-to-end suite. Kept out of `dev` because it is the only thing that
+# needs a database driver and an S3 client, and neither belongs in the group
+# every linter run installs.
+e2e = [
+    "pytest==9.1.1",
+    "podman==5.8.0", # pin: PODMAN_PY_VERSION
+    "pytest-timeout==2.4.0",
+    "boto3==1.43.58",
+    "dnspython==2.8.0",
+    "psycopg[binary]==3.3.4",
+    "tenacity==9.1.4",
+]
 
 [tool.uv]
 # The scripts are not an installable package; uv should manage the environment
@@ -115,6 +127,30 @@ ignore = [
 # subprocess use is the point of the automation, and every call site is a fixed
 # argument list with no shell and no user input.
 "scripts/automation/*.py" = ["S603", "S607"]
+
+# The end-to-end suite. Each of these is relaxed because the rule is aimed at
+# production code and inverts in a test; none is relaxed because it was noisy.
+"test/e2e/*.py" = [
+    # assert is how pytest reports. Rewriting these as raise would remove the
+    # introspection that makes a failure readable.
+    "S101",
+    # Fixtures are typed by pytest at the call site; annotating every fixture
+    # parameter restates what the fixture already declares.
+    "ANN001",
+    "ANN201",
+    # Imports inside a test keep an optional dependency out of collection, so a
+    # missing library fails the test that needs it rather than the whole run.
+    "PLC0415",
+    # A test directory is not a package and must not be importable as one:
+    # conftest.py is found by pytest, not by the import system.
+    "INP001",
+    # The comparison values are the assertion. Naming 2 as EXPECTED_VALUES
+    # moves the fact being tested away from the line testing it.
+    "PLR2004",
+    # subprocess, for the one tool with no library interface.
+    "S603",
+    "S607",
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

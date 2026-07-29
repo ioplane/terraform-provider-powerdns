@@ -1,0 +1,33 @@
+# Containerfile.git — a git remote for the end-to-end fixture.
+#
+# `git daemon` over the git protocol, anonymous and read-write on one
+# repository. That is enough to prove Terragrunt fetches a module from a
+# remote rather than from a path, which is the property under test; a forge
+# would add an account, a token and a UI that prove nothing further.
+#
+# The base is the same digest-pinned image the dev container uses, so this
+# introduces no second reference to keep current.
+
+ARG GO_IMAGE=golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7
+
+FROM ${GO_IMAGE} AS git
+
+LABEL org.opencontainers.image.title="terraform-provider-powerdns-e2e-git" \
+      org.opencontainers.image.description="git daemon for the end-to-end fixture." \
+      org.opencontainers.image.source="https://github.com/ioplane/terraform-provider-powerdns" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
+WORKDIR /srv/git
+
+# --export-all rather than a per-repository marker file: everything under
+# /srv/git is fixture data, created by the driver and thrown away with it.
+# --enable=receive-pack because the driver pushes the module in.
+EXPOSE 19418
+CMD ["git", "daemon", \
+     "--reuseaddr", \
+     "--listen=0.0.0.0", \
+     "--port=19418", \
+     "--base-path=/srv/git", \
+     "--export-all", \
+     "--enable=receive-pack", \
+     "--verbose"]

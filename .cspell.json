@@ -44,6 +44,8 @@
     "actionlint", "codeql", "dependabot", "SARIF", "scorecard", "syft",
     "shellcheck", "shfmt", "hadolint", "zizmor", "pipefail", "Containerfiles",
     "syft", "sboms", "dryrun",
+    "NXDOMAIN", "dnspython", "pytest", "boto", "psycopg", "tenacity", "terragrunt",
+    "MinIO", "minio", "rcode", "tflock", "REFUSED",
 
     // This repository's own test identifiers and container names.
     "testutil", "testacc", "testkey", "labapikey", "capprobe", "fixtureview",
