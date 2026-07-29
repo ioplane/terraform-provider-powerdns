@@ -1,0 +1,14 @@
+# hadolint — https://github.com/hadolint/hadolint
+#
+# One rule is ignored, and only one.
+ignored:
+  # DL3008 — pin versions in apt-get install.
+  #
+  # It is the right instinct and the wrong mechanism here. Debian removes a
+  # package version from the mirror when a point release supersedes it, so a
+  # pinned apt line stops building some weeks later with "version not found" —
+  # a pin that expires is worse than none, because it fails at a moment nobody
+  # chose. What actually fixes the apt snapshot is the base image digest, which
+  # `check-pins.sh` already enforces, and every tool whose version matters to a
+  # result is installed by name and version further down.
+  - DL3008

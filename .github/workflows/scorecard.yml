@@ -1,0 +1,47 @@
+# OpenSSF Scorecard.
+#
+# The provider is going to the Terraform Registry, where anyone can take a
+# dependency on it without knowing anything about how it is built. Scorecard
+# is the public answer to that: pinned actions, branch protection, no
+# long-lived tokens, a signed release. It scores what this repository already
+# claims, from outside, on a schedule.
+name: Scorecard
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * 1'
+
+# Named rather than `read-all`, which the upstream template uses. Scorecard
+# reads the workflow definitions and the branch configuration; nothing else.
+permissions:
+  contents: read
+
+jobs:
+  analysis:
+    name: OpenSSF Scorecard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+      # Scorecard publishes its result to the public OpenSSF dataset, which it
+      # authenticates with an OIDC token rather than a stored secret.
+      id-token: write
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          publish_results: true
+      - uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          sarif_file: scorecard.sarif
+          category: scorecard

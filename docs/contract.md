@@ -37,6 +37,7 @@ promised.
 - [4. Guarantees](#4-guarantees)
 - [5. Non-goals](#5-non-goals)
 - [6. Changing the contract](#6-changing-the-contract)
+- [7. How these guarantees are checked](#7-how-these-guarantees-are-checked)
 
 ---
 
@@ -368,3 +369,28 @@ Before 1.0, MINOR carries what MAJOR will carry afterwards. That is the
 freedom this phase exists to use: the schema is still cheap to correct, and
 [`plan.md`](plan.md) records every correction made so far rather than
 pretending the first attempt was right.
+
+---
+
+## 7. How these guarantees are checked
+
+A guarantee nothing verifies is a preference. Each of the above is checked by
+something that runs without being remembered.
+
+| Guarantee | Checked by | Runs |
+| --- | --- | --- |
+| §4.1 an apply converges | acceptance suite — every resource applies twice, the second plan must be empty | `acceptance.yml`, and `task verify` locally |
+| §4.2 secrets do not reach state | acceptance assertions on state contents, plus the schema's write-only and ephemeral declarations | `acceptance.yml` |
+| §3 the surface matches this document | `TestSurfaceIsComplete` per product, and the audit's name-by-name comparison | `ci.yml` |
+| §4.6 an impossible operation names its cause | capability-classifier tests against recorded fixtures | `ci.yml` |
+| Behaviour matches the pinned PowerDNS versions | `lab.py verify` before the suite runs | `acceptance.yml` |
+| The documented examples still parse and format | `terraform fmt -check`, and `tfplugindocs validate` on the generated pages | `ci.yml` |
+
+The workflows are described in [ADR 0009](adr/0009-github-actions-is-the-gate.md).
+Acceptance is not yet a pull-request gate: it starts five containers and is
+allowed ninety minutes, and it moves there once its run history says it is
+stable. Until then the promise it verifies is verified on `main` and nightly,
+not on the branch.
+
+A released version carries a `SHA256SUMS` signed with the key the Terraform
+Registry holds, and an SBOM per archive.

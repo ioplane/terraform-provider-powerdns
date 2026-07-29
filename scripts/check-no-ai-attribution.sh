@@ -20,9 +20,10 @@ readonly PATTERN='(co-authored-by:[[:space:]]*(claude|chatgpt|copilot|ai\b)|gene
 
 # A bare "claude" is ambiguous: it names the tool directory this repository
 # carries. Strip those paths, then look for it as a word on its own.
-readonly PROSE="$(mktemp)"
+PROSE="$(mktemp)"
+readonly PROSE
 trap 'rm -f "${PROSE}"' EXIT
-sed -E 's#[^[:space:]]*\.claude/[^[:space:]]*##g' "${MSG_FILE}" > "${PROSE}"
+sed -E 's#[^[:space:]]*\.claude/[^[:space:]]*##g' "${MSG_FILE}" >"${PROSE}"
 
 if grep -qiE "${PATTERN}" "${PROSE}" || grep -qiE '(^|[^./[:alnum:]])claude([^./[:alnum:]]|$)' "${PROSE}"; then
   echo "commit message claims AI authorship; see AGENTS.md golden rule 6" >&2

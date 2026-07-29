@@ -9,9 +9,9 @@
 
 <div align="center">
 
-![phase 7_of_8](https://shieldcn.dev/badge/phase-7_of_8-0969da.svg?variant=secondary)
+![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 66](https://shieldcn.dev/badge/tasks_done-66-3fb950.svg?variant=secondary)
+![tasks_done 74](https://shieldcn.dev/badge/tasks_done-74-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,9 +24,10 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 7 — examples and registry documentation landed;
-version matrix and release next
-**Last updated:** 2026-07-28
+**Status:** phase 8 — the gate now runs in GitHub Actions. Phase 7 stays open
+alongside it: the version matrix and the signed release are release decisions,
+not CI work.
+**Last updated:** 2026-07-29
 
 ## How a sprint runs
 
@@ -859,6 +860,166 @@ copies the caveat with it.
 | S7-03 | Version matrix: acceptance against auth 5.0.x as well as 5.1.3 | QA | `[ ]` |
 | S7-04 | Signed `v0.1.0` | PM | `[ ]` |
 | S7-05 | Terraform Registry submission | PM | `[ ]` |
+
+---
+
+## Phase 8 — Continuous integration · `[~]` in progress
+
+### The gate was never enforced anywhere
+
+Until this phase the quality gate was `task all`, run by a developer and quoted
+in a commit body. [ADR 0008](adr/0008-github-only-review.md) recorded that as
+"weaker than a pipeline enforcing it, and the accepted cost until a runner
+exists", and kept `.gitlab-ci.yml` as the gate's definition for a mirror that
+might exist later — to be "kept current".
+
+It was not kept current. By the time it was removed it called two scripts that
+do not exist, ran the contract tests with a build tag they do not carry, and
+split the acceptance matrix in a way the suite has not worked in since phase 5.
+
+Nobody noticed, because nothing ran it. That is the finding, and it generalises
+past this file: **an unexecuted pipeline does not stay correct, and reads as a
+gate while enforcing nothing.** It is now deleted, and the gate runs where the
+code is reviewed ([ADR 0009](adr/0009-github-actions-is-the-gate.md)).
+
+### One toolchain, in two places, that cannot drift
+
+CI cannot cheaply run the dev container — building that image costs more per
+job than the job. So the workflows install the same tools themselves, and the
+toolchain now exists twice.
+
+Two versions of a linter is not a cosmetic problem: it produces a finding on
+one machine and not the other, and the argument that follows is about which
+machine is right rather than about the code. So `Containerfile.dev` holds every
+version, a workflow line naming one carries `# pin: <ARG>`, and
+`scripts/check-tool-versions.sh` — part of `task all` — fails on a mismatch
+**and** on a deleted marker. Both directions were tested against real
+mutations, because a check that only ever passes proves nothing.
+
+### What the gate found on its way in
+
+Writing the workflows surfaced four defects in things already believed correct:
+
+| Where | Defect |
+| --- | --- |
+| `release.yml` | ran GoReleaser at `latest` — the one path where "whatever was current that day" is least acceptable |
+| `release.yml` | took the release notes from whichever changelog section was on top, not the one matching the tag |
+| `check-pins.sh` | read `github/codeql-action/init` as a repository, so every subpath action reported NOT FOUND |
+| `task semgrep` | ran on the host with no pinned version, against AGENTS.md's own no-host-toolchain rule |
+
+The plan's task counter is also derived now rather than asserted: the audit
+recomputed it, `check-badges.sh` recomputes it on every run. That was the
+audit's own finding left half-finished.
+
+### And what the first run found, which is the point
+
+The workflows were written blind — `actionlint` parses them, nothing local
+executes them — so the first run on the pull request was the real test. It
+failed four ways, each of them a fact about GitHub Actions rather than a typo:
+
+- A job with `container:` gets `sh`, not `bash`. `${GITHUB_SHA::8}` is bash
+  syntax and died as "Bad substitution". Every workflow now sets `shell: bash`.
+- The Go image has no `unzip`, and HashiCorp ships Terraform as a zip. That job
+  moved to the runner, which already has both.
+- `check-pins.sh` reported one action of twenty-four as NOT FOUND — a valid,
+  resolvable SHA. It treated any `gh` failure as "this commit does not exist",
+  so a rate-limited run would report two dozen correct pins as fabricated. It
+  now retries, and distinguishes "GitHub says no" from "the call did not
+  succeed".
+- SonarCloud, already wired to this repository, failed its quality gate on
+  nineteen findings — all in the workflows just written. Most were the same
+  finding this repository already has a rule about: `npm install -g pkg@latest`
+  in CI *and* in the dev image, and an unpinned `podman-compose`. Now pinned,
+  installed with `--ignore-scripts`, and every download refuses a redirect off
+  HTTPS.
+
+The second run then found the one that could not be fixed by trying harder.
+`check-pins.sh` could not verify `aquasecurity/trivy-action`'s SHA from a
+hosted runner at all: that organisation has an IP allow list, and the API
+answers 403 for every runner address. A pin nothing can check is not a pin,
+and a named exception in the checker for one action is how a rule becomes a
+preference — so the action was replaced by the published trivy image, pinned
+by digest, which skopeo resolves from anywhere.
+
+One thing still fails, and it is not a change to this repository:
+
+- SonarCloud's quality gate — it objects to `go install pkg@v1.2.3` on the
+  grounds that it is not a lock-file, which for a pinned module version it
+  effectively is. Marking a finding as a false positive needs access to the
+  SonarCloud project, not a commit here. **S8-12.**
+
+### The linters that were missing entirely
+
+Six shell scripts and a Containerfile had no linter at all — the gate covered
+Go, Python, Markdown, YAML and spelling, and stopped there. Four now run, in
+the dev image and in `ci.yml`, pinned in the same place as everything else:
+
+| Linter | Covers | Found |
+| --- | --- | --- |
+| `shellcheck` | the scripts | a dead `IMAGE_RE` in `check-pins.sh`, and five `readonly X="$(cmd)"` that swallow the command's exit status |
+| `shfmt` | the scripts | seven files, reformatted once |
+| `hadolint` | `Containerfile.dev` | two `curl … \| …` that could not fail the build |
+| `zizmor` | the workflows | sixteen checkouts leaving the token in `.git/config`, and a module cache restored into the signing job |
+
+`shellcheck` is not only for the scripts: `actionlint` hands it every `run:`
+block, so the shell inside a workflow is now held to the same standard as a
+script — and without it installed, actionlint silently checks less than it
+appears to.
+
+`hadolint` also produced the sprint's one wrong first answer. Its finding was
+that a pipe hides the exit status of everything but the last command, and the
+usual remedy is `SHELL ["/bin/bash", "-o", "pipefail", "-c"]` — which podman
+accepts, warns about, and ignores, because OCI has no `SHELL` instruction. It
+would have satisfied the linter and protected nothing. The pipes were removed
+instead, which works whatever builds the image.
+
+The two `zizmor` classes are worth naming because both are about a release
+this repository has not cut yet. `actions/checkout` leaves its token in
+`.git/config` for the rest of the job, where anything that archives the
+workspace carries it out too; and `actions/setup-go` with `cache: true` in
+`release.yml` would let a cache entry written by an earlier run reach the job
+whose output is signed and published as immutable.
+
+Super-Linter is deliberately absent. It bundles its own versions of
+golangci-lint, ruff, markdownlint and yamllint, which this repository pins —
+so it would put a second opinion about the same files into the tree, which is
+the thing [ADR 0009](adr/0009-github-actions-is-the-gate.md) exists to prevent.
+What it would have added over the gate is exactly the four above, and those are
+installed at named versions instead.
+
+What SonarCloud was right about is already fixed: `@latest` npm installs in CI
+*and* in the dev image since phase 0, an unpinned `podman-compose`, downloads
+that would follow a redirect off HTTPS, and `uv` willing to build a source
+distribution — which is arbitrary Python at install time — now refused by
+`UV_NO_BUILD`.
+
+| ID | Task | Role | Status |
+| --- | --- | --- | --- |
+| S8-01 | Retire `.gitlab-ci.yml`; ADR 0009 | OPS | `[x]` |
+| S8-02 | `ci.yml` — the gate, job for job against `task all` | OPS | `[x]` |
+| S8-03 | `acceptance.yml` — the five-container lab on a hosted runner | OPS | `[x]` |
+| S8-04 | `security.yml` — CodeQL, Semgrep, osv-scanner, Trivy, SARIF | OPS | `[x]` |
+| S8-05 | `scorecard.yml`, `dependency-review.yml`, `dependabot.yml` | OPS | `[x]` |
+| S8-06 | `release.yml` — pinned, tested, SBOMs, notes by version | OPS | `[x]` |
+| S8-07 | `check-tool-versions.sh` and `lint:actions` in the gate | OPS | `[x]` |
+| S8-08 | Acceptance moves to pull requests once its run history says it is stable | QA | `[ ]` |
+| S8-09 | Branch protection: require the gate before merge | PM | `[ ]` |
+| S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[ ]` |
+| S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
+| S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
+
+S8-10 reopens something S0-21 closed. A `github/ci` badge was removed then
+because it rendered "not found": the endpoint answered `200`, but GitHub held
+only the release workflow, so there was no CI to report. There is now — and
+`check-badges.sh` fetches the JSON behind a dynamic badge rather than trusting
+the status code, so adding it before the first run would fail the gate. It goes
+in after.
+
+S8-08 and S8-09 are deliberately open. Acceptance is five services and a
+ninety-minute ceiling, and it has never run on hardware nobody here controls;
+making every pull request wait on it before it has proven itself buys an
+unreliable gate rather than a slow one. Branch protection is worth setting only
+once the checks it would require have a run history to point at.
 
 ---
 

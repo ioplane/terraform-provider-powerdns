@@ -1,0 +1,365 @@
+# The quality gate.
+#
+# This is `task all`, run on a machine nobody owns. It is not a second gate
+# with its own opinions: every job here corresponds to a task, and
+# `scripts/check-tool-versions.sh` refuses a workflow that installs a version
+# the dev image is not built with (ADR 0009).
+#
+# Jobs run in the same base image the dev container is built from, pinned by
+# the same digest.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    # `edited` so a rewritten PR title is re-checked by commitlint.
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GOFLAGS: -buildvcs=false
+  # Refuse source distributions: building one runs arbitrary Python at
+  # install time. Every tool installed here publishes a wheel.
+  UV_NO_BUILD: "1"
+
+defaults:
+  run:
+    # A job with `container:` defaults to `sh`, not `bash`. The first run of
+    # this workflow died on `${GITHUB_SHA::8}` — "Bad substitution" — which is
+    # bash syntax reaching a shell that does not have it.
+    shell: bash
+
+jobs:
+  # task lint:pins, task lint:tools
+  pins:
+    name: Pins (digests · action SHAs · tool versions)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
+      - name: Install skopeo
+        # Without it check-pins.sh reports "skip (skopeo unavailable)" for
+        # every image and still exits 0 — a green check that verified nothing.
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends skopeo
+      - name: Digests and action SHAs resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/check-pins.sh
+      - name: CI and the dev image agree on tool versions
+        run: scripts/check-tool-versions.sh
+
+  # task build, task test, task test:contract
+  build-test:
+    name: Build & test
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/library/golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 # pin: GO_IMAGE
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          # Otherwise the token stays in .git/config for the rest of the job,
+          # where anything archiving the workspace carries it out too. Nothing
+          # here pushes with that credential.
+          persist-credentials: false
+      - name: Cache Go modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Build
+        run: |
+          go build -ldflags="-s -w -X main.version=ci-${GITHUB_SHA::8}" \
+            -o bin/terraform-provider-powerdns .
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@v1.13.0 # pin: GOTESTSUM_VERSION
+
+      # The unit and contract suites are one `go test ./...`: the contract
+      # tests carry no build tag, because a test that only runs when somebody
+      # remembers a tag is a test that stops running.
+      - name: Test
+        run: |
+          gotestsum --junitfile unit-report.xml --format short-verbose \
+            -- ./... -race -count=1 -coverprofile=coverage.out -covermode=atomic
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-reports
+          path: |
+            unit-report.xml
+            coverage.out
+          retention-days: 30
+
+  # task lint
+  lint-go:
+    name: Lint (Go · golangci-lint v2)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.12.2 # pin: GOLANGCI_LINT_VERSION
+          # SARIF as well as the human output. gosec is one of the linters
+          # .golangci.yml enables, so its findings reach the Security tab from
+          # the configuration the repository already has — rather than from a
+          # second gosec run with a second set of exclusions to keep in step.
+          args: --timeout=10m --output.text.path stdout --output.sarif.path golangci.sarif
+      - uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        if: always()
+        with:
+          sarif_file: golangci.sarif
+          category: golangci-lint
+
+  # task vulncheck
+  vulncheck:
+    name: Vulnerability audit (govulncheck)
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/library/golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 # pin: GO_IMAGE
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
+      - name: Cache Go modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0 # pin: GOVULNCHECK_VERSION
+      - run: govulncheck ./...
+
+  # task py
+  lint-py:
+    name: Lint (Python · ruff · ty)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.33" # pin: UV_VERSION
+      - name: ruff
+        run: |
+          uv tool run ruff@0.16.0 check scripts/       # pin: RUFF_VERSION
+          uv tool run ruff@0.16.0 format --check scripts/
+      # ty is pre-1.0. A ty-only failure is reviewed, not obeyed — the same
+      # standing the Taskfile gives it, for the same reason.
+      - name: ty
+        continue-on-error: true
+        run: uv tool run ty@0.0.64 check scripts/ # pin: TY_VERSION
+
+  # task tf:fmt:check, task docs:check
+  terraform:
+    name: Terraform (fmt · registry docs)
+    # On the runner rather than in the Go image: HashiCorp ships Terraform as a
+    # zip and the image has no unzip. Installing one to extract the other is
+    # more moving parts than using the host that already has both.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install Terraform
+        run: |
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/tf.zip \
+            "https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_linux_amd64.zip" # pin: TERRAFORM_VERSION
+          sudo unzip -o -d /usr/local/bin /tmp/tf.zip
+      - run: terraform fmt -check -recursive examples
+      - run: go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0 # pin: TFPLUGINDOCS_VERSION
+      # Validates what the Registry will read. It also answers the question
+      # S7 left open — whether the internal documents under docs/ are treated
+      # as provider pages — every time it runs.
+      - run: tfplugindocs validate --provider-name powerdns
+
+  # task lint:shell, task lint:containers, task lint:actions
+  lint-shell:
+    name: Lint (shell · containers · workflows)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.33" # pin: UV_VERSION
+      - name: Install the shell and container linters
+        run: |
+          sc=https://github.com/koalaman/shellcheck/releases/download/v0.11.0 # pin: SHELLCHECK_VERSION
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/sc.tar.xz "$sc/shellcheck-v0.11.0.linux.x86_64.tar.xz"
+          tar -xJf /tmp/sc.tar.xz -C /tmp
+          sudo install -m 0755 /tmp/shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
+          hd=https://github.com/hadolint/hadolint/releases/download/v2.14.0 # pin: HADOLINT_VERSION
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/hadolint "$hd/hadolint-Linux-x86_64"
+          sudo install -m 0755 /tmp/hadolint /usr/local/bin/hadolint
+          go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.1             # pin: SHFMT_VERSION
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: shellcheck
+        run: shellcheck scripts/*.sh
+      - name: shfmt
+        run: shfmt -d -i 2 -ci scripts/
+      - name: hadolint
+        run: hadolint deployments/containers/Containerfile.dev
+      - name: actionlint
+        # It shells out to shellcheck for every `run:` block, so it is installed
+        # above rather than pulled by an action that bundles its own copy.
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # pin: ACTIONLINT_VERSION
+          actionlint
+      - name: zizmor
+        # Not "does this parse" but "what could this leak" — a checkout
+        # credential left in .git/config, a cache restored into a signing job.
+        run: uv tool run zizmor@1.28.0 --format plain .github/workflows/ # pin: ZIZMOR_VERSION
+
+  # task docs:lint
+  lint-docs:
+    name: Lint (docs · markdown · yaml · spell · badges)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22' # pin: NODE_MAJOR
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.33" # pin: UV_VERSION
+      # Pinned to what the dev image carries, and without lifecycle scripts.
+      # One package per line so each carries its own pin marker: a shell
+      # continuation cannot hold a comment.
+      - run: npm install -g --ignore-scripts markdownlint-cli2@0.23.2 # pin: MARKDOWNLINT_VERSION
+      - run: npm install -g --ignore-scripts cspell@10.0.1 # pin: CSPELL_VERSION
+      - run: markdownlint-cli2 "**/*.md" "#node_modules" "#bin" "#dist"
+      - run: uv tool run yamllint@1.38.0 -c .yamllint.yaml . # pin: YAMLLINT_VERSION
+      - run: cspell --no-progress --no-summary --config .cspell.json "**/*.md" "**/*.go"
+      # Every shieldcn badge resolves and every mermaid block parses. A broken
+      # badge is invisible in review and visible on the front page.
+      - run: scripts/check-badges.sh
+
+  # The half the commit-msg hook cannot reach: a hook only protects a clone
+  # that ran `task hooks`. This protects the branch, and its ancestor caught
+  # nine of the first ten commits in this repository.
+  commits:
+    name: Commits (conventional · no AI attribution)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          # Otherwise the token stays in .git/config for the rest of the job,
+          # where anything archiving the workspace carries it out too. Nothing
+          # here pushes with that credential.
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22' # pin: NODE_MAJOR
+      - run: npm install -g --ignore-scripts @commitlint/cli@21.2.1 # pin: COMMITLINT_VERSION
+      - run: npm install -g --ignore-scripts @commitlint/config-conventional@21.2.0 # pin: COMMITLINT_CONFIG_VERSION
+      - name: Conventional Commits over the pull request
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: commitlint --config .commitlintrc.yaml --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+      - name: Conventional Commits over the title
+        # The title becomes the commit message on a squash merge, so it is the
+        # message that survives — and it is edited after the commits are made.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | commitlint --config .commitlintrc.yaml
+      - name: No AI attribution (AGENTS.md golden rule 6)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          status=0
+          while read -r sha; do
+            [ -n "$sha" ] || continue
+            git log -1 --format='%B' "$sha" > /tmp/msg.txt
+            scripts/check-no-ai-attribution.sh /tmp/msg.txt || { echo "  in commit $sha" >&2; status=1; }
+          done < <(git rev-list "${BASE_SHA}..${HEAD_SHA}")
+          # And the squash message, which is the title and body rather than
+          # any commit that was checked above.
+          printf '%s\n\n%s\n' "$PR_TITLE" "$PR_BODY" > /tmp/squash.txt
+          scripts/check-no-ai-attribution.sh /tmp/squash.txt || { echo "  in the pull request title or body" >&2; status=1; }
+          exit "$status"

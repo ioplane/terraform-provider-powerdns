@@ -3,7 +3,8 @@
 # the isolated-branch workflow one command instead of four.
 set -euo pipefail
 
-readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+readonly REPO_ROOT
 readonly WORKTREE_DIR="${REPO_ROOT}/../.worktrees"
 readonly BASE_REMOTE="origin"
 
@@ -44,8 +45,23 @@ cmd_rm() {
 }
 
 case "${1:-}" in
-  new) [ $# -eq 2 ] || { usage; exit 2; }; cmd_new "$2" ;;
-  rm)  [ $# -eq 2 ] || { usage; exit 2; }; cmd_rm  "$2" ;;
-  ls)  git worktree list ;;
-  *)   usage; exit 2 ;;
+  new)
+    [ $# -eq 2 ] || {
+      usage
+      exit 2
+    }
+    cmd_new "$2"
+    ;;
+  rm)
+    [ $# -eq 2 ] || {
+      usage
+      exit 2
+    }
+    cmd_rm "$2"
+    ;;
+  ls) git worktree list ;;
+  *)
+    usage
+    exit 2
+    ;;
 esac

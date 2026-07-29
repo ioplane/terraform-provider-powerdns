@@ -1,0 +1,156 @@
+# Scanning that is not part of the gate.
+#
+# The distinction is deliberate. `ci.yml` mirrors `task all`: a developer can
+# reproduce every failure it reports before pushing. The scanners here answer
+# to a database that changes without the code changing, so a clean run today
+# says nothing about tomorrow — which is why they also run on a schedule, and
+# why their findings arrive as code-scanning alerts rather than as a red tick
+# on a pull request that introduced none of them.
+#
+# gosec is absent on purpose: it is one of the linters .golangci.yml enables,
+# and `ci.yml` already uploads its findings as SARIF. Running it twice with
+# two sets of exclusions produces two answers and no way to choose.
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '13 6 * * 1'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    # A job with `container:` defaults to `sh`, not `bash`.
+    shell: bash
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  codeql:
+    name: CodeQL (Go)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          languages: go
+          queries: security-extended
+      - uses: github/codeql-action/autobuild@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+      - uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          category: "/language:go"
+
+  semgrep:
+    name: Semgrep (SAST)
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/semgrep/semgrep:1.172.0@sha256:65dcd4408adda7c183a6b4550cb1e9b19f7f627a6fbb7e0559bd466bedc44d7b # pin: SEMGREP_VERSION
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
+      # The same three rule sets `task semgrep` runs, rather than `semgrep ci`
+      # against the hosted platform: a scan a developer cannot reproduce
+      # locally is a finding they cannot act on.
+      - name: semgrep
+        run: |
+          semgrep --config=p/golang --config=p/security-audit --config=p/secrets \
+            --metrics=off --error .
+
+  osv:
+    name: Dependency vulnerabilities (osv-scanner)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    container:
+      image: docker.io/library/golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 # pin: GO_IMAGE
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
+      - run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.4.0 # pin: OSV_SCANNER_VERSION
+      # govulncheck (in the gate) reports only vulnerabilities the binary can
+      # actually reach; osv-scanner reports everything the lockfile pulls in.
+      # The narrower one blocks a merge, the broader one raises an alert.
+      - name: osv-scanner
+        run: |
+          osv-scanner scan --recursive --format sarif --output osv.sarif . || true
+          test -s osv.sarif
+      - uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        if: always()
+        with:
+          sarif_file: osv.sarif
+          category: osv-scanner
+
+  trivy:
+    name: Trivy (filesystem · misconfiguration)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
+      # The published image rather than aquasecurity/trivy-action.
+      #
+      # `check-pins.sh` cannot verify that action's commit SHA from a hosted
+      # runner: the aquasecurity organisation has an IP allow list, and the
+      # API answers 403 for every runner address. A pin nothing can check is
+      # not a pin, and adding a named exception to the checker for one action
+      # is how a rule becomes a preference. The image is pinned by digest,
+      # which skopeo resolves from anywhere.
+      - name: trivy
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src \
+            docker.io/aquasec/trivy:0.72.0@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f \
+            filesystem . \
+            --scanners vuln,secret,misconfig \
+            --severity CRITICAL,HIGH \
+            --format sarif --output trivy.sarif
+          test -s trivy.sarif
+      - uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        if: always()
+        with:
+          sarif_file: trivy.sarif
+          category: trivy

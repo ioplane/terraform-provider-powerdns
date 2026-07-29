@@ -1,0 +1,46 @@
+# Dependency updates.
+#
+# Grouped, because the alternative is one pull request per module per week and
+# a reviewer who stops reading them. The groups are drawn along the lines a
+# reviewer actually thinks in: the plugin framework is one decision, the
+# transitive Go dependencies are another, and the actions are a third.
+#
+# Container digests are deliberately absent. Dependabot would bump the lab
+# images to whatever tag currently resolves, and the pinned PowerDNS versions
+# are the reference the provider's behavioural claims were measured against —
+# moving one is a decision to re-verify those claims, not a chore. See
+# docs/standards/powerdns-api-discipline.md.
+version: 2
+
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      terraform-plugin:
+        patterns:
+          - "github.com/hashicorp/terraform-plugin-*"
+      go-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "github.com/hashicorp/terraform-plugin-*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      actions:
+        patterns:
+          - "*"

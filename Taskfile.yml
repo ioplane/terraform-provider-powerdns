@@ -203,10 +203,46 @@ tasks:
     desc: Every image digest and action SHA resolves, and none float
     cmds: [scripts/check-pins.sh]
 
+  lint:tools:
+    desc: CI installs the same tool versions the dev image is built with
+    cmds: [scripts/check-tool-versions.sh]
+
+  lint:actions:
+    desc: actionlint, shellcheck and zizmor over the workflows
+    # A workflow is only executed by pushing it. Without this the first reader
+    # of a typo in a `run:` block is the runner, after the merge.
+    #
+    # actionlint hands every `run:` block to shellcheck, so the shell inside a
+    # workflow is held to the same standard as a script. zizmor asks the other
+    # question — not "does this parse" but "what could this leak": a checkout
+    # credential left in .git/config, a cache restored into a signing job.
+    deps: [_dev-running]
+    cmds:
+      - '{{.EXEC}} actionlint'
+      - '{{.EXEC}} zizmor --format plain .github/workflows/'
+
+  lint:shell:
+    desc: shellcheck and shfmt over the scripts
+    deps: [_dev-running]
+    cmds:
+      - '{{.EXEC}} shellcheck scripts/*.sh'
+      - '{{.EXEC}} shfmt -d -i 2 -ci scripts/'
+
+  lint:containers:
+    desc: hadolint over the Containerfiles
+    deps: [_dev-running]
+    cmds: ['{{.EXEC}} hadolint deployments/containers/Containerfile.dev']
+
   semgrep:
     desc: Semantic security scan
+    # In the container, like everything else. It ran on the host until the
+    # workflows needed a version to agree with, and a tool with no pinned
+    # version cannot be the same tool twice.
+    deps: [_dev-running]
     cmds:
-      - semgrep --config=p/golang --config=p/security-audit --config=p/secrets --metrics=off --error .
+      - >-
+        {{.EXEC}} semgrep --config=p/golang --config=p/security-audit
+        --config=p/secrets --metrics=off --error .
 
   vulncheck:
     desc: govulncheck
@@ -298,6 +334,10 @@ tasks:
       - {task: 'test:contract'}
       - {task: lint}
       - {task: 'lint:pins'}
+      - {task: 'lint:tools'}
+      - {task: 'lint:actions'}
+      - {task: 'lint:shell'}
+      - {task: 'lint:containers'}
       - {task: semgrep}
       - {task: py}
       - {task: 'tf:fmt:check'}
@@ -330,3 +370,4 @@ tasks:
       - '{{.EXEC}} uv --version'
       - '{{.EXEC}} uv run ruff --version'
       - '{{.EXEC}} uv run ty --version'
+      - '{{.EXEC}} semgrep --version'
