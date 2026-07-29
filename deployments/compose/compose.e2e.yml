@@ -12,34 +12,44 @@
 name: terraform-provider-powerdns-e2e
 
 services:
-  # Remote state over S3. MinIO rather than a cloud bucket: the point is to
-  # exercise the backend protocol and its locking, and that needs a server
-  # nobody has to pay for or clean up afterwards.
+  # Remote state over S3.
   #
-  # Pinned to the last RELEASE tag with a published image. The project's newest
-  # source release, RELEASE.2025-10-15T17-29-55Z, has no image published — so
-  # "latest release" and "latest image" are different things here, and the
-  # digest is what settles it.
+  # SeaweedFS rather than MinIO, and not on features — either serves the S3
+  # API the backend needs. MinIO is AGPL-3.0 and its newest source release had
+  # no published image, so "latest release" and "latest image" were already
+  # different things for it. SeaweedFS is Apache-2.0, which is this
+  # repository's own licence, and publishes an image per release.
   #
-  # The Docker manifest list, not the OCI image index. This tag has both, and
-  # they have different digests — the registry serves whichever the client's
-  # Accept header allows. `check-pins.sh` resolved the OCI digest here and
-  # reported it NOT FOUND on a hosted runner, whose older skopeo does not ask
-  # for that media type. Both are valid; this is the one every client can
-  # fetch.
-  minio:
-    container_name: pdns-e2e-minio
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
-    command: server /data --address ":19000" --console-address ":19001"
+  # `weed server -s3` runs master, volume, filer and the S3 gateway in one
+  # process. That is more moving parts than an object store needs to be, and
+  # fewer containers than running them apart — the fixture wants one endpoint,
+  # not an architecture.
+  s3:
+    container_name: pdns-e2e-s3
+    image: docker.io/chrislusf/seaweedfs:4.40@sha256:52194fba4fecd0083c842158b3a902ba6e04a63619b2b0efcd08007bdb6a4602
+    command:
+      - server
+      - -dir=/data
+      - -s3
+      - -s3.port=19000
+      - -master.port=19333
+      - -volume.port=19080
+      - -filer.port=18888
+      - -ip=127.0.0.1
     environment:
-      MINIO_ROOT_USER: e2eaccesskey
-      MINIO_ROOT_PASSWORD: e2esecretkey
+      # The gateway reads these and admits one identity with them. A
+      # configuration file would allow more, and one identity is what a
+      # fixture needs.
+      AWS_ACCESS_KEY_ID: e2eaccesskey
+      AWS_SECRET_ACCESS_KEY: e2esecretkey
     network_mode: host
+    volumes:
+      - s3-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:19000/minio/health/live || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:19000/ >/dev/null 2>&1 || exit 1"]
       interval: 3s
       timeout: 3s
-      retries: 20
+      retries: 30
     restart: unless-stopped
 
   # A git remote for the module source.
@@ -88,3 +98,4 @@ services:
 
 volumes:
   forgejo-data:
+  s3-data:

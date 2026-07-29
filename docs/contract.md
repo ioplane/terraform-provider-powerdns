@@ -380,7 +380,7 @@ something that runs without being remembered.
 | Guarantee | Checked by | Runs |
 | --- | --- | --- |
 | §4.1 an apply converges | acceptance suite — every resource applies twice, the second plan must be empty | `acceptance.yml`, and `task verify` locally |
-| §4.2 secrets do not reach state | acceptance assertions on state contents, **and the end-to-end suite reading the state object out of S3** — the shared remote state is the risk the clause exists for | `acceptance.yml`, `task e2e` |
+| §4.2 secrets do not reach state | acceptance assertions on state contents, **and the end-to-end suite reading the state object out of the S3 backend** — the shared remote state is the risk the clause exists for | `acceptance.yml`, `task e2e` |
 | §4.2 an ephemeral read is not stored | the language refuses to let the value leave the module: an ordinary output derived from it, and an ephemeral output in a root module, are both rejected | `task e2e` |
 | §4.6 a capability diagnostic names the backend | applying views against gpgsql must fail naming LMDB and the `launch=` setting | `task e2e` |
 | Both engines behave the same | the same unit applied and re-planned under `tofu` and under `terraform` | `task e2e` |

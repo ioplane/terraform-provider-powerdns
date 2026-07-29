@@ -12,7 +12,7 @@ The mapping between commit type, changelog section and version bump is in
 ### Added
 
 - `test/e2e` — the path a consumer's configuration travels, which the
-  acceptance suite never touched: Terragrunt over an S3 backend on MinIO, the
+  acceptance suite never touched: Terragrunt over an S3 backend on SeaweedFS, the
   module fetched over HTTP from a private Forgejo repository, against the
   running lab. Forty-four scenarios across eight units on pytest, asking through the interfaces a consumer uses — boto3
   for the bucket, dnspython for what DNS answers, psycopg for what the backend
@@ -78,6 +78,12 @@ The mapping between commit type, changelog section and version bump is in
   `[Unreleased]` now, and `check-release.sh` fails on a released section that
   has gained a line since its tag. Removals still pass, because that is how one
   of these is corrected.
+- The e2e object store is SeaweedFS rather than MinIO. Either serves the S3
+  API the backend needs and no scenario changed; SeaweedFS is Apache-2.0 like
+  this repository, and publishes an image per release, where MinIO's newest
+  source release had none. The bucket is created through the S3 API rather than
+  by making a directory in the server's data root — a fixture that reaches
+  behind an interface breaks when the server changes its mind about storage.
 - The e2e provider mirror is built for the container's own architecture rather
   than for `linux_amd64`. On an arm64 host the engine looked in a directory the
   binary was not in and reported the provider as unavailable.

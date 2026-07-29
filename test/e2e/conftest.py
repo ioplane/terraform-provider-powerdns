@@ -1,7 +1,7 @@
 """Fixtures for the end-to-end suite.
 
 Everything here answers a question through the interface a real consumer uses:
-S3 through boto3 rather than by listing MinIO's data directory, DNS through
+S3 through boto3 rather than by reaching into the server's store, DNS through
 dnspython rather than by parsing `dig`, the database through psycopg rather
 than through `psql -tAc`. Shelling out and scraping text is how a test comes to
 assert the shape of an error message instead of the fact underneath it.
@@ -126,14 +126,14 @@ class Terragrunt:
 
 @pytest.fixture(scope="session")
 def s3():
-    """An S3 client against MinIO, configured the way the backend is.
+    """An S3 client against the fixture's gateway, configured as the backend is.
 
-    Path-style addressing and a fixed region, because MinIO is not AWS and
-    there is no bucket-per-hostname or STS behind it.
+    Path-style addressing and a fixed region, because this is not AWS: there
+    is no bucket-per-hostname and no STS behind it.
     """
     return boto3.client(
         "s3",
-        endpoint_url=fixture.MINIO_URL,
+        endpoint_url=fixture.S3_URL,
         aws_access_key_id="e2eaccesskey",
         aws_secret_access_key="e2esecretkey",  # noqa: S106
         region_name="us-east-1",

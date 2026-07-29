@@ -39,8 +39,8 @@ remote_state {
     access_key = "e2eaccesskey"
     secret_key = "e2esecretkey"
 
-    # MinIO is not AWS: there is no STS to ask who we are, no bucket in a real
-    # region, and the bucket is addressed by path rather than by hostname.
+    # Not AWS: there is no STS to ask who we are, no bucket in a real region,
+    # and the bucket is addressed by path rather than by hostname.
     skip_credentials_validation = true
     skip_metadata_api_check     = true
     skip_region_validation      = true

@@ -207,7 +207,7 @@ class TestRemoteState:
     """Where the state went, and what happens when it is held."""
 
     def test_state_is_in_the_bucket(self, s3):
-        """State is in S3, not on disk beside the configuration."""
+        """State is in the object store, not on disk beside the configuration."""
         head = s3.head_object(Bucket=BUCKET, Key=STATE_KEY)
         assert head["ContentLength"] > 0
 

@@ -1156,7 +1156,7 @@ path a configuration travels to reach it: remote state, a module fetched from a
 remote, an engine holding a lock. That is where a provider which passes every
 test still fails in somebody's pipeline, and none of it had ever been exercised.
 
-`test/e2e` runs that path. Terragrunt over an S3 backend on MinIO, the module
+`test/e2e` runs that path. Terragrunt over an S3 backend on SeaweedFS, the module
 fetched over HTTP from a private Forgejo repository, against the running lab —
 forty-four scenarios across eight units, all green, repeatable back to back.
 
@@ -1242,6 +1242,35 @@ plain HTTP, and the push runs in a `mktemp -d` directory rather than a
 predictable name under a shared `/tmp`. The `NOSONAR` markers added first are
 gone — a suppression that survives is a finding nobody fixed, and this
 repository has a standard about checks that only look like checks.
+
+### The object store is SeaweedFS
+
+Not on features — either serves the S3 API the backend needs, and the suite
+moved across without a scenario changing. Two reasons that are about the
+project rather than the software.
+
+**Licence.** MinIO is AGPL-3.0; SeaweedFS is Apache-2.0, which is this
+repository's own. Nothing links against a test fixture, so this was never a
+compliance question — it is a consistency one, and consistency is cheaper to
+keep than to restore.
+
+**Publication.** MinIO's newest source release had no published image, so
+"latest release" and "latest image" were already different things for it, and
+the pin had to be reasoned about rather than read. SeaweedFS publishes an image
+per release.
+
+Two details the move surfaced. `weed server -s3` runs master, volume, filer and
+the gateway in one process — more moving parts than an object store ought to
+be, and fewer containers than running them apart. And the gateway has no health
+endpoint: it answers `403` to an unsigned list, which is a served request and
+the thing to wait for. Waiting for a `200`, as the MinIO probe did, waits
+forever.
+
+Creating the bucket also goes through the S3 API now. Against MinIO the fixture
+made a directory in the server's data root, which worked because MinIO lays a
+bucket out that way. SeaweedFS keeps buckets in its filer, and a fixture that
+reaches behind a server's interface breaks when the server changes its mind
+about storage.
 
 ### The changelog had been rewriting history
 
@@ -1372,7 +1401,7 @@ simply down now fails the test instead of passing it.
 
 | ID | Task | Role | Status |
 | --- | --- | --- | --- |
-| S9-01 | `compose.e2e.yml` — MinIO and a Forgejo remote beside the lab | OPS | `[x]` |
+| S9-01 | `compose.e2e.yml` — an S3 gateway and a Forgejo remote beside the lab | OPS | `[x]` |
 | S9-02 | A module and a Terragrunt unit that consume the provider | DEV | `[x]` |
 | S9-03 | `e2e.py` — fixture lifecycle on podman-py, driven by uv | OPS | `[x]` |
 | S9-04 | The suite on pytest, with boto3, dnspython and psycopg | QA | `[x]` |
