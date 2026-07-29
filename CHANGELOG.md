@@ -11,6 +11,10 @@ The mapping between commit type, changelog section and version bump is in
 
 ## [0.1.0] — 2026-07-29
 
+First release. 29 artefacts across 13 platforms, `SHA256SUMS` signed with an
+RSA-4096 key, an SBOM beside every archive, protocol 6.
+
+
 ### Added
 
 - Repository foundation: `AGENTS.md` with `CLAUDE.md` and `CODEX.md` as

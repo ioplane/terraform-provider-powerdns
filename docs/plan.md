@@ -11,7 +11,7 @@
 
 ![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 76](https://shieldcn.dev/badge/tasks_done-76-3fb950.svg?variant=secondary)
+![tasks_done 78](https://shieldcn.dev/badge/tasks_done-78-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -866,11 +866,27 @@ copies the caveat with it.
 | S7-01 | Examples for every resource, action, function, data source and ephemeral | DEV | `[x]` |
 | S7-02 | Registry documentation generated and validated | DEV | `[x]` |
 | S7-03 | Version matrix: acceptance against auth 5.0.x as well as 5.1.3 | QA | `[ ]` |
-| S7-04 | Signed `v0.1.0` | PM | `[!]` blocked — no signing key exists; see below |
-| S7-05 | Terraform Registry submission | PM | `[~]` the `docs/` question is answered; publication waits on S7-04 |
-| S7-06 | **Added.** An RSA-4096 signing key, and `GPG_PRIVATE_KEY`/`PASSPHRASE` in repository secrets | PM | `[ ]` |
+| S7-04 | Signed `v0.1.0` | PM | `[x]` |
+| S7-05 | Terraform Registry submission | PM | `[~]` artefacts published and verified; the Registry side is a manual sign-in |
+| S7-06 | **Added.** An RSA-4096 signing key, and `GPG_PRIVATE_KEY`/`PASSPHRASE` in repository secrets | PM | `[x]` |
 
-### The release is prepared, and blocked on a key that does not exist
+### v0.1.0 is released
+
+29 artefacts across 13 platforms, a `SHA256SUMS` signed with the new key, an
+SBOM beside every archive, and the manifest declaring protocol 6. Verified the
+way the Registry will: the detached signature checks against the public key,
+the archive matches its recorded digest, and the binary in it answers.
+
+The release gate ran first and passed in 2m33s — signing secrets present,
+`VERSION` and tag agreeing, a non-empty changelog section, the manifest
+matching the served protocol, the tag an ancestor of `main`, `CI` and
+`Acceptance` both green for `81a7ecc`, and the generated documentation in sync.
+
+What remains for S7-05 is not a build step: the Registry needs the public half
+of the signing key registered under the `ioplane` namespace, and the provider
+connected through a sign-in. Neither can be done from a workflow.
+
+### Preparing it was blocked on a key that did not exist
 
 `CHANGELOG.md` is cut: `[0.1.0] — 2026-07-29` holds everything that was under
 `[Unreleased]`, which is now empty, and `check-release.sh` agrees the release
@@ -883,7 +899,7 @@ do not exist, so the release gate stops in its first job — which is what it is
 for, and cheaply, but the tag cannot be signed and the Registry rejects an
 unsigned `SHA256SUMS`.
 
-**And the key on hand cannot be used.** It is ed25519, and the Registry
+**And the key on hand could not be used.** It was ed25519, and the Registry
 "supports RSA and DSA keys, but not ECC keys"
 ([Preparing and adding a signing key](https://developer.hashicorp.com/terraform/registry/providers/publishing)).
 A release signed with it would be built, uploaded and then refused at
