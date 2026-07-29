@@ -16,11 +16,17 @@ from scripts.automation.worktree import worktree_path
 from scripts.checks.paths import checked_branch, checked_path, inside
 
 
-def test_a_path_inside_the_base_is_returned_unchanged(tmp_path):
-    """The ordinary case: git hands the hook a file under the git directory."""
-    target = tmp_path / "COMMIT_EDITMSG"
+def test_a_path_inside_the_base_is_returned_resolved(tmp_path):
+    """The ordinary case: git hands the hook a file under the git directory.
+
+    What comes back is the resolved path under the base, not the string that
+    arrived — validating one path and opening another is the bug this prevents.
+    """
+    base = tmp_path.resolve()
+    target = base / "COMMIT_EDITMSG"
     target.write_text("feat(x): a change\n")
-    assert checked_path(str(target), (tmp_path,)) == target
+    assert checked_path(str(target), (base,)) == target
+    assert checked_path(f"{base}/./COMMIT_EDITMSG", (base,)) == target
 
 
 def test_traversal_out_of_the_base_is_refused(tmp_path):
@@ -48,13 +54,15 @@ def test_a_second_base_is_honoured(tmp_path):
     Accepting only the tree being committed to would refuse every commit made
     from a worktree, which is how this repository does all of its work.
     """
-    tree = tmp_path / "worktree"
-    gitdir = tmp_path / "main" / ".git"
+    tree = tmp_path.resolve() / "worktree"
+    gitdir = tmp_path.resolve() / "main" / ".git"
     gitdir.mkdir(parents=True)
     tree.mkdir()
     message = gitdir / "COMMIT_EDITMSG"
     message.write_text("feat(x): a change\n")
-    assert checked_path(str(message), (tree, gitdir)) == message
+    assert checked_path(str(message), (tree.resolve(), gitdir.resolve())) == (
+        message.resolve()
+    )
 
 
 @pytest.mark.parametrize(
@@ -134,4 +142,4 @@ def test_the_default_bases_come_from_git_or_the_working_directory():
     Both answers contain the file this is invoked next to, which is the point:
     the default must be usable, not merely safe.
     """
-    assert checked_path("pyproject.toml") == Path("pyproject.toml")
+    assert checked_path("pyproject.toml") == Path("pyproject.toml").resolve()

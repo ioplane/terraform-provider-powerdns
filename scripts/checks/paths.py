@@ -56,18 +56,26 @@ def inside(candidate: Path, bases: tuple[Path, ...]) -> bool:
 
 
 def checked_path(argument: str, bases: tuple[Path, ...] | None = None) -> Path:
-    """Return `argument` as a path, refusing one outside the repository.
+    """Return `argument` as a path under one of `bases`, or refuse it.
+
+    The *resolved* path is returned, rebuilt from the base it was found under
+    rather than handed back as it arrived. What was checked is then what the
+    caller opens: returning the original string would mean validating one path
+    and using another, which is the shape of the bug this is meant to prevent.
 
     Raises:
         ValueError: when the path resolves outside every base.
     """
     bases = git_directories() if bases is None else bases
-    candidate = Path(argument)
-    if not inside(candidate, bases):
-        listed = ", ".join(str(base) for base in bases) or "(no repository found)"
-        msg = f"{argument} resolves outside this repository; expected under {listed}"
-        raise ValueError(msg)
-    return candidate
+    resolved = Path(argument).resolve()
+    for base in bases:
+        if resolved == base:
+            return base
+        if base in resolved.parents:
+            return base / resolved.relative_to(base)
+    listed = ", ".join(str(base) for base in bases) or "(no repository found)"
+    msg = f"{argument} resolves outside this repository; expected under {listed}"
+    raise ValueError(msg)
 
 
 def checked_branch(name: str) -> str:
