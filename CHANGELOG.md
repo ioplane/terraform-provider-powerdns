@@ -318,6 +318,20 @@ Writing the workflows found four more, in things already believed correct:
   carries no toolchain, and with no pinned version anywhere. It runs in the
   container at a pinned version — which is also what lets CI agree with it.
 
+The first run of the workflows found four more, none of them typos:
+
+- A job with `container:` gets `sh`, not `bash`, so `${GITHUB_SHA::8}` failed
+  as "Bad substitution". Every workflow now sets `shell: bash`.
+- The Go image has no `unzip` and Terraform ships as a zip. That job moved to
+  the runner, which has both.
+- `check-pins.sh` treated any `gh` failure as "this commit does not exist", so
+  one valid action SHA out of twenty-four reported as NOT FOUND and a
+  rate-limited run would have reported all of them as fabricated. It retries,
+  and distinguishes a 404 from a failed call.
+- `markdownlint-cli2`, `cspell` and `commitlint` were installed at `@latest` in
+  CI and in the dev image, and `podman-compose` was unpinned. All pinned, and
+  installed with `--ignore-scripts`; downloads refuse a redirect off HTTPS.
+
 ### Security
 
 - Four reachable vulnerabilities, all reached through indirect dependencies of

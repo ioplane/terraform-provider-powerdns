@@ -911,6 +911,32 @@ The plan's task counter is also derived now rather than asserted: the audit
 recomputed it, `check-badges.sh` recomputes it on every run. That was the
 audit's own finding left half-finished.
 
+### And what the first run found, which is the point
+
+The workflows were written blind — `actionlint` parses them, nothing local
+executes them — so the first run on the pull request was the real test. It
+failed four ways, each of them a fact about GitHub Actions rather than a typo:
+
+- A job with `container:` gets `sh`, not `bash`. `${GITHUB_SHA::8}` is bash
+  syntax and died as "Bad substitution". Every workflow now sets `shell: bash`.
+- The Go image has no `unzip`, and HashiCorp ships Terraform as a zip. That job
+  moved to the runner, which already has both.
+- `check-pins.sh` reported one action of twenty-four as NOT FOUND — a valid,
+  resolvable SHA. It treated any `gh` failure as "this commit does not exist",
+  so a rate-limited run would report two dozen correct pins as fabricated. It
+  now retries, and distinguishes "GitHub says no" from "the call did not
+  succeed".
+- SonarCloud, already wired to this repository, failed its quality gate on
+  nineteen findings — all in the workflows just written. Most were the same
+  finding this repository already has a rule about: `npm install -g pkg@latest`
+  in CI *and* in the dev image, and an unpinned `podman-compose`. Now pinned,
+  installed with `--ignore-scripts`, and every download refuses a redirect off
+  HTTPS.
+
+`dependency-review.yml` still fails, and not for a reason in this repository:
+the Dependency graph is disabled for the `ioplane` organisation, which is a
+settings toggle rather than a code change. S8-11.
+
 | ID | Task | Role | Status |
 | --- | --- | --- | --- |
 | S8-01 | Retire `.gitlab-ci.yml`; ADR 0009 | OPS | `[x]` |
@@ -923,6 +949,7 @@ audit's own finding left half-finished.
 | S8-08 | Acceptance moves to pull requests once its run history says it is stable | QA | `[ ]` |
 | S8-09 | Branch protection: require the gate before merge | PM | `[ ]` |
 | S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[ ]` |
+| S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[ ]` |
 
 S8-10 reopens something S0-21 closed. A `github/ci` badge was removed then
 because it rendered "not found": the endpoint answered `200`, but GitHub held

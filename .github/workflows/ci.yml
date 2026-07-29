@@ -27,6 +27,13 @@ concurrency:
 env:
   GOFLAGS: -buildvcs=false
 
+defaults:
+  run:
+    # A job with `container:` defaults to `sh`, not `bash`. The first run of
+    # this workflow died on `${GITHUB_SHA::8}` — "Bad substitution" — which is
+    # bash syntax reaching a shell that does not have it.
+    shell: bash
+
 jobs:
   # task lint:pins, task lint:tools
   pins:
@@ -169,19 +176,24 @@ jobs:
   # task tf:fmt:check, task docs:check
   terraform:
     name: Terraform (fmt · registry docs)
+    # On the runner rather than in the Go image: HashiCorp ships Terraform as a
+    # zip and the image has no unzip. Installing one to extract the other is
+    # more moving parts than using the host that already has both.
     runs-on: ubuntu-latest
-    container:
-      image: docker.io/library/golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 # pin: GO_IMAGE
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
       - name: Install Terraform
         run: |
-          curl -fsSL -o /tmp/tf.zip \
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/tf.zip \
             "https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_linux_amd64.zip" # pin: TERRAFORM_VERSION
-          unzip -o -d /usr/local/bin /tmp/tf.zip
+          sudo unzip -o -d /usr/local/bin /tmp/tf.zip
       - run: terraform fmt -check -recursive examples
       - run: go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0 # pin: TFPLUGINDOCS_VERSION
       # Validates what the Registry will read. It also answers the question
@@ -204,7 +216,11 @@ jobs:
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: "0.11.33" # pin: UV_VERSION
-      - run: npm install -g markdownlint-cli2@latest cspell@latest
+      # Pinned to what the dev image carries, and without lifecycle scripts.
+      # One package per line so each carries its own pin marker: a shell
+      # continuation cannot hold a comment.
+      - run: npm install -g --ignore-scripts markdownlint-cli2@0.23.2 # pin: MARKDOWNLINT_VERSION
+      - run: npm install -g --ignore-scripts cspell@10.0.1 # pin: CSPELL_VERSION
       - run: markdownlint-cli2 "**/*.md" "#node_modules" "#bin" "#dist"
       - run: uv tool run yamllint -c .yamllint.yaml .
       - run: cspell --no-progress --no-summary --config .cspell.json "**/*.md" "**/*.go"
@@ -229,7 +245,8 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22' # pin: NODE_MAJOR
-      - run: npm install -g @commitlint/cli@latest @commitlint/config-conventional@latest
+      - run: npm install -g --ignore-scripts @commitlint/cli@21.2.1 # pin: COMMITLINT_VERSION
+      - run: npm install -g --ignore-scripts @commitlint/config-conventional@21.2.0 # pin: COMMITLINT_CONFIG_VERSION
       - name: Conventional Commits over the pull request
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

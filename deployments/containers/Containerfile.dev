@@ -26,6 +26,10 @@ ARG TERRAFORM_VERSION=1.15.8
 ARG OPENTOFU_VERSION=1.12.5
 ARG TERRAGRUNT_VERSION=1.1.1
 ARG NODE_MAJOR=22
+ARG MARKDOWNLINT_VERSION=0.23.2
+ARG CSPELL_VERSION=10.0.1
+ARG COMMITLINT_VERSION=21.2.1
+ARG COMMITLINT_CONFIG_VERSION=21.2.0
 ARG UV_VERSION=0.11.33
 ARG RUFF_VERSION=0.16.0
 ARG TY_VERSION=0.0.64
@@ -47,6 +51,10 @@ ARG TERRAFORM_VERSION
 ARG OPENTOFU_VERSION
 ARG TERRAGRUNT_VERSION
 ARG NODE_MAJOR
+ARG MARKDOWNLINT_VERSION
+ARG CSPELL_VERSION
+ARG COMMITLINT_VERSION
+ARG COMMITLINT_CONFIG_VERSION
 ARG UV_VERSION
 ARG RUFF_VERSION
 ARG TY_VERSION
@@ -125,12 +133,15 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
  && go install github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}
 
 # Documentation linters and commitlint.
+# Pinned, and installed without lifecycle scripts. `@latest` here meant the
+# documentation linter could change its mind between two builds of the same
+# image, and CI could not agree with a version that has no name.
 RUN --mount=type=cache,target=/root/.npm \
-    npm install -g \
-        markdownlint-cli2@latest \
-        cspell@latest \
-        @commitlint/cli@latest \
-        @commitlint/config-conventional@latest
+    npm install -g --ignore-scripts \
+        markdownlint-cli2@${MARKDOWNLINT_VERSION} \
+        cspell@${CSPELL_VERSION} \
+        @commitlint/cli@${COMMITLINT_VERSION} \
+        @commitlint/config-conventional@${COMMITLINT_CONFIG_VERSION}
 
 # Python toolchain. uv installs and manages; ruff lints and formats; ty type
 # checks. podman-py is a runtime dependency of the lab automation, so it goes

@@ -60,7 +60,7 @@ jobs:
         # framework downloads whatever is current, which would mean the
         # acceptance result depends on the day it ran.
         run: |
-          curl -fsSL -o /tmp/tf.zip \
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/tf.zip \
             "https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_linux_amd64.zip" # pin: TERRAFORM_VERSION
           sudo unzip -o -d /usr/local/bin /tmp/tf.zip
           echo "TF_ACC_TERRAFORM_PATH=/usr/local/bin/terraform" >> "$GITHUB_ENV"
@@ -74,7 +74,7 @@ jobs:
         # lab.py prefers the REST socket and falls back to the CLI, so the
         # socket is an optimisation rather than a requirement.
         run: |
-          uv tool install podman-compose
+          uv tool install "podman-compose==1.6.0"
           uv pip install --system "podman==5.7.0" # pin: PODMAN_PY_VERSION
           systemctl --user enable --now podman.socket || \
             echo "podman socket unavailable — lab.py will use the CLI"

@@ -23,6 +23,11 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    # A job with `container:` defaults to `sh`, not `bash`.
+    shell: bash
+
 concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: true

@@ -70,11 +70,30 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
       bad+=1
       continue
     fi
-    if gh api "repos/${repo}/commits/${sha}" --jq .sha >/dev/null 2>&1; then
+    # "gh failed" and "GitHub says this commit does not exist" are different
+    # answers, and treating them alike is how a rate-limited run reports two
+    # dozen valid pins as fabricated. The first run of this check in CI did
+    # exactly that for one action out of twenty-four.
+    err=""
+    for attempt in 1 2 3; do
+      if err="$(gh api "repos/${repo}/commits/${sha}" --jq .sha 2>&1 >/dev/null)"; then
+        err=""
+        break
+      fi
+      case "$err" in
+        *"Not Found"*|*"No commit found"*) break ;;
+      esac
+      sleep "$attempt"
+    done
+
+    if [ -z "$err" ]; then
       printf 'ok        %-34s %s\n' "$action" "${sha:0:12}"
       ok+=1
-    else
+    elif [[ "$err" == *"Not Found"* || "$err" == *"No commit found"* ]]; then
       printf 'NOT FOUND %s\n' "$ref" >&2
+      bad+=1
+    else
+      printf 'UNVERIFIED %s — %s\n' "$ref" "$(printf '%s' "$err" | head -1)" >&2
       bad+=1
     fi
   done < <(grep -rhoE 'uses:[[:space:]]*[A-Za-z0-9._-]+/[A-Za-z0-9._/-]+@[^[:space:]]+' .github/ 2>/dev/null \
