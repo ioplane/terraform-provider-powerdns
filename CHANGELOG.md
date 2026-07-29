@@ -78,6 +78,17 @@ The mapping between commit type, changelog section and version bump is in
   `[Unreleased]` now, and `check-release.sh` fails on a released section that
   has gained a line since its tag. Removals still pass, because that is how one
   of these is corrected.
+- `e2e.yml` — the end-to-end suite in CI: the lab, the S3 gateway, the forge,
+  both engines, eight units. On `main`, nightly and on demand, not on pull
+  requests, for the reason `acceptance.yml` was not either.
+- The e2e driver runs its commands locally when no dev container is present,
+  and derives every path from the checkout rather than writing `/app`. One
+  driver for a developer's machine and a runner, instead of building the dev
+  image in CI to have somewhere to `exec` into.
+- `check-tool-versions.sh` covers Terragrunt and OpenTofu. Terragrunt's version
+  is load-bearing for the suite: `run` arrived with the 1.0 CLI freeze, every
+  command goes through it, and a 0.x binary forwards the word to the engine,
+  which has no such command.
 - The e2e object store is SeaweedFS rather than MinIO. Either serves the S3
   API the backend needs and no scenario changed; SeaweedFS is Apache-2.0 like
   this repository, and publishes an image per release, where MinIO's newest

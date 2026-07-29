@@ -55,7 +55,7 @@ class TestBothEngines:
             Path(terragrunt_engines.workdir) / ".terragrunt-cache", ignore_errors=True
         )
         Path(terragrunt_engines.workdir, ".terraform.lock.hcl").unlink(missing_ok=True)
-        # Only this unit's cache. The shared one under /root/.cache/terragrunt
+        # Only this unit's cache. The shared one under the home directory
         # is where every other unit's `.terraform/providers` points, and
         # clearing it from here left the next module in the session with a
         # lock file naming a plugin that no longer existed.

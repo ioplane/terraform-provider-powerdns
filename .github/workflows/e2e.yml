@@ -1,0 +1,128 @@
+# The consumer's path, run on a machine nobody owns.
+#
+# `acceptance.yml` establishes that the provider is correct against PowerDNS.
+# This establishes that a configuration reaches it the way a configuration
+# does: Terragrunt, remote state in an S3 bucket, a module fetched over HTTPS
+# from a private forge, and a lock. Those are where a provider that passes
+# every unit test still fails in somebody's pipeline.
+#
+# Not on pull requests. It starts seven containers and applies eight
+# Terragrunt units; making every pull request wait on that buys a slow gate,
+# and until it has a run history it would buy an unreliable one as well. It
+# runs on main, nightly, and on demand — the same staged introduction
+# `acceptance.yml` had, for the same reason (ADR 0009).
+name: End-to-end
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '53 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  e2e:
+    name: Terragrunt · S3 state · private module remote
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # The lab, exactly as `acceptance.yml` addresses it.
+      PDNS_SERVER_URL: http://127.0.0.1:18081
+      PDNS_SERVER_URL_LMDB: http://127.0.0.1:18091
+      PDNS_RECURSOR_SERVER_URL: http://127.0.0.1:18082
+      PDNS_DNSDIST_SERVER_URL: http://127.0.0.1:18083
+      PDNS_API_KEY: labapikey
+      # Refuse source distributions: building one runs arbitrary Python at
+      # install time. Every tool installed here publishes a wheel.
+      UV_NO_BUILD: "1"
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          # Seven images and a git clone over loopback; a blocking policy would
+          # need an allow-list that goes stale on the next digest bump.
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.33" # pin: UV_VERSION
+
+      # The engines. Both, because the suite runs one unit under each and the
+      # provider claims they are equals.
+      - name: Install Terraform and OpenTofu
+        run: |
+          set -euo pipefail
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/tf.zip \
+            "https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_linux_amd64.zip" # pin: TERRAFORM_VERSION
+          sudo unzip -o -d /usr/local/bin /tmp/tf.zip
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/tofu.zip \
+            "https://github.com/opentofu/opentofu/releases/download/v1.12.5/tofu_1.12.5_linux_amd64.zip" # pin: OPENTOFU_VERSION
+          sudo unzip -o -d /usr/local/bin /tmp/tofu.zip tofu
+
+      # Terragrunt 1.x, and the version matters rather than being a formality:
+      # `run` arrived when the CLI contract froze in 1.0, and the suite drives
+      # every command through it. A 0.x binary forwards `run` to the engine,
+      # which has no such command.
+      - name: Install Terragrunt
+        run: |
+          set -euo pipefail
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/terragrunt \
+            "https://github.com/gruntwork-io/terragrunt/releases/download/v1.1.1/terragrunt_linux_amd64" # pin: TERRAGRUNT_VERSION
+          sudo install -m 0755 /tmp/terragrunt /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - name: Install podman-compose
+        run: |
+          uv tool install "podman-compose==1.6.0"
+          systemctl --user enable --now podman.socket || \
+            echo "podman socket unavailable — the driver will use the CLI"
+
+      - name: Start the lab
+        run: uv run --group e2e python scripts/automation/lab.py up
+
+      - name: The lab is the pinned PowerDNS versions
+        run: uv run --group e2e python scripts/automation/lab.py verify
+
+      # No dev container here. The driver runs its commands locally when there
+      # is none, which is why it exists in one piece rather than two.
+      - name: Start the end-to-end fixture
+        run: uv run --group e2e python scripts/automation/e2e.py up
+
+      - name: End-to-end
+        run: uv run --group e2e pytest test/e2e -v --timeout=900
+
+      - name: Diagnostics
+        if: failure()
+        run: |
+          uv run --group e2e python scripts/automation/e2e.py status || true
+          uv run --group e2e python scripts/automation/lab.py status || true
+          for c in pdns-e2e-s3 pdns-e2e-forgejo pdns-lab-auth-pg pdns-lab-auth-lmdb \
+                   pdns-lab-rec pdns-lab-dnsdist pdns-lab-pg; do
+            echo "::group::$c"
+            podman logs --tail 200 "$c" 2>&1 || true
+            echo "::endgroup::"
+          done
+
+      - name: Tear down
+        if: always()
+        run: |
+          uv run --group e2e python scripts/automation/e2e.py down || true
+          uv run --group e2e python scripts/automation/lab.py down || true

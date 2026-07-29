@@ -27,8 +27,13 @@ readonly WORKFLOW_DIR=.github/workflows
 readonly PINNED_FILES=("$WORKFLOW_DIR" pyproject.toml)
 
 # The tools CI is expected to install. An ARG absent from this list is one the
-# dev image needs and CI does not — Task, OpenTofu and Terragrunt are for
-# developers, and requiring a marker for them would force a fake reference.
+# dev image needs and CI does not — Task is for developers, and requiring a
+# marker for it would force a fake reference.
+#
+# OpenTofu and Terragrunt joined the list when the end-to-end suite reached CI.
+# Terragrunt's version is not a formality there: `run` arrived when the CLI
+# contract froze in 1.0, the suite drives every command through it, and a 0.x
+# binary forwards `run` to the engine, which has no such command.
 readonly REQUIRED=(
   GO_IMAGE
   GOLANGCI_LINT_VERSION
@@ -39,6 +44,8 @@ readonly REQUIRED=(
   SYFT_VERSION
   GOTESTSUM_VERSION
   TERRAFORM_VERSION
+  OPENTOFU_VERSION
+  TERRAGRUNT_VERSION
   NODE_MAJOR
   MARKDOWNLINT_VERSION
   CSPELL_VERSION

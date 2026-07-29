@@ -32,10 +32,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "automa
 
 import e2e as fixture
 
-LIVE_DIR = "/app/test/e2e/live"
+# Derived from the checkout, like everything else here. The suite runs inside
+# the dev container on a developer's machine and directly on the runner in CI;
+# a written-out container path is correct in exactly one of those.
+LIVE_DIR = str(Path(fixture.E2E_DIR) / "live")
 DNS_SERVER = "127.0.0.1"
 DNS_PORT = 15300
 PG_DSN = "host=127.0.0.1 port=15432 user=pdns password=pdns dbname=pdns"
+
+# Whoever is running has a home directory; git and Terragrunt put their state
+# under it. Written out as /root it is right in the dev container and wrong on
+# a runner, where the user is not root.
+HOME = Path.home()
+GIT_CREDENTIALS = HOME / ".git-credentials"
+TERRAGRUNT_CACHE = HOME / ".cache" / "terragrunt"
 
 
 AUTH_APIS = {

@@ -11,7 +11,7 @@
 
 ![phase 9_of_10](https://shieldcn.dev/badge/phase-9_of_10-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 87](https://shieldcn.dev/badge/tasks_done-87-3fb950.svg?variant=secondary)
+![tasks_done 88](https://shieldcn.dev/badge/tasks_done-88-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1243,6 +1243,36 @@ predictable name under a shared `/tmp`. The `NOSONAR` markers added first are
 gone — a suppression that survives is a finding nobody fixed, and this
 repository has a standard about checks that only look like checks.
 
+### The suite runs where nobody owns the machine
+
+`e2e.yml`: the lab, the S3 gateway, the forge, both engines, eight units. On
+main, nightly and on demand — not on pull requests, for the reason
+`acceptance.yml` was not either. Seven containers and eight applies is a slow
+gate before it has a run history, and an unreliable one until it does.
+
+**The driver had to stop assuming a dev container.** On a developer's machine
+the toolchain is in one; on a runner CI installs it onto the machine, and
+building the dev image to have somewhere to `exec` into costs more per run than
+the run. `Runner` executes locally when no dev container is running, and every
+path it uses is derived from the checkout rather than written as `/app` — one
+definition that is correct in both places, with the single translation to the
+container's mount point where it belongs.
+
+Two things that cost a cycle each. `podman container exists` is true for a
+*stopped* container, so the driver tried to `exec` into one and got 255 with
+its own command echoed back; it asks whether the container is running now. And
+`/root/.git-credentials` is right in the container and wrong on a runner, where
+the user is not root — the paths come from `Path.home()`.
+
+**Terragrunt's version turned out to be load-bearing.** This host carries
+v0.66.7, which predates the 1.0 CLI freeze: it has no `run` subcommand and
+forwards the word to the engine, which answers *"OpenTofu has no command named
+run"*. The suite drives every command through `run` because
+`standards/terragrunt-integration.md` requires it, so the workflow installs the
+pinned v1.1.1 and `check-tool-versions.sh` now treats Terragrunt and OpenTofu
+as tools CI must match the image on. A version that was a formality for the
+dev image is a hard dependency for the suite.
+
 ### The object store is SeaweedFS
 
 Not on features — either serves the S3 API the backend needs, and the suite
@@ -1422,7 +1452,7 @@ simply down now fails the test instead of passing it.
 | S9-02 | A module and a Terragrunt unit that consume the provider | DEV | `[x]` |
 | S9-03 | `e2e.py` — fixture lifecycle on podman-py, driven by uv | OPS | `[x]` |
 | S9-04 | The suite on pytest, with boto3, dnspython and psycopg | QA | `[x]` |
-| S9-05 | The e2e suite in CI | OPS | `[ ]` |
+| S9-05 | The e2e suite in CI | OPS | `[x]` |
 | S9-06 | DNSSEC and the second backend in the e2e path | QA | `[x]` |
 | S9-07 | **Added.** Secrets, drift, both engines, both other products, actions and ephemeral | QA | `[x]` |
 | S8-13 | A release gate: nothing is built until the release is checkable | OPS | `[x]` |
