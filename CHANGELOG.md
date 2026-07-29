@@ -223,7 +223,10 @@ The mapping between commit type, changelog section and version bump is in
   string when it verifies the endpoint — without it the check asks a different
   question than the badge does and rejects one that renders correctly.
 - `check-badges.sh` recomputes the delivery plan's task counter from its own
-  tables. The audit found that badge reading 67 against 62; recomputing it
+  tables, retries a badge three times before reporting it, and distinguishes
+  "shieldcn did not answer" from "this badge is wrong" — the first is somebody
+  else's outage and is not fatal, the second is a broken image on the front
+  page. CI reported an outage as a failure the first time it ran. The audit found that badge reading 67 against 62; recomputing it
   fixed the number, this stops it drifting again.
 
 ### Removed
