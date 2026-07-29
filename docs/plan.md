@@ -11,7 +11,7 @@
 
 ![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 78](https://shieldcn.dev/badge/tasks_done-78-3fb950.svg?variant=secondary)
+![tasks_done 79](https://shieldcn.dev/badge/tasks_done-79-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1086,6 +1086,7 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[x]` |
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
+| S8-14 | **Added.** Repository hygiene: CODEOWNERS, templates, code of conduct, settings, branch protection | OPS | `[x]` |
 | S8-13 | A release gate: nothing is built until the release is checkable | OPS | `[x]` |
 
 S8-10 reopened something S0-21 closed. A `github/ci` badge was removed then
@@ -1131,6 +1132,26 @@ and an empty one.
 today would have failed after the tests, the GPG import and the syft download,
 having pushed the tag. It now fails in the first job, before anything is built,
 and names the file to edit.
+
+### What the repository looked like from outside
+
+Everything inside was gated; the repository itself had never been read as a
+stranger reads it. Four things were missing and one was false.
+
+`CODEOWNERS`, a pull-request template, issue templates and a code of conduct
+did not exist — the four files GitHub itself looks for, and the ones that tell
+somebody arriving how this project works before they have read a standard.
+They now carry the rules that already applied rather than inventing new ones:
+the PR template asks for `task verify` on any resource change and for
+`docs/plan.md` updated *in the same commit*, the bug template asks which
+backend, because gpgsql and LMDB differ, and the feature template says up
+front that dnsdist's rules and pools have no HTTP write path at all.
+
+**And the README said the provider was not released.** "Status: in
+development … Not yet published to the Terraform Registry", under a heading
+called *Planned* surface, on a repository with a signed `v0.1.0` and a
+complete API surface. The one document most readers see first was the one
+nobody had reread.
 
 **The acceptance workflow is green on `main`.** 203 assertions across eight
 packages against the real five-container lab on a hosted runner, with the same

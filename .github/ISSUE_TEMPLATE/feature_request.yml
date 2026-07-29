@@ -1,0 +1,37 @@
+name: Feature request
+description: Something the provider should cover and does not
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two things worth checking first, because they are the usual answers.
+
+        **The API may not have it.** All 68 operations of the three products
+        are already covered. dnsdist's rules, pools and downstream servers are
+        Lua or YAML with no HTTP write path at all — see
+        [ADR 0006](../../docs/adr/0006-dnsdist-scope.md). If PowerDNS cannot do
+        it over HTTP, neither can this provider.
+
+        **It may be a deliberate non-goal.** `docs/contract.md` §5 lists what
+        this provider will not do and why.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The problem, not the solution you have in mind for it.
+    validations:
+      required: true
+
+  - type: input
+    id: endpoint
+    attributes:
+      label: Which API operation would cover it?
+      description: Method and path, if you know. A link to the PowerDNS source is better than a link to the OpenAPI, which diverges from the implementation in both directions.
+      placeholder: "PUT /api/v1/servers/localhost/..."
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What are you doing instead today?

@@ -32,9 +32,38 @@
 A Terraform provider for the **PowerDNS family** — Authoritative Server,
 Recursor and dnsdist — on `terraform-plugin-framework`, protocol 6.
 
-> **Status: in development.** The foundation is in place; the client and
-> resources are being built. See [`docs/plan.md`](docs/plan.md) for exactly
-> where it is. Not yet published to the Terraform Registry.
+> **Status: `v0.1.0` released.** Every operation of all three APIs is covered
+> and the acceptance suite runs against a real five-service lab on every push
+> to `main`. Registry publication is pending; until then, install from the
+> [GitHub release](https://github.com/ioplane/terraform-provider-powerdns/releases/tag/v0.1.0)
+> or build from source. [`docs/plan.md`](docs/plan.md) records exactly where
+> everything stands.
+
+## Using it
+
+```terraform
+terraform {
+  required_providers {
+    powerdns = {
+      source  = "ioplane/powerdns"
+      version = "~> 0.1"
+    }
+  }
+}
+
+provider "powerdns" {
+  # Configure only the products you use; each is optional.
+  server_url = "https://ns1.example.com:8081" # or PDNS_SERVER_URL
+  api_key    = var.pdns_api_key               # or PDNS_API_KEY
+}
+```
+
+Pre-1.0, a MINOR release may carry what MAJOR will carry afterwards — pin
+accordingly. See [`docs/standards/versioning.md`](docs/standards/versioning.md).
+
+Every resource, data source, function and ephemeral resource has a worked
+example under [`examples/`](examples/), and the generated reference is in
+[`docs/`](docs/).
 
 ## Why one provider for three products
 
@@ -59,7 +88,7 @@ resource "powerdns_dnsdist_acl" "clients" { ... }
 
 Configure only the products you use.
 
-## Planned surface
+## Surface, as delivered
 
 | Product | API operations | Resources | Data sources | Actions |
 | --- | ---: | ---: | ---: | ---: |

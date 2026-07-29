@@ -1,0 +1,19 @@
+# Every change needs a review from the maintainers. GitHub resolves the last
+# matching pattern, so the catch-all comes first and the narrower rules below
+# it win.
+*                       @ioplane/maintainers
+
+# The parts where a wrong change is expensive to notice.
+#
+# A behavioural claim about PowerDNS is only as good as the evidence behind it
+# (AGENTS.md golden rule 3), and the contract is what users are entitled to
+# rely on. Both are easy to edit and hard to un-ship.
+/docs/contract.md       @ioplane/maintainers
+/docs/adr/              @ioplane/maintainers
+/docs/standards/        @ioplane/maintainers
+
+# The release path publishes an immutable artefact, and the workflows are the
+# only thing standing between a mistake and that artefact.
+/.github/workflows/     @ioplane/maintainers
+/.goreleaser.yml        @ioplane/maintainers
+/scripts/               @ioplane/maintainers

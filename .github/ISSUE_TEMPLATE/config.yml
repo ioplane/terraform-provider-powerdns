@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/ioplane/terraform-provider-powerdns/security/advisories/new
+    about: Report privately. Do not open a public issue — see SECURITY.md.
+  - name: PowerDNS API behaviour
+    url: https://github.com/PowerDNS/pdns/issues
+    about: If the server itself behaves unexpectedly, that belongs upstream. This provider's own findings are in docs/plan.md.
