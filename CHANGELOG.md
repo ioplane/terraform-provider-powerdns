@@ -21,9 +21,11 @@ The mapping between commit type, changelog section and version bump is in
 - `task e2e:up`, `task e2e`, `task e2e:down` — the fixture on podman-py, driven
   through uv.
 - `check-pins.sh` distinguishes an image the registry does not have from one it
-  would not answer about. It reported a correct MinIO pin as NOT FOUND on a
-  hosted runner, where Docker Hub rate-limits anonymous requests; the action
-  check had already learned this and the image check had not.
+  would not answer about — the same distinction the action check already made.
+  It surfaced on a tag published as both an OCI image index and a Docker
+  manifest list: two documents, two digests, and a registry that serves
+  whichever the client's `Accept` header allows. A digest is only as portable
+  as the media types the client asking for it accepts.
 
 
 ## [0.1.1] — 2026-07-29

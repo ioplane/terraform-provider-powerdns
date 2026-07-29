@@ -21,12 +21,15 @@ services:
   # "latest release" and "latest image" are different things here, and the
   # digest is what settles it.
   #
-  # quay.io rather than Docker Hub, and the same digest either way: Docker Hub
-  # rate-limits anonymous requests from hosted runners, and `check-pins.sh`
-  # reported a perfectly good pin as NOT FOUND for it.
+  # The Docker manifest list, not the OCI image index. This tag has both, and
+  # they have different digests — the registry serves whichever the client's
+  # Accept header allows. `check-pins.sh` resolved the OCI digest here and
+  # reported it NOT FOUND on a hosted runner, whose older skopeo does not ask
+  # for that media type. Both are valid; this is the one every client can
+  # fetch.
   minio:
     container_name: pdns-e2e-minio
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:655cade8445af03c6c3d57fc77abc2a841bbf4fc97a6814af5aecfe43e047e1d
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     command: server /data --address ":19000" --console-address ":19001"
     environment:
       MINIO_ROOT_USER: e2eaccesskey

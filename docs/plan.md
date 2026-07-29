@@ -1199,13 +1199,26 @@ saw "not 200", and the driver reported a running lab as absent.
 cause was nowhere near it. The adoption scenario now has its own unit and its
 own state key.
 
-**And one the fixture found in CI, not here.** `check-pins.sh` reported the
-MinIO image as NOT FOUND on a hosted runner while resolving it locally, and
-quay.io serves the identical digest — so the pin was correct and Docker Hub's
-anonymous rate limit was the answer. The image reference moved to quay.io, and
-the image check now distinguishes "the registry said no such digest" from "the
-request did not get through", which is the same lesson the action check learned
-earlier in phase 8 and which had not been carried across.
+**And one the fixture found in CI, not here — a tag with two digests.**
+`check-pins.sh` blessed the MinIO image locally and CI reported it NOT FOUND.
+Neither was wrong. The tag is published as both an OCI image index and a Docker
+manifest list, which are different documents with different digests, and the
+registry serves whichever the client's `Accept` header allows. The local skopeo
+asks for both and resolved the OCI digest; the older skopeo on a hosted runner
+asks only for the Docker one and could not find it.
+
+The pin is now the Docker manifest list, which every client can fetch. Two
+things follow that are worth keeping: a digest is only as portable as the media
+types the client requesting it accepts, and "verified on my machine" is a
+weaker claim for a digest than it looks. The image check also now separates
+"the registry said no such digest" from "the request did not get through" —
+the same distinction the action check learned earlier in phase 8, which had not
+been carried across.
+
+My first reading of this was that the digest did not exist upstream, on the
+strength of a `curl` whose own `Accept` header excluded the format it was
+looking for. The tool used to check the claim had the same blind spot as the
+tool that produced it.
 
 **A destroyed zone answers REFUSED, not NXDOMAIN.** With the zone gone the
 server is no longer authoritative and declines the name; dnspython raises that
