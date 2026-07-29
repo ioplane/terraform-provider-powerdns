@@ -9,6 +9,7 @@
 
 <div align="center">
 
+[![ci](https://shieldcn.dev/github/ci/ioplane/terraform-provider-powerdns.svg?workflow=ci.yml&variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/actions/workflows/ci.yml)
 [![license](https://shieldcn.dev/github/license/ioplane/terraform-provider-powerdns.svg?variant=secondary)](LICENSE)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 [![contributors](https://shieldcn.dev/github/contributors/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/graphs/contributors)

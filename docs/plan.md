@@ -11,7 +11,7 @@
 
 ![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 74](https://shieldcn.dev/badge/tasks_done-74-3fb950.svg?variant=secondary)
+![tasks_done 75](https://shieldcn.dev/badge/tasks_done-75-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1024,16 +1024,26 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-07 | `check-tool-versions.sh` and `lint:actions` in the gate | OPS | `[x]` |
 | S8-08 | Acceptance moves to pull requests once its run history says it is stable | QA | `[ ]` |
 | S8-09 | Branch protection: require the gate before merge | PM | `[ ]` |
-| S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[ ]` |
+| S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[x]` |
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
 
-S8-10 reopens something S0-21 closed. A `github/ci` badge was removed then
+S8-10 reopened something S0-21 closed. A `github/ci` badge was removed then
 because it rendered "not found": the endpoint answered `200`, but GitHub held
-only the release workflow, so there was no CI to report. There is now — and
-`check-badges.sh` fetches the JSON behind a dynamic badge rather than trusting
-the status code, so adding it before the first run would fail the gate. It goes
-in after.
+only the release workflow, so there was no CI to report.
+
+It reports now, with one correction on the way in. The bare endpoint still
+answers "not found" — this repository has six workflows and the badge has to be
+told which one it means, `?workflow=ci.yml`. And `check-badges.sh` was dropping
+the query string before asking the `.json` endpoint, so it would have rejected
+a badge that renders correctly. It keeps the query now, because a check that
+asks a different question than the badge does is not checking the badge.
+
+**The acceptance workflow is green on `main`.** 203 assertions across eight
+packages against the real five-container lab on a hosted runner, with the same
+two skips it has locally, in 2m23s including pulling four images. That is the
+claim this phase existed to make good: the gate is no longer something a
+developer asserts having run.
 
 S8-08 and S8-09 are deliberately open. Acceptance is five services and a
 ninety-minute ceiling, and it has never run on hardware nobody here controls;
