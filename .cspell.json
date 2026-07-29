@@ -50,6 +50,7 @@
     "Forgejo", "forgejo", "gitea", "codeberg", "rootless",
     "mktemp", "NOSONAR", "autoprimary", "ephemerally",
     "healthcheck", "seaweedfs", "SeaweedFS", "chrislusf", "BusyBox",
+    "glab", "gruntwork",
 
     // This repository's own test identifiers and container names.
     "testutil", "testacc", "testkey", "labapikey", "capprobe", "fixtureview",
