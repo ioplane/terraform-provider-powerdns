@@ -134,8 +134,8 @@ def s3():
     return boto3.client(
         "s3",
         endpoint_url=fixture.S3_URL,
-        aws_access_key_id="e2eaccesskey",
-        aws_secret_access_key="e2esecretkey",  # noqa: S106
+        aws_access_key_id=fixture.S3_ACCESS_KEY,
+        aws_secret_access_key=fixture.S3_SECRET_KEY,
         region_name="us-east-1",
         config=Config(s3={"addressing_style": "path"}, signature_version="s3v4"),
     )

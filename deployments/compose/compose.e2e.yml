@@ -46,7 +46,16 @@ services:
     volumes:
       - s3-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:19000/ >/dev/null 2>&1 || exit 1"]
+      # An unsigned list is answered 403, which is a served request and the
+      # thing being waited for. A bare `wget || exit 1` marks the container
+      # unhealthy forever, and anything waiting on health — `up --wait`, a
+      # monitor — waits with it. Matching the status line instead: any HTTP
+      # response means the gateway is serving, and a refused connection
+      # produces none. BusyBox wget exits 1 for a 403, not the 8 GNU wget
+      # uses, so the exit code is not the thing to read.
+      test:
+        - CMD-SHELL
+        - wget -S -qO- http://127.0.0.1:19000/ 2>&1 | grep -q "^  HTTP/"
       interval: 3s
       timeout: 3s
       retries: 30

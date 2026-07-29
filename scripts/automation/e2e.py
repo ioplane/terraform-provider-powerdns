@@ -33,6 +33,9 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
+import boto3
+from botocore.client import Config
+from botocore.exceptions import ClientError
 from tenacity import (
     retry,
     retry_if_result,
@@ -61,6 +64,8 @@ FORGEJO_USER = "e2e"
 FORGEJO_PASSWORD = "e2e-fixture-password"  # noqa: S105
 FORGEJO_REPO = "dns-modules"
 BUCKET = "e2e-state"
+S3_ACCESS_KEY = "e2eaccesskey"
+S3_SECRET_KEY = "e2esecretkey"  # noqa: S105
 STATE_KEY = "dns/terraform.tfstate"
 
 AUTH_API = "http://127.0.0.1:18081/api/v1/servers/localhost"
@@ -290,16 +295,31 @@ def make_tls_certificate() -> None:
 
 
 def make_bucket() -> None:
-    """Create the state bucket by creating its directory in MinIO's store.
+    """Create the state bucket through the S3 API.
 
-    MinIO lays a bucket out as a directory under its data root, so this needs
-    no S3 client and no request signing to set up the thing whose purpose is
-    to be written to over S3.
+    Through the API, because that is the interface. The first version made a
+    directory in the server's data root, which worked against MinIO because
+    MinIO lays a bucket out that way — and stopped meaning anything the moment
+    the server changed, since SeaweedFS keeps buckets in its filer. A fixture
+    that reaches behind an interface is a fixture that passes for the wrong
+    reason.
     """
-    subprocess.run(
-        ["podman", "exec", S3_CONTAINER, "mkdir", "-p", f"/data/{BUCKET}"],
-        check=True,
+    client = boto3.client(
+        "s3",
+        endpoint_url=S3_URL,
+        aws_access_key_id=S3_ACCESS_KEY,
+        aws_secret_access_key=S3_SECRET_KEY,
+        region_name="us-east-1",
+        config=Config(s3={"addressing_style": "path"}, signature_version="s3v4"),
     )
+    try:
+        client.create_bucket(Bucket=BUCKET)
+    except ClientError as error:
+        # Already there is the desired end state, not a failure.
+        code = error.response.get("Error", {}).get("Code", "")
+        if code not in ("BucketAlreadyOwnedByYou", "BucketAlreadyExists"):
+            raise
+    client.head_bucket(Bucket=BUCKET)
 
 
 def forgejo_admin() -> None:

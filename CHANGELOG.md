@@ -83,7 +83,10 @@ The mapping between commit type, changelog section and version bump is in
   this repository, and publishes an image per release, where MinIO's newest
   source release had none. The bucket is created through the S3 API rather than
   by making a directory in the server's data root — a fixture that reaches
-  behind an interface breaks when the server changes its mind about storage.
+  behind an interface breaks when the server changes its mind about storage —
+  and its healthcheck matches the HTTP status line rather than `wget`'s exit
+  code, whose correct answer for an unsigned list is a 403 that `wget` reports
+  as failure.
 - The e2e provider mirror is built for the container's own architecture rather
   than for `linux_amd64`. On an arm64 host the engine looked in a directory the
   binary was not in and reported the provider as unavailable.
