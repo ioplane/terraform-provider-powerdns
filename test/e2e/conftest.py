@@ -94,8 +94,16 @@ class Terragrunt:
         env_overrides: dict[str, str] | None = None,
     ) -> subprocess.CompletedProcess[str]:
         """Run terragrunt in the live directory and return the completed process."""
+        # `run`, not a bare `terragrunt apply`. Terragrunt 1.0 froze the CLI
+        # contract and docs/standards/terragrunt-integration.md requires the
+        # subcommand; the legacy form still works, which is exactly what makes
+        # it easy to keep using until it stops.
+        forwarded = list(args)
+        if forwarded and forwarded[0] not in {"run", "output", "state", "--version"}:
+            forwarded = ["run", "--", *forwarded]
+
         completed = subprocess.run(
-            ["terragrunt", *args, "-no-color"],
+            ["terragrunt", *forwarded, "-no-color"],
             cwd=self.workdir,
             capture_output=True,
             text=True,

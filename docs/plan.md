@@ -1243,6 +1243,35 @@ predictable name under a shared `/tmp`. The `NOSONAR` markers added first are
 gone — a suppression that survives is a finding nobody fixed, and this
 repository has a standard about checks that only look like checks.
 
+### Four defects a reviewer found that the suite could not
+
+The suite was green throughout, and none of these would have made it red —
+which is the point of them being found by reading rather than by running.
+
+**The mirror was built for one architecture.** `linux_amd64`, hard-coded, in a
+dev image whose Containerfile supports amd64 and arm64 on purpose. On an arm64
+host the engine looks in `linux_arm64`, finds nothing, and reports the provider
+unavailable — a wrong path presenting itself as a missing provider. It now
+asks `go env`.
+
+**The lock-file cleanup covered two units of eight.** It was written when there
+were two. Rebuilding the provider — the ordinary reason to run this suite —
+changes the binary's checksum, and any unit whose lock file was not cleared
+refuses the rebuilt package. It clears every `live*` unit now, which is also
+the shape that survives the ninth.
+
+**Every command was a bare `terragrunt apply`.** Terragrunt 1.0 froze the CLI
+contract and `standards/terragrunt-integration.md` requires the `run`
+subcommand. The legacy form still works, which is exactly what makes it easy to
+keep using until it stops.
+
+**`task e2e:down` orphaned the zones.** The lab outlives the fixture, so
+removing MinIO takes the state and leaves the zones; the next `up` starts with
+empty state and meets a 409 on a zone it believes it is creating. `down` now
+deletes them by name first — by name rather than by `terragrunt destroy`,
+because destroy needs the module, the mirror and a reachable remote, and `down`
+has to work when the reason for running it is that one of those is broken.
+
 ### ADR 0005 is imprecise, and the provider is not
 
 It says views and networks are "unimplemented by gpgsql". The read endpoint

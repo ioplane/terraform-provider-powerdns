@@ -100,6 +100,17 @@ The mapping between commit type, changelog section and version bump is in
 
 ### Fixed
 
+- The e2e provider mirror is built for the container's own architecture rather
+  than for `linux_amd64`. On an arm64 host the engine looked in a directory the
+  binary was not in and reported the provider as unavailable.
+- The e2e lock-file cleanup covers every unit. It was written for the two that
+  existed then, and a unit whose lock file survived a provider rebuild refused
+  the new package.
+- The e2e suite drives Terragrunt through `run`, which
+  `standards/terragrunt-integration.md` requires and Terragrunt 1.0 froze.
+- `task e2e:down` removes the zones the units created before discarding the
+  state that describes them. The lab outlives the fixture, so it was leaving
+  them behind for the next run to collide with.
 - `TimeoutError` was named alongside `OSError` in the automation's exception
   handlers. It is a subclass of it, and listing both says the author believed
   otherwise.

@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 import json
 import ssl
 import subprocess
@@ -413,19 +414,29 @@ def build_provider_mirror(runner: Runner) -> None:
     """
     # Rebuilding changes the binary's checksum, and a lock file recorded from
     # the previous build then refuses the new one — "doesn't match any of the
-    # checksums previously recorded". Whatever this step invalidates, this
-    # step removes.
+    # checksums previously recorded". Whatever this step invalidates, this step
+    # removes: every unit, not the two that existed when this was written.
     runner.exec(
-        "rm -rf /app/test/e2e/live/.terraform.lock.hcl "
-        "/app/test/e2e/live-import/.terraform.lock.hcl "
-        "/app/test/e2e/live/.terragrunt-cache "
-        "/app/test/e2e/live-import/.terragrunt-cache "
+        "set -eu; "
+        "rm -rf /app/test/e2e/live*/.terraform.lock.hcl "
+        "/app/test/e2e/live*/.terragrunt-cache "
+        "/root/.cache/terragrunt "
         "/root/.terraform.d/plugin-cache/registry.terraform.io/ioplane",
         workdir="/app",
         check=False,
     )
 
-    plat = "linux_amd64"
+    # The platform the container actually is. Hard-coding linux_amd64 puts the
+    # binary in a directory the engine will not look in on an arm64 host, and
+    # the failure reads as "provider unavailable" rather than as a wrong path.
+    # Containerfile.dev supports both architectures on purpose.
+    _, platform = runner.exec(
+        'printf "%s_%s" "$(go env GOOS)" "$(go env GOARCH)"',
+        workdir="/app",
+        check=True,
+    )
+    plat = platform.strip().splitlines()[-1].strip()
+
     dest = f"{MIRROR}/registry.terraform.io/ioplane/powerdns/{PROVIDER_VERSION}/{plat}"
     script = (
         "set -eu; "
@@ -494,8 +505,52 @@ def cmd_up() -> int:
     return 0
 
 
+MANAGED_ZONES = (
+    ("gpgsql", "e2e.example."),
+    ("gpgsql", "100.51.198.in-addr.arpa."),
+    ("gpgsql", "engines.e2e.example."),
+    ("gpgsql", "113.0.203.in-addr.arpa."),
+    ("gpgsql", "signed.e2e.example."),
+    ("gpgsql", "imperative.e2e.example."),
+    ("gpgsql", "viewed-gpgsql.e2e.example."),
+    ("gpgsql", "imported.e2e.example."),
+    ("lmdb", "viewed.e2e.example."),
+    ("recursor", "internal.e2e.example."),
+)
+
+ZONE_APIS = {
+    "gpgsql": AUTH_API,
+    "lmdb": "http://127.0.0.1:18091/api/v1/servers/localhost",
+    "recursor": "http://127.0.0.1:18082/api/v1/servers/localhost",
+}
+
+
+def drop_managed_zones() -> None:
+    """Remove what the units created, before the state describing it is gone.
+
+    The lab outlives this fixture. Deleting MinIO takes the state with it and
+    leaves the zones behind, so the next `up` starts with empty state, applies,
+    and meets a 409 on a zone it believes it is creating — a failure three
+    commands away from its cause.
+
+    Deleting by name rather than running `terragrunt destroy`: destroy needs
+    the module, the mirror and a reachable remote, and `down` has to work when
+    the reason for running it is that one of those is broken.
+    """
+    for api, zone in MANAGED_ZONES:
+        request = urllib.request.Request(  # noqa: S310
+            f"{ZONE_APIS[api]}/zones/{zone}",
+            method="DELETE",
+            headers={"X-API-Key": API_KEY},
+        )
+        with contextlib.suppress(OSError):
+            urllib.request.urlopen(request, timeout=10).close()  # noqa: S310  # nosemgrep
+
+
 def cmd_down() -> int:
-    """Remove the fixture, including its volumes."""
+    """Remove the fixture, including its volumes and what the units created."""
+    drop_managed_zones()
+    print("ok    zones created by the units removed from the lab")
     compose("down", "-v")
     return 0
 
