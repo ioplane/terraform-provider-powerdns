@@ -835,10 +835,18 @@ ADRs. Both now share the directory.
 `functions/`, `ephemeral-resources/`, `actions/`, `guides/` — rather than every
 file it finds.
 
-That is an inference from the validator's behaviour rather than a guarantee
-from the Registry, so **S7-05 must confirm it before publication**: if internal
-documents render as provider pages, they move to a directory of their own
-before the tag is signed. Recorded here rather than assumed away.
+That was an inference from the validator's behaviour rather than a guarantee,
+so it was left open for S7-05 to confirm before publication.
+
+**Confirmed, and nothing moves.** The Registry's own documentation enumerates
+what it reads under `docs/`: `index.md`, and the subdirectories `guides/`,
+`resources/`, `data-sources/`, `functions/`, `ephemeral-resources/`,
+`actions/` and `list-resources/`. It is a fixed list, not a sweep. `plan.md`,
+`contract.md`, `standards/`, `adr/`, `methodology.md` and `development.md` are
+not in it and are not published.
+
+Source: [Provider documentation — directory
+structure](https://developer.hashicorp.com/terraform/registry/providers/docs).
 
 ### Every example is a claim that has to keep working
 
@@ -858,8 +866,43 @@ copies the caveat with it.
 | S7-01 | Examples for every resource, action, function, data source and ephemeral | DEV | `[x]` |
 | S7-02 | Registry documentation generated and validated | DEV | `[x]` |
 | S7-03 | Version matrix: acceptance against auth 5.0.x as well as 5.1.3 | QA | `[ ]` |
-| S7-04 | Signed `v0.1.0` | PM | `[ ]` |
-| S7-05 | Terraform Registry submission | PM | `[ ]` |
+| S7-04 | Signed `v0.1.0` | PM | `[!]` blocked — no signing key exists; see below |
+| S7-05 | Terraform Registry submission | PM | `[~]` the `docs/` question is answered; publication waits on S7-04 |
+| S7-06 | **Added.** An RSA-4096 signing key, and `GPG_PRIVATE_KEY`/`PASSPHRASE` in repository secrets | PM | `[ ]` |
+
+### The release is prepared, and blocked on a key that does not exist
+
+`CHANGELOG.md` is cut: `[0.1.0] — 2026-07-29` holds everything that was under
+`[Unreleased]`, which is now empty, and `check-release.sh` agrees the release
+is otherwise ready.
+
+Two things then came out of preparing it.
+
+**The repository has no secrets at all.** `GPG_PRIVATE_KEY` and `PASSPHRASE`
+do not exist, so the release gate stops in its first job — which is what it is
+for, and cheaply, but the tag cannot be signed and the Registry rejects an
+unsigned `SHA256SUMS`.
+
+**And the key on hand cannot be used.** It is ed25519, and the Registry
+"supports RSA and DSA keys, but not ECC keys"
+([Preparing and adding a signing key](https://developer.hashicorp.com/terraform/registry/providers/publishing)).
+A release signed with it would be built, uploaded and then refused at
+publication — after the tag was spent. RSA-4096 with no expiry is what the
+publishing tutorial specifies. That is S7-06, and it is a decision about an
+identity rather than a chore: the private key signs everything this provider
+ever publishes, and its public half is what the Registry pins.
+
+**One defect found while preparing.** The release-notes extraction ran to
+end-of-file for the oldest section, so `v0.1.0`'s notes ended with the
+changelog's markdown link-reference block. It stops at that block now — a
+defect that only ever appears on the first release, which is exactly the one
+nobody gets to rehearse.
+
+**And a documented check that never existed.**
+`docs/standards/changelog.md` said `scripts/check-changelog.sh` verifies the
+heading format before the tag. There is no such script and never was. Same
+failure as the pipeline nobody ran: a documented check reads as a check and
+enforces nothing. The standard now names `check-release.sh`, which does it.
 
 ---
 
