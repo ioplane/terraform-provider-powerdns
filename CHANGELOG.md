@@ -106,6 +106,11 @@ The mapping between commit type, changelog section and version bump is in
 - The e2e lock-file cleanup covers every unit. It was written for the two that
   existed then, and a unit whose lock file survived a provider rebuild refused
   the new package.
+- The bad-credential scenario asserts that the run failed and that the remote
+  is named, not the sentence Terragrunt used to say it. The same rejected
+  credential reads as "Authentication failed" when the fetch goes straight to
+  git and as "could not read Username" once it goes through the central git
+  store — the fact is the same and the phrase is not.
 - The e2e suite drives Terragrunt through `run`, which
   `standards/terragrunt-integration.md` requires and Terragrunt 1.0 froze.
 - `task e2e:down` removes the zones the units created before discarding the

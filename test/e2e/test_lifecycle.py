@@ -122,7 +122,18 @@ class TestModuleSource:
             result = terragrunt.run("init", expect_success=False)
             combined = result.stdout + result.stderr
             assert result.returncode != 0, combined[-1500:]
-            assert "uthenticat" in combined or "redential" in combined, combined[-1500:]
+
+            # The remote is named, which is the part a reader needs. The
+            # wording around it is Terragrunt's and moves: a rejected
+            # credential surfaced as "Authentication failed" when the fetch
+            # went straight to git and as "could not read Username" once it
+            # went through the central git store, for the same cause. Asserting
+            # the phrase pinned the test to a sentence rather than to the fact.
+            assert "127.0.0.1:19300" in combined, combined[-1500:]
+            assert any(
+                word in combined
+                for word in ("uthenticat", "redential", "Username", "denied")
+            ), combined[-1500:]
         finally:
             store.write_text(good)
             clear_module_cache(terragrunt)
