@@ -43,6 +43,7 @@
     "worktree", "getkin", "gorillamux",
     "actionlint", "codeql", "dependabot", "SARIF", "scorecard", "syft",
     "shellcheck", "shfmt", "hadolint", "zizmor", "pipefail", "Containerfiles",
+    "syft", "sboms", "dryrun",
 
     // This repository's own test identifiers and container names.
     "testutil", "testacc", "testkey", "labapikey", "capprobe", "fixtureview",

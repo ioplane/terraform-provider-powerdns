@@ -11,7 +11,7 @@
 
 ![phase 8_of_9](https://shieldcn.dev/badge/phase-8_of_9-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 80](https://shieldcn.dev/badge/tasks_done-80-3fb950.svg?variant=secondary)
+![tasks_done 81](https://shieldcn.dev/badge/tasks_done-81-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -869,7 +869,38 @@ copies the caveat with it.
 | S7-04 | Signed `v0.1.0` | PM | `[x]` |
 | S7-05 | Terraform Registry submission | PM | `[~]` every prerequisite met; the submission itself is browser-only |
 | S7-07 | **Added.** OpenTofu Registry submission | PM | `[~]` same — two issue forms, and they must be filled in by hand |
+| S7-08 | **Added.** `v0.1.1` — the release the Registry will accept | OPS | `[x]` |
 | S7-06 | **Added.** An RSA-4096 signing key, and `GPG_PRIVATE_KEY`/`PASSPHRASE` in repository secrets | PM | `[x]` |
+
+### v0.1.0 was refused, and why nothing caught it
+
+The Terraform Registry rejected it: *"missing files in request body"*, naming
+all thirteen SBOMs.
+
+It parses `SHA256SUMS` as the list of files belonging to the version. Adding
+`sboms:` to the release configuration made goreleaser fold thirteen SBOM
+entries into that file, and every line the Registry cannot resolve to a file it
+accepts fails the whole submission. The SBOMs were a good idea implemented
+without checking what else consumed the checksum file.
+
+**The release gate had been written the day before and did not catch it**, and
+the reason is worth keeping. Every check it makes establishes that the
+artefacts are *correct* — signed, digested, complete, matching the manifest,
+built from a commit that passed CI. Not one asked whether they are the artefacts
+the *Registry* accepts. Those are different questions, and only the second one
+was going to be answered by a stranger's validator.
+
+`scripts/check-release-artifacts.sh` asks it now, of a snapshot build, before a
+tag exists: `SHA256SUMS` may list archives and the manifest and nothing else,
+every archive must match its digest, and the manifest must be the repository's
+own and declare a protocol. Verified by putting an SBOM line back and watching
+it fail.
+
+**And the release could not be rehearsed.** The dev image had no `syft`, so
+`goreleaser release --snapshot` failed locally — on the machine where failure
+is free — and succeeded in CI, where it is not. `syft` is in the image and
+`task release:dryrun` runs the whole thing in about twenty seconds. That the
+rehearsal was impossible is the reason the mistake reached a tag.
 
 ### v0.1.0 is released
 

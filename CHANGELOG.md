@@ -9,6 +9,33 @@ The mapping between commit type, changelog section and version bump is in
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-07-29
+
+### Fixed
+
+- The Terraform Registry refused `v0.1.0` with "missing files in request body",
+  naming all thirteen SBOMs. It parses `SHA256SUMS` as the list of files
+  belonging to the version, and goreleaser had folded the SBOMs into it — so
+  every line the Registry could not resolve to a file it accepts failed the
+  whole submission. `checksum.ids` now restricts the file to the archives; the
+  SBOMs are still published beside them.
+
+  Nothing caught it because nothing asked the right question. Every check
+  established that the artefacts were correct — signed, digested, complete —
+  and none established that they were the ones the Registry ingests.
+  `scripts/check-release-artifacts.sh` asks that now, of a snapshot build,
+  before a tag exists: `SHA256SUMS` may list archives and the manifest and
+  nothing else, every archive must match its digest, and the manifest must be
+  the repository's own and declare a protocol.
+
+### Added
+
+- `syft` in the dev image, and `task release:dryrun`. The release could not be
+  rehearsed locally — the image had no syft, so `goreleaser release --snapshot`
+  failed on a machine where the failure was cheap and succeeded in CI where it
+  was not.
+
+
 ### Added
 
 - `CODEOWNERS`, a pull-request template, issue templates and a code of conduct
@@ -443,5 +470,6 @@ from the published trivy image, pinned by digest, which resolves from anywhere.
   sibling key, and `autoprimaries_url` is sent by every `Server` object while
   the schema omits it under `additionalProperties: false`.
 
-[Unreleased]: https://github.com/ioplane/terraform-provider-powerdns/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/ioplane/terraform-provider-powerdns/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/ioplane/terraform-provider-powerdns/releases/tag/v0.1.1
 [0.1.0]: https://github.com/ioplane/terraform-provider-powerdns/releases/tag/v0.1.0
