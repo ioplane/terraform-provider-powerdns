@@ -85,6 +85,11 @@ The mapping between commit type, changelog section and version bump is in
   and derives every path from the checkout rather than writing `/app`. One
   driver for a developer's machine and a runner, instead of building the dev
   image in CI to have somewhere to `exec` into.
+- The e2e driver's local path runs with `HOME` redirected under the fixture.
+  It configures `credential.helper store` and writes `~/.git-credentials`, and
+  against a developer's real home that is a change to their machine rather than
+  to the test — the helper goes on to capture every credential git handles and
+  write it in plaintext.
 - Every `uv run` passes `--locked`. `uv.lock` was in the repository and nothing
   required it, so a run could quietly resolve a different set of libraries than
   the one pinned — which is the same failure the image digests and action SHAs

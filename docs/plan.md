@@ -1273,6 +1273,16 @@ pinned v1.1.1 and `check-tool-versions.sh` now treats Terragrunt and OpenTofu
 as tools CI must match the image on. A version that was a formality for the
 dev image is a hard dependency for the suite.
 
+**And the local path was writing on the developer's machine.** The fixture
+configures `credential.helper store` and writes `~/.git-credentials`; run
+outside the container, that is not a test fixture, it is a change to the
+person's computer. It happened here before the reviewer named it: the global
+helper I set went on to capture three of this machine's real credentials and
+write them to disk in plaintext, where before they lived only in `gh` and
+`glab`. The helper is removed and the code redirects `HOME` to a directory
+under the fixture, so `--global` means that directory and nothing else.
+Verified by checksumming the real file across a local run.
+
 **And `uv.lock` was decorative.** It was in the repository and nothing required
 it, so any `uv run` could resolve a different set of libraries than the one
 pinned. `--locked` everywhere now — the same failure the image digests and

@@ -86,6 +86,18 @@ BINARY_PREFIX = "terraform-provider-powerdns_v"
 # always was; on a runner it is wherever the checkout landed. One definition,
 # correct in both places.
 MIRROR = str(E2E_DIR / ".mirror")
+
+# A home of its own for local execution.
+#
+# The fixture configures `credential.helper store` and writes
+# `~/.git-credentials`. Run against a developer's real home that is not a test
+# fixture, it is a change to their machine: the helper then captures every
+# credential git handles and writes it in plaintext, and the file write
+# truncates whatever was there. Both happened here before this existed.
+#
+# HOME is redirected for anything the driver runs locally, so `--global` means
+# this directory and nothing else.
+FIXTURE_HOME = E2E_DIR / ".home"
 TLS_DIR_NAME = ".tls"
 TLS_CERT_NAME = "cert.pem"
 TLS_KEY_NAME = "key.pem"
@@ -170,10 +182,18 @@ class Runner:
                 argv, capture_output=True, text=True, check=False
             )
         else:
+            FIXTURE_HOME.mkdir(parents=True, exist_ok=True)
             completed = subprocess.run(
                 ["bash", "-c", command],
                 cwd=workdir if Path(workdir).is_dir() else str(REPO_ROOT),
-                env={**os.environ, **environment},
+                env={
+                    **os.environ,
+                    **environment,
+                    # `--global` and `~` resolve here, not in the home of
+                    # whoever ran this.
+                    "HOME": str(FIXTURE_HOME),
+                    "XDG_CACHE_HOME": str(FIXTURE_HOME / ".cache"),
+                },
                 capture_output=True,
                 text=True,
                 check=False,

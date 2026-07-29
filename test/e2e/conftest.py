@@ -43,7 +43,16 @@ PG_DSN = "host=127.0.0.1 port=15432 user=pdns password=pdns dbname=pdns"
 # Whoever is running has a home directory; git and Terragrunt put their state
 # under it. Written out as /root it is right in the dev container and wrong on
 # a runner, where the user is not root.
-HOME = Path.home()
+# The home the fixture uses. Inside the dev container that is the container's
+# own, which is disposable; outside it the driver redirects HOME to a directory
+# under the fixture, because `credential.helper store` and `~/.git-credentials`
+# against a developer's real home is a change to their machine rather than to
+# the test.
+HOME = (
+    Path.home()
+    if Path("/app").is_dir() and Path(fixture.REPO_ROOT) == Path("/app")
+    else Path(fixture.FIXTURE_HOME)
+)
 GIT_CREDENTIALS = HOME / ".git-credentials"
 TERRAGRUNT_CACHE = HOME / ".cache" / "terragrunt"
 
@@ -123,6 +132,7 @@ class Terragrunt:
                 "TF_CLI_CONFIG_FILE": f"{fixture.MIRROR}/terraform.rc",
                 "TF_IN_AUTOMATION": "1",
                 "TG_NON_INTERACTIVE": "true",
+                "HOME": str(HOME),
                 **(env_overrides or {}),
             },
         )

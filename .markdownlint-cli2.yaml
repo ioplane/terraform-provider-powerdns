@@ -24,6 +24,10 @@ ignores:
   - "bin/**"
   - "dist/**"
   - ".worktrees/**"
+  # The end-to-end fixture's own home: a Go module cache and git configuration
+  # it materialises while running. Somebody else's documentation, lying in our
+  # tree because the fixture had to have a home that is not the developer's.
+  - "test/e2e/.home/**"
   - "CHANGELOG.md"
   # Registry documentation, written by tfplugindocs from the schema and the
   # examples. Its formatting is the generator's; editing it would be undone by
