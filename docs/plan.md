@@ -1273,6 +1273,13 @@ pinned v1.1.1 and `check-tool-versions.sh` now treats Terragrunt and OpenTofu
 as tools CI must match the image on. A version that was a formality for the
 dev image is a hard dependency for the suite.
 
+**The first CI run passed 43 of 44**, and the one failure was a sentence
+again. Git's TLS refusal reads "certificate signer not trusted" on this host
+and "server certificate verification failed" on a hosted runner — same git,
+same command, different build. The assertion is about the certificate now,
+not about the wording, which is the second time in this phase a test has been
+pinned to a phrase somebody else owns.
+
 **And the local path was writing on the developer's machine.** The fixture
 configures `credential.helper store` and writes `~/.git-credentials`; run
 outside the container, that is not a test fixture, it is a change to the

@@ -85,6 +85,10 @@ The mapping between commit type, changelog section and version bump is in
   and derives every path from the checkout rather than writing `/app`. One
   driver for a developer's machine and a runner, instead of building the dev
   image in CI to have somewhere to `exec` into.
+- The certificate-verification scenario asserts that git refused over the
+  certificate, not the sentence it used. The refusal reads "certificate signer
+  not trusted" on one git build and "server certificate verification failed" on
+  another; the first CI run of the suite failed on exactly that.
 - The e2e driver's local path runs with `HOME` redirected under the fixture.
   It configures `credential.helper store` and writes `~/.git-credentials`, and
   against a developer's real home that is a change to their machine rather than
