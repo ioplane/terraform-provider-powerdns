@@ -110,7 +110,7 @@ def main(argv: list[str], bases: tuple[Path, ...] | None = None) -> int:
     """Check the built release in `dist` (or the directory named)."""
     try:
         dist = checked_path(argv[0] if argv else "dist", bases)
-    except ValueError as error:
+    except (ValueError, OSError) as error:
         print(f"{error}", file=sys.stderr)
         return 2
     found = sorted(dist.glob("*_SHA256SUMS")) if dist.is_dir() else []

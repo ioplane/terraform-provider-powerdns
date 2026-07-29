@@ -355,13 +355,19 @@ jobs:
         run: |
           set -euo pipefail
           status=0
+          # Under the git directory rather than /tmp: the check refuses a path
+          # resolving outside the repository, and this job is a caller like any
+          # other. Asked of git rather than spelled `.git`, which is a file
+          # rather than a directory in a worktree.
+          scratch="$(git rev-parse --git-dir)/commit-message-check"
+          mkdir -p "$scratch"
           while read -r sha; do
             [ -n "$sha" ] || continue
-            git log -1 --format='%B' "$sha" > /tmp/msg.txt
-            python3 -m scripts.checks.no_ai_attribution /tmp/msg.txt || { echo "  in commit $sha" >&2; status=1; }
+            git log -1 --format='%B' "$sha" > "$scratch/msg.txt"
+            python3 -m scripts.checks.no_ai_attribution "$scratch/msg.txt" || { echo "  in commit $sha" >&2; status=1; }
           done < <(git rev-list "${BASE_SHA}..${HEAD_SHA}")
           # And the squash message, which is the title and body rather than
           # any commit that was checked above.
-          printf '%s\n\n%s\n' "$PR_TITLE" "$PR_BODY" > /tmp/squash.txt
-          python3 -m scripts.checks.no_ai_attribution /tmp/squash.txt || { echo "  in the pull request title or body" >&2; status=1; }
+          printf '%s\n\n%s\n' "$PR_TITLE" "$PR_BODY" > "$scratch/squash.txt"
+          python3 -m scripts.checks.no_ai_attribution "$scratch/squash.txt" || { echo "  in the pull request title or body" >&2; status=1; }
           exit "$status"

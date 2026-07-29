@@ -40,7 +40,7 @@ def main(argv: list[str], bases: tuple[Path, ...] | None = None) -> int:
 
     try:
         message = checked_path(argv[0], bases).read_bytes()
-    except ValueError as error:
+    except (ValueError, OSError) as error:
         print(f"{error}", file=sys.stderr)
         return 2
     cwd = Path.cwd()
