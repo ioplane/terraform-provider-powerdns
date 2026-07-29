@@ -249,5 +249,7 @@ build tag they do not carry — which is what an unexecuted pipeline becomes.
 | Semantic security scan | `task semgrep` |
 | Vulnerabilities | `task vulncheck` · `task osv-scan` |
 | Registry docs | `task docs:check` |
+| A release is releasable | `task release:check` |
+| Generated docs match the schema | `task docs:drift` |
 | Pre-PR aggregate | `task all` |
 | Full, including the lab | `task verify` |

@@ -29,8 +29,110 @@ defaults:
     shell: bash
 
 jobs:
+  # Nothing is built until this passes. A published Registry version is
+  # immutable: a wrong release is corrected by publishing another one and
+  # leaving the wrong one visible forever, so every question that can be
+  # answered before building is answered here.
+  gate:
+    name: Release gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: The signing key exists
+        # Before anything is built, not after. Discovering a missing secret at
+        # the signing step means the tag is spent: it has been pushed, the
+        # Registry may already have seen it, and the fix is a new version.
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.PASSPHRASE }}
+        run: |
+          missing=""
+          [ -n "${GPG_PRIVATE_KEY:-}" ] || missing="GPG_PRIVATE_KEY"
+          [ -n "${PASSPHRASE:-}" ] || missing="${missing:+$missing }PASSPHRASE"
+          if [ -n "$missing" ]; then
+            echo "::error::missing repository secret(s): $missing — the Registry rejects an unsigned SHA256SUMS"
+            exit 1
+          fi
+          echo "ok    signing secrets present"
+
+      - name: Version, changelog, manifest, tag
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: scripts/check-release.sh "$REF_NAME"
+
+      - name: The tag is on main
+        # Otherwise any branch can be tagged and published. The Registry does
+        # not care which branch a tag came from; this is the only place that
+        # can.
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          git fetch --no-tags origin main
+          if git merge-base --is-ancestor "$REF_NAME" origin/main; then
+            echo "ok    ${REF_NAME} is an ancestor of main"
+          else
+            echo "::error::${REF_NAME} is not on main — releases are cut from main"
+            exit 1
+          fi
+
+      - name: The gate and the lab were green for this commit
+        # Rather than re-running them. The point is that the released commit
+        # has been through the whole gate, not that this workflow can also run
+        # a subset of it — and re-running proves a different execution, not
+        # the one whose result anybody looked at.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          sha="$(git rev-parse HEAD)"
+          status=0
+          for wf in CI Acceptance; do
+            concl="$(gh api "repos/${REPO}/actions/runs?head_sha=${sha}&status=completed" \
+                       --jq "[.workflow_runs[] | select(.name == \"${wf}\")] | .[0].conclusion // \"none\"")"
+            case "$concl" in
+              success) echo "ok    ${wf} succeeded for ${sha:0:12}" ;;
+              none)    echo "::error::${wf} has not completed for ${sha:0:12} — push the commit to main and let it run before tagging"; status=1 ;;
+              *)       echo "::error::${wf} concluded '${concl}' for ${sha:0:12}"; status=1 ;;
+            esac
+          done
+          exit "$status"
+
+      - name: The release configuration is valid
+        run: |
+          go install github.com/goreleaser/goreleaser/v2@v2.17.1 # pin: GORELEASER_VERSION
+          goreleaser check
+
+      - name: The registry documentation is in sync
+        # Stale pages are published as if they described this version, and the
+        # Registry will not accept a correction to a version already released.
+        run: |
+          go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0 # pin: TFPLUGINDOCS_VERSION
+          tfplugindocs generate --provider-name powerdns
+          if ! git diff --quiet -- docs/; then
+            echo "::error::generated documentation is out of date — run 'task docs' and commit the result"
+            git --no-pager diff --stat -- docs/
+            exit 1
+          fi
+          echo "ok    generated documentation is in sync"
+
   test:
     name: Test
+    needs: [gate]
     runs-on: ubuntu-latest
     container:
       image: docker.io/library/golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 # pin: GO_IMAGE
@@ -45,11 +147,14 @@ jobs:
           # where anything archiving the workspace carries it out too. Nothing
           # here pushes with that credential.
           persist-credentials: false
+      # The gate already established that CI was green for this commit. This
+      # runs the tests once more against the tag itself, because that is the
+      # tree being archived and signed.
       - run: go test ./... -race -count=1
 
   goreleaser:
     name: GoReleaser
-    needs: [test]
+    needs: [gate, test]
     runs-on: ubuntu-latest
     permissions:
       contents: write

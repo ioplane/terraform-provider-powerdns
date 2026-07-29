@@ -8,7 +8,7 @@
 # preference.
 set -euo pipefail
 
-declare -i badges_ok=0 badges_bad=0 mermaid_ok=0 mermaid_bad=0
+declare -i badges_ok=0 badges_bad=0 badges_unreachable=0 mermaid_ok=0 mermaid_bad=0
 
 echo "== shieldcn badges =="
 # Fenced blocks are excluded: they hold templates and examples, and shieldcn
@@ -24,7 +24,26 @@ if [ ${#urls[@]} -eq 0 ]; then
   echo "no badges found"
 else
   for url in "${urls[@]}"; do
-    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$url" || echo 000)
+    # Three attempts. A single timeout against a third-party CDN is not a
+    # broken badge, and CI reported one as a failure the first time this ran.
+    code=000
+    for attempt in 1 2 3; do
+      code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$url") || code=000
+      [ "$code" = "000" ] || break
+      sleep "$attempt"
+    done
+
+    if [ "$code" = "000" ]; then
+      # Unreachable is not the same claim as wrong, and this check exists to
+      # catch a badge URL that is wrong. Unlike check-pins.sh — where an
+      # unverifiable pin is a supply-chain claim the repository must not make
+      # — an unreachable shieldcn is somebody else's outage. Reported loudly,
+      # counted, and not fatal.
+      printf 'UNREACHABLE %s  (shieldcn did not answer in 3 attempts)\n' \
+        "${url#https://shieldcn.dev}" >&2
+      badges_unreachable+=1
+      continue
+    fi
     if [ "$code" != "200" ]; then
       printf 'FAIL  %s  (HTTP %s)\n' "${url#https://shieldcn.dev}" "$code" >&2
       badges_bad+=1
@@ -111,5 +130,5 @@ if [ $((badges_bad + mermaid_bad + counter_bad)) -gt 0 ]; then
     "$([ "$counter_bad" -eq 0 ] && echo ok || echo wrong)" >&2
   exit 1
 fi
-printf 'check-badges: %d badges verified, %d files with mermaid verified, counter agrees\n' \
-  "$badges_ok" "$mermaid_ok"
+printf 'check-badges: %d badges verified, %d unreachable, %d files with mermaid verified, counter agrees\n' \
+  "$badges_ok" "$badges_unreachable" "$mermaid_ok"
