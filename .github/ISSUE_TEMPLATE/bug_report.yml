@@ -1,0 +1,63 @@
+name: Bug report
+description: Something the provider does that it should not, or does not do that it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: a non-empty plan immediately after a successful apply is
+        a bug in this provider, and one it takes seriously — that is the
+        property the whole normalisation layer exists to hold. Please say so
+        explicitly if that is what you are seeing.
+
+  - type: input
+    id: provider-version
+    attributes:
+      label: Provider version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: terraform-version
+    attributes:
+      label: Terraform or OpenTofu version
+      description: Both engines are supported and tested; say which one and which version.
+      placeholder: "terraform 1.15.8 / tofu 1.12.5"
+    validations:
+      required: true
+
+  - type: input
+    id: powerdns-version
+    attributes:
+      label: PowerDNS version and backend
+      description: >-
+        The backend matters more than it looks. Views and networks are
+        unimplemented by gpgsql, and several behaviours differ between gpgsql
+        and LMDB — see ADR 0005.
+      placeholder: "Authoritative 5.1.3, gpgsql"
+    validations:
+      required: true
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Configuration
+      description: The smallest configuration that shows it. Redact secrets — and if a secret appears in state or a plan file, say so, because that is a separate and more serious bug.
+      render: terraform
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output
+      description: "`TF_LOG=DEBUG` output if you have it. Redact the API key."
+      render: shell

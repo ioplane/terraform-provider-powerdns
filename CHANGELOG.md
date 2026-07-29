@@ -9,6 +9,22 @@ The mapping between commit type, changelog section and version bump is in
 
 ## [Unreleased]
 
+### Added
+
+- `CODEOWNERS`, a pull-request template, issue templates and a code of conduct
+  — the four files GitHub looks for, and the ones that tell somebody arriving
+  how this project works before they have read a standard. They carry the rules
+  that already applied: `task verify` for any resource change, `docs/plan.md`
+  updated in the same commit, and which backend a bug was seen on, because
+  gpgsql and LMDB differ.
+- A "Using it" section in the README, with the `required_providers` block.
+
+### Fixed
+
+- The README said "Status: in development … Not yet published to the Terraform
+  Registry", under a heading called *Planned* surface, on a repository with a
+  signed `v0.1.0` and every API operation covered.
+
 ## [0.1.0] — 2026-07-29
 
 First release. 29 artefacts across 13 platforms, `SHA256SUMS` signed with an
