@@ -83,7 +83,7 @@ while IFS= read -r hit; do
   [[ "$text" =~ \#[[:space:]]*pin:[[:space:]]*([A-Z0-9_]+) ]] || continue
   name="${BASH_REMATCH[1]}"
 
-  if [ -z "${expected[$name]+set}" ]; then
+  if [[ -z "${expected[$name]+set}" ]]; then
     printf 'UNKNOWN   %s:%s names %s, which %s does not define\n' \
       "$file" "$lineno" "$name" "$CONTAINERFILE" >&2
     bad+=1
@@ -107,10 +107,10 @@ done < <(grep -rn '# pin:' "${PINNED_FILES[@]}" 2>/dev/null || true)
 echo
 echo "== every CI tool is pinned somewhere =="
 for name in "${REQUIRED[@]}"; do
-  if [ -z "${expected[$name]+set}" ]; then
+  if [[ -z "${expected[$name]+set}" ]]; then
     printf 'MISSING   %s is required but %s does not define it\n' "$name" "$CONTAINERFILE" >&2
     bad+=1
-  elif [ -z "${seen[$name]+set}" ]; then
+  elif [[ -z "${seen[$name]+set}" ]]; then
     printf 'UNPINNED  %s is not referenced anywhere\n' "$name" >&2
     bad+=1
   else
@@ -119,7 +119,7 @@ for name in "${REQUIRED[@]}"; do
 done
 
 echo
-if [ "$bad" -gt 0 ]; then
+if [[ "$bad" -gt 0 ]]; then
   echo "${bad} problem(s) — the dev image and CI would run different tools" >&2
   exit 1
 fi

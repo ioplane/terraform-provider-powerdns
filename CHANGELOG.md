@@ -100,6 +100,13 @@ The mapping between commit type, changelog section and version bump is in
 
 ### Fixed
 
+- `TimeoutError` was named alongside `OSError` in the automation's exception
+  handlers. It is a subclass of it, and listing both says the author believed
+  otherwise.
+- Every `[` in the shell scripts became `[[`. In bash the second does no word
+  splitting or pathname expansion, so an unquoted variable cannot change what
+  the test means. The scanner flagged one file; applying it to one file and
+  not the rest would have made it a preference.
 - The README said "Status: in development … Not yet published to the Terraform
   Registry", under a heading called *Planned* surface, on a repository with a
   signed `v0.1.0` and every API operation covered.

@@ -32,7 +32,7 @@ manifest_status() {
   local registry="${ref%%/*}" rest="${ref#*/}"
   local repo="${rest%@*}" digest="${rest#*@}"
   local host="$registry"
-  [ "$registry" = "docker.io" ] && host="registry-1.docker.io"
+  [[ "$registry" = "docker.io" ]] && host="registry-1.docker.io"
   local url="https://${host}/v2/${repo}/manifests/${digest}"
 
   local head code
@@ -43,12 +43,12 @@ manifest_status() {
   code="$(printf '%s' "$head" | head -1 | awk '{print $2}')"
 
   # Anonymous pull: the registry says who to ask for a token and for what.
-  if [ "$code" = "401" ]; then
+  if [[ "$code" = "401" ]]; then
     local auth realm service token
     auth="$(printf '%s' "$head" | grep -i '^www-authenticate:' | tr -d '\r')"
     realm="$(printf '%s' "$auth" | grep -oE 'realm="[^"]+"' | cut -d'"' -f2)"
     service="$(printf '%s' "$auth" | grep -oE 'service="[^"]+"' | cut -d'"' -f2)"
-    [ -n "$realm" ] || {
+    [[ -n "$realm" ]] || {
       echo "401"
       return
     }
@@ -63,7 +63,7 @@ manifest_status() {
 echo "== container images =="
 # Every image reference in compose, CI and Containerfiles.
 while IFS= read -r ref; do
-  [ -n "$ref" ] || continue
+  [[ -n "$ref" ]] || continue
   if ! [[ "$ref" =~ @sha256:[0-9a-f]{64}$ ]]; then
     printf 'FLOATING  %s\n' "$ref" >&2
     bad+=1
@@ -110,7 +110,7 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   # owner/repo greedily against the whole reference instead reads
   # `codeql-action/init` as a repository and reports a valid pin as missing.
   while IFS= read -r ref; do
-    [ -n "$ref" ] || continue
+    [[ -n "$ref" ]] || continue
     action="${ref%@*}"
     sha="${ref##*@}"
     repo="$(printf '%s' "$action" | cut -d/ -f1,2)"
@@ -136,7 +136,7 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
       sleep "$attempt"
     done
 
-    if [ -z "$err" ]; then
+    if [[ -z "$err" ]]; then
       printf 'ok        %-34s %s\n' "$action" "${sha:0:12}"
       ok+=1
     elif [[ "$err" == *"Not Found"* || "$err" == *"No commit found"* ]]; then
@@ -153,7 +153,7 @@ else
 fi
 
 echo
-if [ "$bad" -gt 0 ]; then
+if [[ "$bad" -gt 0 ]]; then
   printf 'check-pins: %d verified, %d wrong\n' "$ok" "$bad" >&2
   exit 1
 fi

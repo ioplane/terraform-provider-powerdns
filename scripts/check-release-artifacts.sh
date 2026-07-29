@@ -23,7 +23,7 @@ fail() {
 pass() { printf 'ok    %s\n' "$1"; }
 
 sums="$(find "$DIST" -maxdepth 1 -name '*_SHA256SUMS' -print -quit)"
-if [ -z "$sums" ]; then
+if [[ -z "$sums" ]]; then
   echo "no *_SHA256SUMS in ${DIST}; build first (task release:dryrun)" >&2
   exit 2
 fi
@@ -33,7 +33,7 @@ echo "== SHA256SUMS lists only what the Registry ingests =="
 # an SBOM, a signature, a checksum of a checksum — is a line the Registry
 # cannot resolve to a file it accepts.
 while read -r name; do
-  [ -n "$name" ] || continue
+  [[ -n "$name" ]] || continue
   case "$name" in
     *_manifest.json) pass "manifest    ${name}" ;;
     *.zip) pass "archive     ${name}" ;;
@@ -55,13 +55,13 @@ fi
 echo
 echo "== the manifest is the one in the repository =="
 recorded="$(awk '$2 ~ /_manifest\.json$/ {print $1}' "$sums")"
-if [ -z "$recorded" ]; then
+if [[ -z "$recorded" ]]; then
   fail "SHA256SUMS records no manifest — the Registry needs one to learn the protocol"
-elif [ ! -f terraform-registry-manifest.json ]; then
+elif [[ ! -f terraform-registry-manifest.json ]]; then
   fail "terraform-registry-manifest.json is missing from the repository"
 else
   actual="$(sha256sum terraform-registry-manifest.json | cut -d' ' -f1)"
-  if [ "$recorded" = "$actual" ]; then
+  if [[ "$recorded" = "$actual" ]]; then
     pass "manifest      matches terraform-registry-manifest.json"
   else
     fail "the recorded manifest digest is not the repository's manifest"
@@ -71,7 +71,7 @@ else
 fi
 
 echo
-if [ "$bad" -gt 0 ]; then
+if [[ "$bad" -gt 0 ]]; then
   printf 'check-release-artifacts: %d problem(s) — the Registry would refuse this\n' "$bad" >&2
   exit 1
 fi

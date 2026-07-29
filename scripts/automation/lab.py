@@ -125,7 +125,9 @@ def api_get(url: str, timeout: float = 3.0) -> list | dict | None:
     # OSError covers URLError and the bare ConnectionResetError a server raises
     # when it accepts the connection during startup and closes it before
     # replying — the normal case while the fixture is still coming up.
-    except (OSError, TimeoutError, json.JSONDecodeError):
+    # TimeoutError is a subclass of OSError; naming both says the
+    # author believed otherwise.
+    except (OSError, json.JSONDecodeError):
         return None
 
 

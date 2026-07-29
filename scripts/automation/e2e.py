@@ -75,6 +75,9 @@ HTTP_OK = 200
 PROVIDER_VERSION = "0.1.1"
 BINARY_PREFIX = "terraform-provider-powerdns_v"
 MIRROR = "/app/test/e2e/.mirror"
+TLS_DIR_NAME = ".tls"
+TLS_CERT_NAME = "cert.pem"
+TLS_KEY_NAME = "key.pem"
 
 
 @dataclass
@@ -139,10 +142,15 @@ def _tls_context() -> ssl.SSLContext | None:
     `verify_mode = CERT_NONE` would be one line shorter and would make every
     later reader wonder whether the suite verifies anything.
     """
-    cert = E2E_DIR / ".tls" / "cert.pem"
+    cert = E2E_DIR / TLS_DIR_NAME / TLS_CERT_NAME
     if not cert.is_file():
         return None
-    return ssl.create_default_context(cafile=str(cert))
+    context = ssl.create_default_context(cafile=str(cert))
+    # Stated rather than inherited. The default floor moves with the Python
+    # version, and a fixture that quietly negotiates down on an older
+    # interpreter is a fixture that stops testing what it says it tests.
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    return context
 
 
 def http_ok(url: str, timeout: float = 3.0, *, api_key: str | None = None) -> bool:
@@ -163,7 +171,7 @@ def http_ok(url: str, timeout: float = 3.0, *, api_key: str | None = None) -> bo
             request, timeout=timeout, context=_tls_context()
         ) as response:
             return response.status == HTTP_OK
-    except (OSError, TimeoutError):
+    except OSError:
         return False
 
 
@@ -230,9 +238,9 @@ def make_tls_certificate() -> None:
     certificate, one host, regenerated whenever the fixture is rebuilt — there
     is nothing here worth reusing between runs.
     """
-    tls = E2E_DIR / ".tls"
+    tls = E2E_DIR / TLS_DIR_NAME
     tls.mkdir(parents=True, exist_ok=True)
-    if (tls / "cert.pem").is_file() and (tls / "key.pem").is_file():
+    if (tls / TLS_CERT_NAME).is_file() and (tls / TLS_KEY_NAME).is_file():
         return
 
     subprocess.run(
@@ -250,14 +258,14 @@ def make_tls_certificate() -> None:
             "-addext",
             "subjectAltName=IP:127.0.0.1",
             "-keyout",
-            str(tls / "key.pem"),
+            str(tls / TLS_KEY_NAME),
             "-out",
-            str(tls / "cert.pem"),
+            str(tls / TLS_CERT_NAME),
         ],
         check=True,
         capture_output=True,
     )
-    (tls / "key.pem").chmod(0o644)
+    (tls / TLS_KEY_NAME).chmod(0o644)
 
 
 def make_bucket() -> None:
@@ -382,7 +390,7 @@ def seed_module_repo(runner: Runner, token: str) -> None:
         # Trust this certificate for this host, and nothing else. `sslVerify
         # false` would also work and would teach the reader the wrong lesson.
         'git config --global http."https://127.0.0.1:19300/".sslCAInfo '
-        "/app/test/e2e/.tls/cert.pem; "
+        f"{MIRROR.rsplit('/', 1)[0]}/{TLS_DIR_NAME}/{TLS_CERT_NAME}; "
         f"umask 077; printf '%s\\n' '{credentials}' > ~/.git-credentials; "
         "git init -q -b main; "
         "git config user.email e2e@example.com; "
