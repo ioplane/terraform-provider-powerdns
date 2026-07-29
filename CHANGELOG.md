@@ -85,6 +85,10 @@ The mapping between commit type, changelog section and version bump is in
   and derives every path from the checkout rather than writing `/app`. One
   driver for a developer's machine and a runner, instead of building the dev
   image in CI to have somewhere to `exec` into.
+- Every `uv run` passes `--locked`. `uv.lock` was in the repository and nothing
+  required it, so a run could quietly resolve a different set of libraries than
+  the one pinned — which is the same failure the image digests and action SHAs
+  exist to prevent, in the one ecosystem that had been left out.
 - `check-tool-versions.sh` covers Terragrunt and OpenTofu. Terragrunt's version
   is load-bearing for the suite: `run` arrived with the 1.0 CLI freeze, every
   command goes through it, and a 0.x binary forwards the word to the engine,

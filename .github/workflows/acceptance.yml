@@ -87,12 +87,12 @@ jobs:
             echo "podman socket unavailable — lab.py will use the CLI"
 
       - name: Start the lab
-        run: uv run scripts/automation/lab.py up
+        run: uv run --locked scripts/automation/lab.py up
 
       - name: The lab is the pinned PowerDNS versions
         # An acceptance pass against the wrong server proves nothing about the
         # server the claims were written from.
-        run: uv run scripts/automation/lab.py verify
+        run: uv run --locked scripts/automation/lab.py verify
 
       - name: Acceptance
         run: go test -tags acceptance ./internal/... -race -count=1 -timeout 60m -v
@@ -100,7 +100,7 @@ jobs:
       - name: Diagnostics
         if: failure()
         run: |
-          uv run scripts/automation/lab.py status || true
+          uv run --locked scripts/automation/lab.py status || true
           for c in pdns-lab-pg pdns-lab-auth-pg pdns-lab-auth-lmdb \
                    pdns-lab-rec pdns-lab-dnsdist; do
             echo "::group::$c"
@@ -110,4 +110,4 @@ jobs:
 
       - name: Tear down
         if: always()
-        run: uv run scripts/automation/lab.py down || true
+        run: uv run --locked scripts/automation/lab.py down || true

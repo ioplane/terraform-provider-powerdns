@@ -1273,6 +1273,12 @@ pinned v1.1.1 and `check-tool-versions.sh` now treats Terragrunt and OpenTofu
 as tools CI must match the image on. A version that was a formality for the
 dev image is a hard dependency for the suite.
 
+**And `uv.lock` was decorative.** It was in the repository and nothing required
+it, so any `uv run` could resolve a different set of libraries than the one
+pinned. `--locked` everywhere now — the same failure the image digests and
+action SHAs exist to prevent, in the one ecosystem that had been left out of
+the rule.
+
 ### The object store is SeaweedFS
 
 Not on features — either serves the S3 API the backend needs, and the suite
