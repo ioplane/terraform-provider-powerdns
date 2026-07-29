@@ -122,7 +122,27 @@ def test_a_checksum_line_is_a_digest_and_a_name():
         "def456 *terraform-provider-powerdns_0.1.1_manifest.json\n"
         "\n"
     )
-    assert parse_sums(text) == [
-        ("abc123", "terraform-provider-powerdns_0.1.1_linux_amd64.zip"),
-        ("def456", "terraform-provider-powerdns_0.1.1_manifest.json"),
-    ]
+    assert parse_sums(text) == (
+        [
+            ("abc123", "terraform-provider-powerdns_0.1.1_linux_amd64.zip"),
+            ("def456", "terraform-provider-powerdns_0.1.1_manifest.json"),
+        ],
+        [],
+    )
+
+
+def test_a_line_that_is_not_a_checksum_is_reported_not_dropped():
+    """The Registry reads every line, so one this cannot parse still reaches it.
+
+    The shell version passed the second field of such a line to the listing
+    check and rejected it there. Discarding it silently would make this pass on
+    exactly the file it exists to reject.
+    """
+    pairs, malformed = parse_sums("abc123  good.zip\nbbb  extra field.zip\n\n")
+    assert pairs == [("abc123", "good.zip")]
+    assert malformed == ["bbb  extra field.zip"]
+
+
+def test_blank_lines_are_not_malformed():
+    """Goreleaser ends the file with a newline; that is not a defect."""
+    assert parse_sums("abc123  good.zip\n\n   \n")[1] == []

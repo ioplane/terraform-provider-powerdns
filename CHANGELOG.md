@@ -130,6 +130,11 @@ The mapping between commit type, changelog section and version bump is in
   string and failed open in the other direction.
 - `ruff` and `ty` ran over `scripts/` only, so nothing under `test/` was linted
   or type-checked. Both now cover `test/scripts/` as well.
+- The release-artifact check silently discarded a `SHA256SUMS` line it could not
+  parse, so a malformed line would have passed while the Registry — which reads
+  every line — rejected the release over it. The shell version it replaced was
+  stricter here, having passed such a line's second field on to the listing
+  check. Malformed lines are now failures.
 - `task docs:drift` compared the whole `docs/` tree against the generator's
   output. `tfplugindocs` writes six paths; `docs/` also holds the plan, the
   contract, the standards and the ADRs, so editing any of those made the check

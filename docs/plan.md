@@ -1655,6 +1655,15 @@ throughout `CHANGELOG.md` and in the older entries of this document. Those are
 records of what was true when they were written and are left alone; the rename
 is recorded here so a reader who finds one can follow it.
 
+**Review found a place the rewrite was laxer than the script it replaced.**
+`parse_sums` required exactly two fields and dropped anything else, so a
+malformed `SHA256SUMS` line would have passed the check and then been read by
+the Registry, which reads every line. The bash version fed such a line's second
+field to the listing check and rejected it there. The parity comparison did not
+catch this because the real file has no malformed lines — a reminder that
+comparing two implementations on the input you have only proves they agree on
+that input.
+
 **SonarCloud refused the branch, and was right.** The quality gate failed on
 "Security Rating C on New Code" with six findings, all in code written this
 sprint: three paths built from `argv`, two git arguments built from a branch

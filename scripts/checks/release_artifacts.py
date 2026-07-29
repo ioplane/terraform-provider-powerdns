@@ -33,17 +33,30 @@ def digest_of(path: Path) -> str:
     return digest.hexdigest()
 
 
-def parse_sums(text: str) -> list[tuple[str, str]]:
-    """Return the (digest, filename) pairs a SHA256SUMS file records."""
+def parse_sums(text: str) -> tuple[list[tuple[str, str]], list[str]]:
+    """Return the (digest, filename) pairs, and the lines that are neither.
+
+    The malformed lines are returned rather than dropped. The Registry reads
+    every line of this file, so a line this cannot parse is a line that will
+    reach it unexamined — and silently discarding it would make the check pass
+    on exactly the file it exists to reject.
+    """
     pairs: list[tuple[str, str]] = []
+    malformed: list[str] = []
     for line in text.splitlines():
+        if not line.strip():
+            continue
         parts = line.split()
         if len(parts) == 2:  # noqa: PLR2004 - a checksum line is a digest and a name
             pairs.append((parts[0], parts[1].lstrip("*")))
-    return pairs
+        else:
+            malformed.append(line)
+    return pairs, malformed
 
 
-def check_listing(report: Report, sums: list[tuple[str, str]]) -> None:
+def check_listing(
+    report: Report, sums: list[tuple[str, str]], malformed: list[str]
+) -> None:
     """Every line must be an archive or the manifest.
 
     Exactly two shapes. Anything else — an SBOM, a signature, a checksum of a
@@ -51,6 +64,8 @@ def check_listing(report: Report, sums: list[tuple[str, str]]) -> None:
     it refuses the whole submission over it.
     """
     print("== SHA256SUMS lists only what the Registry ingests ==")
+    for line in malformed:
+        report.fail(f"{line!r} is not a checksum line")
     for _, name in sums:
         if name.endswith("_manifest.json"):
             report.ok(f"manifest    {name}")
@@ -121,9 +136,9 @@ def main(argv: list[str], bases: tuple[Path, ...] | None = None) -> int:
         )
         return 2
 
-    sums = parse_sums(found[0].read_text(encoding="utf-8"))
+    sums, malformed = parse_sums(found[0].read_text(encoding="utf-8"))
     report = Report("check-release-artifacts")
-    check_listing(report, sums)
+    check_listing(report, sums, malformed)
     check_archives(report, sums, dist)
     check_manifest(report, sums)
     print()
