@@ -11,7 +11,7 @@
 
 ![phase 9_of_10](https://shieldcn.dev/badge/phase-9_of_10-0969da.svg?variant=secondary)
 ![phases_closed 8](https://shieldcn.dev/badge/phases_closed-8-3fb950.svg?variant=secondary)
-![tasks_done 91](https://shieldcn.dev/badge/tasks_done-91-3fb950.svg?variant=secondary)
+![tasks_done 92](https://shieldcn.dev/badge/tasks_done-92-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1174,7 +1174,7 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-09 | Branch protection: require the gate before merge | PM | `[x]` |
 | S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[x]` |
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
-| S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
+| S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[x]` the Python move replaced them with six agent-safety findings, all fixed |
 | S8-14 | **Added.** Repository hygiene: CODEOWNERS, templates, code of conduct, settings, branch protection | OPS | `[x]` |
 | S8-15 | **Added.** The gate's checks move from shell to Python, with tests | OPS | `[x]` |
 
@@ -1654,6 +1654,16 @@ it; it now names `--group e2e`. And `lint:shell` had been linting `scripts/*.sh`
 throughout `CHANGELOG.md` and in the older entries of this document. Those are
 records of what was true when they were written and are left alone; the rename
 is recorded here so a reader who finds one can follow it.
+
+**SonarCloud refused the branch, and was right.** The quality gate failed on
+"Security Rating C on New Code" with six findings, all in code written this
+sprint: three paths built from `argv`, two git arguments built from a branch
+name, and one URL path built from a registry response. The temptation is to read
+these as noise about a developer's command line. They are not — the rules are
+aimed at code an agent invokes, which is exactly what this repository is, and
+`task worktree:new BRANCH=../../elsewhere` really does put a worktree outside
+`.worktrees`. `scripts/checks/paths.py` now bounds all six, and the branch-name
+rule is the one the naming standard already stated, enforced for the first time.
 
 ## Audit, 2026-07-29 — before phase 7
 

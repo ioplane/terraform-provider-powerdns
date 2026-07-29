@@ -13,6 +13,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.checks.paths import checked_branch
+
 BASE_REMOTE = "origin"
 
 EPILOG = """\
@@ -40,8 +42,15 @@ def worktree_path(branch: str) -> Path:
 
     Beside the repository rather than inside it: a worktree under the checkout
     would be walked by every linter, test runner and `git add -A` in it.
+
+    The name is checked first. Without that, `../../elsewhere` is a perfectly
+    good argument that puts the worktree outside `.worktrees` entirely, and a
+    name beginning with a dash reaches git as an option rather than a branch.
+
+    Raises:
+        ValueError: when `branch` is not a branch name.
     """
-    return repo_root().parent / ".worktrees" / branch
+    return repo_root().parent / ".worktrees" / checked_branch(branch)
 
 
 def cmd_new(branch: str) -> int:
@@ -50,7 +59,15 @@ def cmd_new(branch: str) -> int:
     subprocess.run(["git", "fetch", BASE_REMOTE, "main"], check=True)
     path.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        ["git", "worktree", "add", "-b", branch, str(path), f"{BASE_REMOTE}/main"],
+        [
+            "git",
+            "worktree",
+            "add",
+            "-b",
+            checked_branch(branch),
+            str(path),
+            f"{BASE_REMOTE}/main",
+        ],
         check=True,
     )
     print()
@@ -67,7 +84,7 @@ def cmd_rm(branch: str) -> int:
     # The branch may already be gone — deleted by `gh pr merge --delete-branch`,
     # or never created because the worktree was made by hand. Not an error.
     subprocess.run(
-        ["git", "branch", "-D", branch],
+        ["git", "branch", "-D", checked_branch(branch)],
         check=False,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

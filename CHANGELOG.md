@@ -102,6 +102,15 @@ The mapping between commit type, changelog section and version bump is in
   inputs, before that script was deleted. The badge check is also eight times
   faster, a hundred independent requests being a thread pool rather than a loop.
 - The two agent hooks under `.claude/hooks/` are Python and no longer need `jq`.
+- Every argument that becomes a path or a git argument is bounded.
+  `scripts/checks/paths.py` refuses a path resolving outside the repository —
+  including through a symlink — and refuses a branch name that is not the shape
+  `docs/standards/naming-conventions.md` §4 requires. Without the second,
+  `task worktree:new BRANCH=../../elsewhere` places a worktree outside
+  `.worktrees`, and a name beginning with a dash reaches git as an option. These
+  are ordinary command-line arguments in a repository whose commands are typed
+  by a person and a realistic input in one where they are issued by an agent,
+  which is the case SonarCloud's rules are aimed at and the case here.
 - `lint:shell` lints the `terraform import` snippets under `examples/`, which
   are now the only shell in the repository and the only shell a reader copies.
   `shfmt` is gone, having nothing left to format; `shellcheck` stays, because

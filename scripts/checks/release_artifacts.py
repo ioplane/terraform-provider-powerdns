@@ -17,6 +17,7 @@ import hashlib
 import sys
 from pathlib import Path
 
+from scripts.checks.paths import checked_path
 from scripts.checks.report import Report
 
 MANIFEST = Path("terraform-registry-manifest.json")
@@ -105,9 +106,13 @@ def check_manifest(report: Report, sums: list[tuple[str, str]]) -> None:
         report.fail("the manifest declares no protocol_versions")
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], bases: tuple[Path, ...] | None = None) -> int:
     """Check the built release in `dist` (or the directory named)."""
-    dist = Path(argv[0] if argv else "dist")
+    try:
+        dist = checked_path(argv[0] if argv else "dist", bases)
+    except ValueError as error:
+        print(f"{error}", file=sys.stderr)
+        return 2
     found = sorted(dist.glob("*_SHA256SUMS")) if dist.is_dir() else []
     if not found:
         print(

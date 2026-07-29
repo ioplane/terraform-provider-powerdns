@@ -15,6 +15,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.checks.paths import checked_path
+
 COMPOSE_FILE = "deployments/compose/compose.dev.yml"
 
 
@@ -27,7 +29,7 @@ def dev_suffix(cwd: Path) -> str:
     return f"-{cwd.name}" if ".worktrees" in cwd.parts else ""
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], bases: tuple[Path, ...] | None = None) -> int:
     """Pipe the commit message named by the single argument into commitlint."""
     if len(argv) != 1:
         print(
@@ -36,7 +38,11 @@ def main(argv: list[str]) -> int:
         )
         return 2
 
-    message = Path(argv[0]).read_bytes()
+    try:
+        message = checked_path(argv[0], bases).read_bytes()
+    except ValueError as error:
+        print(f"{error}", file=sys.stderr)
+        return 2
     cwd = Path.cwd()
     result = subprocess.run(
         [

@@ -85,9 +85,19 @@ def test_the_file_is_read_and_the_status_reflects_it(tmp_path, capsys):
     """The exit status is the whole interface git sees."""
     good = tmp_path / "good"
     good.write_text("feat(x): a change\n")
-    assert main([str(good)]) == 0
+    assert main([str(good)], bases=(tmp_path,)) == 0
 
     bad = tmp_path / "bad"
     bad.write_text("feat(x): a change\n\nCo-Authored-By: Claude <x@y>\n")
-    assert main([str(bad)]) == 1
+    assert main([str(bad)], bases=(tmp_path,)) == 1
     assert "golden rule 6" in capsys.readouterr().err
+
+
+def test_a_message_outside_the_repository_is_refused(tmp_path, capsys):
+    """Git hands this hook a path; a mis-wired one must not read anywhere."""
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+    stray = outside / "msg"
+    stray.write_text("feat(x): a change\n")
+    assert main([str(stray)], bases=(tmp_path / "repo",)) == 2
+    assert "outside this repository" in capsys.readouterr().err

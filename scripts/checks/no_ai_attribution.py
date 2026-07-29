@@ -15,7 +15,12 @@ from __future__ import annotations
 
 import re
 import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+from scripts.checks.paths import checked_path
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # An assertion of authorship, in any of the shapes it usually takes.
 CLAIM = re.compile(
@@ -56,7 +61,7 @@ def offences(message: str) -> list[tuple[int, str]]:
     return found
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], bases: tuple[Path, ...] | None = None) -> int:
     """Check the commit message named by the single argument."""
     if len(argv) != 1:
         print(
@@ -65,7 +70,13 @@ def main(argv: list[str]) -> int:
         )
         return 2
 
-    found = offences(Path(argv[0]).read_text(encoding="utf-8"))
+    try:
+        message = checked_path(argv[0], bases)
+    except ValueError as error:
+        print(f"{error}", file=sys.stderr)
+        return 2
+
+    found = offences(message.read_text(encoding="utf-8"))
     if not found:
         return 0
 

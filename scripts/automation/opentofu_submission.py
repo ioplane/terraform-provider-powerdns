@@ -21,6 +21,7 @@ Run as: python -m scripts.automation.opentofu_submission
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -38,6 +39,12 @@ TIMEOUT = 20.0
 # The registry that consumes this key accepts RSA and DSA only. An ECC key is
 # accepted by the form and rejected later, at a point far away from here.
 ACCEPTED_ALGORITHMS = {"1": "RSA", "17": "DSA"}
+
+# The version comes back from the registry and then goes into the path of the
+# next request. It is not attacker-controlled in any ordinary sense, but it is
+# remote data steering a URL, and a semantic version is the only shape it can
+# legitimately have.
+SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$")
 
 
 def get_json(url: str) -> dict | None:
@@ -82,7 +89,13 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    version = published["version"]
+    version = str(published["version"])
+    if not SEMVER.match(version):
+        print(
+            f"FAIL  the registry reported {version!r}, which is not a version",
+            file=sys.stderr,
+        )
+        return 1
     print(f"ok    {REPOSITORY} {version} is published")
 
     download = get_json(f"{REGISTRY}/{version}/download/linux/amd64")
