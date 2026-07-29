@@ -311,7 +311,13 @@ def seed_module_repo(runner: Runner, token: str) -> None:
     fetch it from a remote that asks who is calling, which is the shape every
     real module source has and the one an anonymous daemon could not test.
     """
-    push_url = (
+    # Plain HTTP to loopback, deliberately. The remote is a fixture on
+    # 127.0.0.1 that lives for the length of a test run; terminating TLS on it
+    # would mean generating a certificate and teaching every client to trust
+    # it, to protect a token from an attacker who would already be inside the
+    # container. The token is a fixture credential and is regenerated on every
+    # `task e2e:up`.
+    push_url = (  # NOSONAR - loopback fixture, see above
         f"http://{FORGEJO_USER}:{token}@127.0.0.1:19300/"
         f"{FORGEJO_USER}/{FORGEJO_REPO}.git"
     )
@@ -321,13 +327,15 @@ def seed_module_repo(runner: Runner, token: str) -> None:
         "git init -q -b main && "
         "git config user.email e2e@example.com && "
         "git config user.name 'e2e fixture' && "
-        "mkdir -p modules && cp -r /app/test/e2e/modules/dns-zone modules/ && "
+        "cp -r /app/test/e2e/modules . && "
         "git add -A && git commit -q -m 'module under test' && "
         f"git push -q --force {push_url} main"
     )
-    # The path is inside the dev container, which is discarded with it; S108
-    # is about a shared host /tmp and does not apply.
-    runner.exec(script, workdir="/tmp", check=True)  # noqa: S108
+    # The path is inside the dev container, which is discarded with it. The
+    # rule is about a shared host /tmp where another user can win a race to
+    # the name; there is one user here and the filesystem does not outlive the
+    # run.
+    runner.exec(script, workdir="/tmp", check=True)  # noqa: S108  # NOSONAR
 
 
 def build_provider_mirror(runner: Runner) -> None:

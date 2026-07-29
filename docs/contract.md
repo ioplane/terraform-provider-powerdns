@@ -380,7 +380,11 @@ something that runs without being remembered.
 | Guarantee | Checked by | Runs |
 | --- | --- | --- |
 | §4.1 an apply converges | acceptance suite — every resource applies twice, the second plan must be empty | `acceptance.yml`, and `task verify` locally |
-| §4.2 secrets do not reach state | acceptance assertions on state contents, plus the schema's write-only and ephemeral declarations | `acceptance.yml` |
+| §4.2 secrets do not reach state | acceptance assertions on state contents, **and the end-to-end suite reading the state object out of S3** — the shared remote state is the risk the clause exists for | `acceptance.yml`, `task e2e` |
+| §4.2 an ephemeral read is not stored | the language refuses to let the value leave the module: an ordinary output derived from it, and an ephemeral output in a root module, are both rejected | `task e2e` |
+| §4.6 a capability diagnostic names the backend | applying views against gpgsql must fail naming LMDB and the `launch=` setting | `task e2e` |
+| Both engines behave the same | the same unit applied and re-planned under `tofu` and under `terraform` | `task e2e` |
+| Drift is seen and repaired | a value, a TTL and a whole record changed behind Terraform's back | `task e2e` |
 | §3 the surface matches this document | `TestSurfaceIsComplete` per product, and the audit's name-by-name comparison | `ci.yml` |
 | §4.6 an impossible operation names its cause | capability-classifier tests against recorded fixtures | `ci.yml` |
 | Behaviour matches the pinned PowerDNS versions | `lab.py verify` before the suite runs | `acceptance.yml` |
@@ -391,6 +395,11 @@ Acceptance is not yet a pull-request gate: it starts five containers and is
 allowed ninety minutes, and it moves there once its run history says it is
 stable. Until then the promise it verifies is verified on `main` and nightly,
 not on the branch.
+
+**Actions require Terraform 1.14 or later and are not available on OpenTofu.**
+Everything else in this provider works on both engines and is tested on both;
+actions are the one part that does not, because the capability is absent from
+the other engine rather than because the provider withholds it.
 
 A released version carries a `SHA256SUMS` signed with the key the Terraform
 Registry holds, and an SBOM per archive. It is also, by construction, a commit

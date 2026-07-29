@@ -14,12 +14,28 @@ The mapping between commit type, changelog section and version bump is in
 - `test/e2e` — the path a consumer's configuration travels, which the
   acceptance suite never touched: Terragrunt over an S3 backend on MinIO, the
   module fetched over HTTP from a private Forgejo repository, against the
-  running lab. Thirteen scenarios on pytest, asking through the interfaces a consumer uses — boto3
+  running lab. Forty-two scenarios across eight units on pytest, asking through the interfaces a consumer uses — boto3
   for the bucket, dnspython for what DNS answers, psycopg for what the backend
   stored — rather than by parsing `dig` and `psql`. It also runs on OpenTofu,
   which Terragrunt selects by default and which nothing had exercised before.
 - `task e2e:up`, `task e2e`, `task e2e:down` — the fixture on podman-py, driven
   through uv.
+- The end-to-end suite reads the state object out of S3 and asserts that no
+  DNSSEC private key and no TSIG secret is in it. That is the provider's
+  central claim, and until now it had only been checked against a local state
+  file — the wrong place, because the risk it answers is a state file a team
+  shares.
+- End-to-end coverage of the two products and the one backend no consumer path
+  had reached: the Recursor, dnsdist, and views and networks on LMDB, including
+  the capability diagnostic when views are asked of gpgsql.
+- Drift: a value, a TTL and a whole record changed behind Terraform's back,
+  each seen in the plan and repaired by the next apply.
+- The same unit applied and re-planned under both `tofu` and `terraform`, each
+  verified from its own log prefix rather than from `terragrunt --version`,
+  which reports only Terragrunt.
+- Actions, ephemeral resources and an autoprimary. The actions unit is pinned
+  to Terraform and asserts that OpenTofu refuses the configuration: actions are
+  a Terraform 1.14 feature and the other engine does not have them.
 - `check-pins.sh` asks the registry over HTTP instead of asking a container
   client. skopeo consults local storage, mirrors and caches, and resolved a
   digest that the registry answers 404 for — the pin read as verified locally

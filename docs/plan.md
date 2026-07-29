@@ -11,7 +11,7 @@
 
 ![phase 9_of_10](https://shieldcn.dev/badge/phase-9_of_10-0969da.svg?variant=secondary)
 ![phases_closed 6](https://shieldcn.dev/badge/phases_closed-6-3fb950.svg?variant=secondary)
-![tasks_done 85](https://shieldcn.dev/badge/tasks_done-85-3fb950.svg?variant=secondary)
+![tasks_done 87](https://shieldcn.dev/badge/tasks_done-87-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1158,7 +1158,7 @@ test still fails in somebody's pipeline, and none of it had ever been exercised.
 
 `test/e2e` runs that path. Terragrunt over an S3 backend on MinIO, the module
 fetched over HTTP from a private Forgejo repository, against the running lab —
-thirteen scenarios, all green, repeatable back to back.
+forty-two scenarios across eight units, all green, repeatable back to back.
 
 | Scenario | Establishes |
 | --- | --- |
@@ -1197,6 +1197,54 @@ which is how that surfaced. The repository is private now, and clearing the
 cache is part of the scenario: Terragrunt keys its download on the source with
 the credentials stripped, so with the module already cached a wrong token never
 reaches the network.
+
+### Forty-two scenarios, and what the last twenty-nine established
+
+Thirteen covered the happy path. The rest cover what the provider actually
+promises.
+
+| Area | What it establishes |
+| --- | --- |
+| **Secrets in remote state** | the DNSSEC private key and the TSIG secret are absent from the state object **in the bucket** — the risk the claim exists to answer, checked for the first time where it lives rather than in a local file |
+| **DNSSEC** | the zone serves a DNSKEY and answers carry an RRSIG: signed, not merely holding a key |
+| **Recursor and dnsdist** | two of the three products, which no consumer path had reached |
+| **Views and networks** | the LMDB-only resources, and the capability diagnostic when they are asked of gpgsql |
+| **Drift** | a value changed, a TTL changed and a record deleted behind Terraform's back, each visible in the plan and repaired by apply |
+| **Both engines** | the same unit under `tofu` and `terraform`, each verified from its own log prefix |
+| **Actions** | `rectify` and `notify` attached to a lifecycle, reported by Terraform as invoked |
+| **Ephemeral** | a secret read and provably not stored |
+| **Autoprimary** | a server-side list with no other manager |
+
+### ADR 0005 is imprecise, and the provider is not
+
+It says views and networks are "unimplemented by gpgsql". The read endpoint
+exists and answers `200 {"views": []}`; only the write fails, with `405` on a
+`PUT` and `422` on a `POST`. A test asserting a 404 on the read — which this
+suite did first — fails against a server behaving exactly as designed.
+
+The provider's own diagnostic already says it correctly: *"a read returns an
+empty list while a write fails like this. Check the launch= setting."* The ADR
+is the document that is behind, and it is left as written because an ADR
+records what was decided; the precise behaviour is recorded here and asserted
+by `test_family.py`.
+
+### What Terraform enforces that the provider only claims
+
+An ephemeral value could not be got out of the module at all. An ordinary
+output derived from one is refused — "not declared as returning an ephemeral
+value" — and declaring the output ephemeral is refused too, because a root
+module has nowhere to return one to. Both errors were met, in that order,
+writing the module.
+
+And an ephemeral resource is opened while the graph is walked, before the
+resources in the same apply exist. `depends_on` does not defer it. A secret is
+something you read because it is already there, and the module now does.
+
+### Actions exist on one engine
+
+The imperative unit is pinned to Terraform. Actions are a 1.14 feature,
+OpenTofu does not have them, and `test_imperative.py` asserts the refusal
+rather than letting the pin be a preference nobody revisits.
 
 ### It runs on OpenTofu, which nobody had checked
 
@@ -1256,7 +1304,8 @@ simply down now fails the test instead of passing it.
 | S9-03 | `e2e.py` — fixture lifecycle on podman-py, driven by uv | OPS | `[x]` |
 | S9-04 | The suite on pytest, with boto3, dnspython and psycopg | QA | `[x]` |
 | S9-05 | The e2e suite in CI | OPS | `[ ]` |
-| S9-06 | DNSSEC and the second backend in the e2e path | QA | `[ ]` |
+| S9-06 | DNSSEC and the second backend in the e2e path | QA | `[x]` |
+| S9-07 | **Added.** Secrets, drift, both engines, both other products, actions and ephemeral | QA | `[x]` |
 | S8-13 | A release gate: nothing is built until the release is checkable | OPS | `[x]` |
 
 S8-10 reopened something S0-21 closed. A `github/ci` badge was removed then

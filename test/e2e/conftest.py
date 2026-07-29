@@ -38,6 +38,34 @@ DNS_PORT = 15300
 PG_DSN = "host=127.0.0.1 port=15432 user=pdns password=pdns dbname=pdns"
 
 
+AUTH_APIS = {
+    "gpgsql": "http://127.0.0.1:18081/api/v1/servers/localhost",
+    "lmdb": "http://127.0.0.1:18091/api/v1/servers/localhost",
+    "recursor": "http://127.0.0.1:18082/api/v1/servers/localhost",
+}
+
+
+def reset_zones(*names: str, api: str = "gpgsql") -> None:
+    """Remove zones left by an interrupted run.
+
+    Every module fixture calls this before applying. A run whose teardown did
+    not finish leaves the object on the server and nothing in state, and the
+    next apply fails with "already exists" — a fixture problem wearing the
+    costume of a provider defect, and the one that cost the most time here.
+    """
+    import contextlib
+    import urllib.request
+
+    for name in names:
+        request = urllib.request.Request(  # noqa: S310
+            f"{AUTH_APIS[api]}/zones/{name}",
+            method="DELETE",
+            headers={"X-API-Key": "labapikey"},
+        )
+        with contextlib.suppress(OSError):
+            urllib.request.urlopen(request, timeout=10).close()  # noqa: S310  # nosemgrep
+
+
 def _token() -> str:
     """The Forgejo token the fixture issued."""
     path = Path(fixture.E2E_DIR) / ".token"
@@ -163,6 +191,69 @@ def terragrunt() -> Terragrunt:
 def terragrunt_import() -> Terragrunt:
     """A second unit with its own state, for the adoption scenario."""
     return Terragrunt(workdir=f"{LIVE_DIR}-import")
+
+
+@pytest.fixture(scope="session")
+def terragrunt_secrets() -> Terragrunt:
+    """The unit holding a DNSSEC key and a TSIG secret."""
+    return Terragrunt(workdir=f"{LIVE_DIR}-secrets")
+
+
+@pytest.fixture(scope="session")
+def terragrunt_family() -> Terragrunt:
+    """The unit covering the Recursor and dnsdist."""
+    return Terragrunt(workdir=f"{LIVE_DIR}-family")
+
+
+@pytest.fixture(scope="session")
+def terragrunt_views() -> Terragrunt:
+    """The unit covering views and networks, which exist only on LMDB."""
+    return Terragrunt(workdir=f"{LIVE_DIR}-views")
+
+
+@pytest.fixture(scope="session")
+def terragrunt_imperative() -> Terragrunt:
+    """Actions, ephemeral and autoprimary — the unit pinned to Terraform."""
+    return Terragrunt(workdir=f"{LIVE_DIR}-imperative")
+
+
+@pytest.fixture(scope="session")
+def terragrunt_engines() -> Terragrunt:
+    """The unit used to compare engines, with state nothing else touches."""
+    return Terragrunt(workdir=f"{LIVE_DIR}-engines")
+
+
+@pytest.fixture(scope="session")
+def terragrunt_views_gpgsql() -> Terragrunt:
+    """The views unit pointed at gpgsql, to see what the provider says."""
+    return Terragrunt(workdir=f"{LIVE_DIR}-views-gpgsql")
+
+
+@pytest.fixture(scope="session")
+def dns_query_dnssec():
+    """Ask with DO set and return the signatures in the answer.
+
+    Separate from `dns_query` because asking for signatures changes the
+    question: a resolver that does not set DO gets an unsigned-looking answer
+    from a signed zone, and a test using it would report a signing failure
+    that is really a query failure.
+    """
+    import dns.flags
+    import dns.message
+    import dns.query
+    import dns.rdatatype
+
+    def ask(name: str, rrtype: str) -> list[str]:
+        request = dns.message.make_query(name, rrtype, want_dnssec=True)
+        response = dns.query.udp(request, DNS_SERVER, port=DNS_PORT, timeout=5)
+        return [
+            rdata.to_text()
+            for rrset in response.answer
+            if rrset.rdtype == dns.rdatatype.RRSIG
+            for rdata in rrset
+        ]
+
+    return ask
 
 
 @retry(
