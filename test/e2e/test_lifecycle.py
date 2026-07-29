@@ -28,6 +28,12 @@ BUCKET = "e2e-state"
 pytestmark = pytest.mark.timeout(600)
 
 
+def clear_module_cache(terragrunt) -> None:
+    """Remove every copy of the fetched module, local and shared."""
+    shutil.rmtree(Path(terragrunt.workdir) / ".terragrunt-cache", ignore_errors=True)
+    shutil.rmtree(Path("/root/.cache/terragrunt"), ignore_errors=True)
+
+
 def pdns_call(method: str, url: str, body: bytes | None = None) -> None:
     """Reach the API directly, to set up or clean up outside Terraform."""
     import urllib.request
@@ -57,23 +63,24 @@ def row_count(db, name: str) -> int:
 class TestApply:
     """Bringing the configuration up."""
 
-    def test_apply_fetches_the_module_over_git(self, terragrunt):
-        """The module comes from the git remote, not from a path beside it.
+    def test_apply_fetches_the_module_over_an_authenticated_remote(self, terragrunt):
+        """The module comes from a remote that asks who is calling.
 
         The cache is cleared first so the fetch happens in this run. Asserting
         on output without doing that passes or fails on whether an earlier run
         left the module behind, which is a fact about the working directory
         rather than about the configuration.
         """
-        cache = Path(terragrunt.workdir) / ".terragrunt-cache"
-        shutil.rmtree(cache, ignore_errors=True)
+        clear_module_cache(terragrunt)
 
         result = terragrunt.run("apply", "-auto-approve")
         combined = result.stdout + result.stderr
         assert "Apply complete" in combined
-        assert "git::git://127.0.0.1:19418" in combined, combined[-2000:]
+        assert "git::http://" in combined, combined[-2000:]
+        assert "127.0.0.1:19300" in combined, combined[-2000:]
 
-        # And the module is on disk where a git fetch would have put it.
+        # And the module is on disk where a fetch would have put it.
+        cache = Path(terragrunt.workdir) / ".terragrunt-cache"
         assert list(cache.glob("*/*/modules/dns-zone/main.tf")), "module not cached"
 
     def test_the_second_plan_is_empty(self, terragrunt):
@@ -83,6 +90,42 @@ class TestApply:
         """
         result = terragrunt.run("plan", "-detailed-exitcode", expect_success=False)
         assert result.returncode == 0, (result.stdout + result.stderr)[-2000:]
+
+
+class TestModuleSource:
+    """Authenticating to the module source — the reason the remote is a forge.
+
+    An anonymous `git://` daemon cannot fail this way, which is why it was
+    replaced: the error people actually meet when wiring up a private module
+    is a credential one, and nothing here could produce it.
+    """
+
+    def test_a_bad_token_fails_and_says_so(self, terragrunt):
+        """A wrong token stops the run, and the message names the remote.
+
+        Not merely "it fails": a module source that fails opaquely sends
+        somebody looking at their provider configuration for an hour.
+        """
+        # Both caches. Terragrunt keys its download on the source with the
+        # credentials stripped — sensible, so a rotated token does not force a
+        # re-clone, and fatal here: with the module already cached, a wrong
+        # token never reaches the network and the test passes having proved
+        # nothing.
+        clear_module_cache(terragrunt)
+
+        result = terragrunt.run(
+            "init",
+            expect_success=False,
+            env_overrides={"E2E_TOKEN": "0000000000000000000000000000000000000000"},
+        )
+        combined = result.stdout + result.stderr
+        assert result.returncode != 0, combined[-1500:]
+        assert "uthenticat" in combined or "redential" in combined, combined[-1500:]
+
+        # And a good token still works afterwards, so the failure was the
+        # credential and not the fixture falling over.
+        clear_module_cache(terragrunt)
+        terragrunt.run("init")
 
 
 class TestServerState:

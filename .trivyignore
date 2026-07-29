@@ -1,0 +1,12 @@
+# Findings that are understood and not acted on. Each names the reason; an
+# entry without one is how a suppression file becomes a way of not looking.
+
+# DS-0002 — no USER in Containerfile.dev.
+#
+# It is a development image. It is never deployed, it runs on a developer's own
+# machine with their checkout bind-mounted in, and everything it exists to do —
+# installing toolchains, building, running linters against a bind mount owned
+# by the host user — is what a non-root user would break. The service image
+# beside it, Containerfile.git, does drop privilege, because that one listens
+# on a socket.
+DS-0002

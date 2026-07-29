@@ -1157,12 +1157,13 @@ remote, an engine holding a lock. That is where a provider which passes every
 test still fails in somebody's pipeline, and none of it had ever been exercised.
 
 `test/e2e` runs that path. Terragrunt over an S3 backend on MinIO, the module
-fetched over the git protocol from a local `git daemon`, against the running
-lab — twelve scenarios, all green, repeatable back to back.
+fetched over HTTP from a private Forgejo repository, against the running lab —
+thirteen scenarios, all green, repeatable back to back.
 
 | Scenario | Establishes |
 | --- | --- |
-| apply fetches the module over git | the module comes from a remote, not from a path beside the configuration |
+| apply fetches the module over an authenticated remote | it comes from a remote that asks who is calling, not from a path beside the configuration |
+| a bad token fails and says so | the credential error people actually meet, which an anonymous remote could not produce |
 | the second plan is empty | idempotence, the property the whole normalisation layer serves |
 | DNS answers the forward records | a name resolves — an HTTP 200 did not establish that |
 | DNS answers the reverse record | the PTR sits where the provider function computed it |
@@ -1174,6 +1175,28 @@ lab — twelve scenarios, all green, repeatable back to back.
 | a TTL change does not replace the record | a replacement is an outage nobody asked for |
 | an out-of-band zone imports | adoption, in its own unit with its own state |
 | destroy removes it everywhere | gone from DNS and from storage, not merely from state |
+
+### The module remote is a forge, and the second attempt is the honest one
+
+It was `git daemon` first, on the argument that a daemon is smaller and adds no
+image to pin. The argument was wrong about what was being tested. `git://` is
+anonymous, and nobody sources a production module that way — real
+configurations use HTTPS with a token or SSH with a key, and the failure people
+actually meet when wiring one up is a credential error. An anonymous remote
+cannot produce that failure, so the scenario could not exist.
+
+Forgejo rootless, 74 MB, the whole fixture built through its REST API: create
+the administrator, issue a token, create the repository, push the module. The
+rootless variant also drops privilege by construction rather than because a
+scanner asked, which is what had just happened to the daemon.
+
+**And the first version of the authentication scenario proved nothing.** The
+repository was created public, so the token in the source URL was decoration
+and a deliberately wrong token still fetched the module. The test failed,
+which is how that surfaced. The repository is private now, and clearing the
+cache is part of the scenario: Terragrunt keys its download on the source with
+the credentials stripped, so with the module already cached a wrong token never
+reaches the network.
 
 ### It runs on OpenTofu, which nobody had checked
 
@@ -1228,7 +1251,7 @@ simply down now fails the test instead of passing it.
 
 | ID | Task | Role | Status |
 | --- | --- | --- | --- |
-| S9-01 | `compose.e2e.yml` — MinIO and a git remote beside the lab | OPS | `[x]` |
+| S9-01 | `compose.e2e.yml` — MinIO and a Forgejo remote beside the lab | OPS | `[x]` |
 | S9-02 | A module and a Terragrunt unit that consume the provider | DEV | `[x]` |
 | S9-03 | `e2e.py` — fixture lifecycle on podman-py, driven by uv | OPS | `[x]` |
 | S9-04 | The suite on pytest, with boto3, dnspython and psycopg | QA | `[x]` |

@@ -42,27 +42,40 @@ services:
       retries: 20
     restart: unless-stopped
 
-  # A git remote for the module source. `git daemon` rather than a forge: the
-  # property under test is that Terragrunt fetches a module over the git
-  # protocol, and a forge would add an account, a token and a UI to maintain
-  # for no additional coverage.
+  # A git remote for the module source.
   #
-  # Built from the same base image the dev container uses, so there is no
-  # second digest to keep current.
-  git:
-    container_name: pdns-e2e-git
-    build:
-      context: ../..
-      dockerfile: deployments/containers/Containerfile.git
+  # Forgejo rather than `git daemon`, which is what this was first. The
+  # protocol is the reason: `git://` is anonymous and unencrypted, and nobody
+  # sources a production module that way. Real configurations use HTTPS with a
+  # token or SSH with a key, and the failure people actually hit is
+  # authentication — which an anonymous remote cannot exercise at all.
+  #
+  # The rootless variant, so this drops privilege by construction rather than
+  # because a scanner asked.
+  forgejo:
+    container_name: pdns-e2e-forgejo
+    image: codeberg.org/forgejo/forgejo:16.0.1-rootless@sha256:71863f6b6c5837a27b3a2d133c3161c78a432aa878d57798d74b1d917ff842be
+    environment:
+      # Installed by configuration, not by a wizard nobody is there to click.
+      FORGEJO__security__INSTALL_LOCK: "true"
+      FORGEJO__database__DB_TYPE: sqlite3
+      FORGEJO__server__HTTP_PORT: "19300"
+      FORGEJO__server__ROOT_URL: http://127.0.0.1:19300/
+      FORGEJO__server__DOMAIN: 127.0.0.1
+      FORGEJO__server__DISABLE_SSH: "true"
+      # A fixture, not a forge: nobody signs up, and the tests create what they
+      # need through the API.
+      FORGEJO__service__DISABLE_REGISTRATION: "true"
+      FORGEJO__log__LEVEL: warn
     network_mode: host
     volumes:
-      - git-repos:/srv/git:z
+      - forgejo-data:/var/lib/gitea:z
     healthcheck:
-      test: ["CMD-SHELL", "git ls-remote git://127.0.0.1:19418/dns-modules.git >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:19300/api/healthz || exit 1"]
       interval: 3s
       timeout: 5s
-      retries: 20
+      retries: 40
     restart: unless-stopped
 
 volumes:
-  git-repos:
+  forgejo-data:

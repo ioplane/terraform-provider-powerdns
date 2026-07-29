@@ -38,6 +38,14 @@ DNS_PORT = 15300
 PG_DSN = "host=127.0.0.1 port=15432 user=pdns password=pdns dbname=pdns"
 
 
+def _token() -> str:
+    """The Forgejo token the fixture issued."""
+    path = Path(fixture.E2E_DIR) / ".token"
+    if not path.is_file():
+        pytest.exit("no Forgejo token; run: task e2e:up", returncode=2)
+    return path.read_text().strip()
+
+
 @dataclass(frozen=True)
 class Terragrunt:
     """Terragrunt, driven as a process because that is its only interface.
@@ -52,7 +60,10 @@ class Terragrunt:
     workdir: str = LIVE_DIR
 
     def run(
-        self, *args: str, expect_success: bool = True
+        self,
+        *args: str,
+        expect_success: bool = True,
+        env_overrides: dict[str, str] | None = None,
     ) -> subprocess.CompletedProcess[str]:
         """Run terragrunt in the live directory and return the completed process."""
         completed = subprocess.run(
@@ -66,6 +77,11 @@ class Terragrunt:
                 "TF_CLI_CONFIG_FILE": f"{fixture.MIRROR}/terraform.rc",
                 "TF_IN_AUTOMATION": "1",
                 "TG_NON_INTERACTIVE": "true",
+                # The module source authenticates. The token comes from the
+                # file the fixture wrote, so it is never in the configuration
+                # and never in a shell history.
+                "E2E_TOKEN": _token(),
+                **(env_overrides or {}),
             },
         )
         if expect_success and completed.returncode != 0:
@@ -176,3 +192,4 @@ def fixture_is_up(s3) -> None:
 
     if not Path(f"{fixture.MIRROR}/terraform.rc").is_file():
         pytest.exit("the provider mirror is missing. Run: task e2e:up", returncode=2)
+    _token()

@@ -22,6 +22,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
+import json
 import subprocess
 import sys
 import urllib.error
@@ -49,10 +51,13 @@ E2E_DIR = REPO_ROOT / "test" / "e2e"
 
 DEV_CONTAINER_DEFAULT = "terraform-provider-powerdns-dev"
 MINIO_CONTAINER = "pdns-e2e-minio"
-GIT_CONTAINER = "pdns-e2e-git"
+FORGEJO_CONTAINER = "pdns-e2e-forgejo"
 
 MINIO_URL = "http://127.0.0.1:19000"
-GIT_URL = "git://127.0.0.1:19418/dns-modules.git"
+FORGEJO_URL = "http://127.0.0.1:19300"
+FORGEJO_USER = "e2e"
+FORGEJO_PASSWORD = "e2e-fixture-password"  # noqa: S105
+FORGEJO_REPO = "dns-modules"
 BUCKET = "e2e-state"
 STATE_KEY = "dns/terraform.tfstate"
 
@@ -163,6 +168,21 @@ def wait_for_minio() -> bool:
     return http_ok(f"{MINIO_URL}/minio/health/live")
 
 
+@retry(
+    stop=stop_after_delay(180),
+    wait=wait_fixed(3),
+    retry=retry_if_result(lambda ready: not ready),
+    reraise=True,
+)
+def wait_for_forgejo() -> bool:
+    """Poll Forgejo until it is serving.
+
+    Longer than MinIO's budget: it migrates its database on first start, and
+    that is slower than answering a health check on an object store.
+    """
+    return http_ok(f"{FORGEJO_URL}/api/healthz")
+
+
 def dev_container() -> str:
     """The dev container for this checkout, which is per-worktree."""
     suffix = ""
@@ -173,7 +193,7 @@ def dev_container() -> str:
 
 def container_states() -> dict[str, str]:
     """Report each fixture container's state, or 'absent'."""
-    states = dict.fromkeys((MINIO_CONTAINER, GIT_CONTAINER), "absent")
+    states = dict.fromkeys((MINIO_CONTAINER, FORGEJO_CONTAINER), "absent")
     try:
         with PodmanClient() as client:
             for container in client.containers.list(all=True):
@@ -201,34 +221,100 @@ def make_bucket() -> None:
     )
 
 
-def make_module_repo() -> None:
-    """Create the bare repository the module is pushed into.
-
-    `git daemon` serves repositories; it does not create them. Bare because a
-    push to a non-bare repository's checked-out branch is refused.
-    """
+def forgejo_admin() -> None:
+    """Create the administrator, if the fixture does not already have one."""
     subprocess.run(
         [
             "podman",
             "exec",
-            GIT_CONTAINER,
-            "git",
-            "init",
-            "-q",
-            "--bare",
-            "--initial-branch=main",
-            "/srv/git/dns-modules.git",
+            FORGEJO_CONTAINER,
+            "forgejo",
+            "admin",
+            "user",
+            "create",
+            "--admin",
+            "--username",
+            FORGEJO_USER,
+            "--password",
+            FORGEJO_PASSWORD,
+            "--email",
+            "e2e@example.com",
+            "--must-change-password=false",
         ],
-        check=True,
+        check=False,
+        capture_output=True,
     )
 
 
-def seed_module_repo(runner: Runner) -> None:
-    """Publish the module to the git remote, from the dev container.
+def forgejo_api(
+    method: str, path: str, payload: dict | None = None, *, token: str | None = None
+) -> dict:
+    """Call the Forgejo API with either basic auth or a token."""
+    body = json.dumps(payload).encode() if payload is not None else None
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    else:
+        basic = base64.b64encode(f"{FORGEJO_USER}:{FORGEJO_PASSWORD}".encode()).decode()
+        headers["Authorization"] = f"Basic {basic}"
 
-    The module is pushed rather than bind-mounted: Terragrunt must fetch it
-    over the git protocol for the test to mean anything.
+    request = urllib.request.Request(  # noqa: S310
+        f"{FORGEJO_URL}/api/v1{path}", data=body, method=method, headers=headers
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:  # noqa: S310  # nosemgrep
+            raw = response.read()
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as error:
+        # 409 and 422 mean "already there", which is the desired end state.
+        if error.code in (409, 422):
+            return {}
+        raise
+
+
+def forgejo_token() -> str:
+    """Issue an access token, replacing any left by an earlier run.
+
+    A token is shown once. Reusing the fixture without recreating it would
+    leave the driver holding a name it cannot exchange for a secret.
     """
+    name = "e2e-fixture"
+    for existing in forgejo_api("GET", f"/users/{FORGEJO_USER}/tokens") or []:
+        if existing.get("name") == name:
+            forgejo_api("DELETE", f"/users/{FORGEJO_USER}/tokens/{existing['id']}")
+    created = forgejo_api(
+        "POST",
+        f"/users/{FORGEJO_USER}/tokens",
+        {"name": name, "scopes": ["write:repository", "write:user"]},
+    )
+    return created["sha1"]
+
+
+def make_module_repo(token: str) -> None:
+    """Create the repository the module is pushed into."""
+    forgejo_api(
+        "POST",
+        "/user/repos",
+        # Private, and that is the whole point. A public repository is fetched
+        # without a credential, so the token in the source URL would be
+        # decoration and the "wrong token" scenario would pass while proving
+        # nothing. This was public first, and the scenario caught it.
+        {"name": FORGEJO_REPO, "private": True, "auto_init": False},
+        token=token,
+    )
+
+
+def seed_module_repo(runner: Runner, token: str) -> None:
+    """Publish the module to the Forgejo repository, from the dev container.
+
+    Pushed over HTTP with a token rather than bind-mounted: Terragrunt must
+    fetch it from a remote that asks who is calling, which is the shape every
+    real module source has and the one an anonymous daemon could not test.
+    """
+    push_url = (
+        f"http://{FORGEJO_USER}:{token}@127.0.0.1:19300/"
+        f"{FORGEJO_USER}/{FORGEJO_REPO}.git"
+    )
     script = (
         "set -eu; "
         "rm -rf /tmp/modrepo && mkdir -p /tmp/modrepo && cd /tmp/modrepo && "
@@ -237,7 +323,7 @@ def seed_module_repo(runner: Runner) -> None:
         "git config user.name 'e2e fixture' && "
         "mkdir -p modules && cp -r /app/test/e2e/modules/dns-zone modules/ && "
         "git add -A && git commit -q -m 'module under test' && "
-        f"git push -q --force {GIT_URL} main"
+        f"git push -q --force {push_url} main"
     )
     # The path is inside the dev container, which is discarded with it; S108
     # is about a shared host /tmp and does not apply.
@@ -252,6 +338,20 @@ def build_provider_mirror(runner: Runner) -> None:
     mirror exercises the path a user actually takes, and incidentally proves
     the release layout is installable.
     """
+    # Rebuilding changes the binary's checksum, and a lock file recorded from
+    # the previous build then refuses the new one — "doesn't match any of the
+    # checksums previously recorded". Whatever this step invalidates, this
+    # step removes.
+    runner.exec(
+        "rm -rf /app/test/e2e/live/.terraform.lock.hcl "
+        "/app/test/e2e/live-import/.terraform.lock.hcl "
+        "/app/test/e2e/live/.terragrunt-cache "
+        "/app/test/e2e/live-import/.terragrunt-cache "
+        "/root/.terraform.d/plugin-cache/registry.terraform.io/ioplane",
+        workdir="/app",
+        check=False,
+    )
+
     plat = "linux_amd64"
     dest = f"{MIRROR}/registry.terraform.io/ioplane/powerdns/{PROVIDER_VERSION}/{plat}"
     script = (
@@ -285,13 +385,33 @@ def cmd_up() -> int:
         return 1
     print("ok    MinIO answering")
 
+    if not wait_for_forgejo():
+        print("Forgejo did not answer within 180 seconds", file=sys.stderr)
+        return 1
+    print("ok    Forgejo answering")
+
     runner = Runner(container=dev_container())
     make_bucket()
     print(f"ok    bucket {BUCKET}")
-    make_module_repo()
-    print("ok    bare repository on the git remote")
-    seed_module_repo(runner)
-    print("ok    module pushed to the git remote")
+
+    forgejo_admin()
+    token = forgejo_token()
+    print(f"ok    Forgejo user {FORGEJO_USER} with an access token")
+
+    make_module_repo(token)
+    print(f"ok    repository {FORGEJO_USER}/{FORGEJO_REPO}")
+
+    seed_module_repo(runner, token)
+    print("ok    module pushed over HTTP with the token")
+
+    # The token is what a configuration authenticates with, so it has to reach
+    # the configuration. A file the fixture writes, not an environment variable
+    # a test has to remember to set.
+    token_file = E2E_DIR / ".token"
+    token_file.write_text(token)
+    token_file.chmod(0o600)
+    print(f"ok    token written to {token_file.name}")
+
     build_provider_mirror(runner)
     print(f"ok    provider {PROVIDER_VERSION} in a filesystem mirror")
     return 0

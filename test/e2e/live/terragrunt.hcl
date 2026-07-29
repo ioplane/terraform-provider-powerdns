@@ -6,10 +6,15 @@
 # driven through any of them.
 
 terraform {
-  # Fetched over the git protocol, not from a path. A module that resolves
-  # because it happens to sit in the same directory tree proves nothing about
-  # how anyone will actually consume this.
-  source = "git::git://127.0.0.1:19418/dns-modules.git//modules/dns-zone?ref=main"
+  # Fetched from an authenticated HTTP remote, not from a path and not
+  # anonymously. A module that resolves because it sits in the same directory
+  # tree proves nothing about how anyone consumes this, and one fetched over
+  # `git://` skips the part that actually breaks in people's pipelines:
+  # authenticating to the module source.
+  #
+  # The token is read from a file the fixture writes, so it is never in the
+  # configuration and never in the state.
+  source = "git::http://e2e:${get_env("E2E_TOKEN")}@127.0.0.1:19300/e2e/dns-modules.git//modules/dns-zone?ref=main"
 }
 
 remote_state {

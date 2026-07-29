@@ -13,19 +13,19 @@ The mapping between commit type, changelog section and version bump is in
 
 - `test/e2e` — the path a consumer's configuration travels, which the
   acceptance suite never touched: Terragrunt over an S3 backend on MinIO, the
-  module fetched over the git protocol, against the running lab. Twelve
-  scenarios on pytest, asking through the interfaces a consumer uses — boto3
+  module fetched over HTTP from a private Forgejo repository, against the
+  running lab. Thirteen scenarios on pytest, asking through the interfaces a consumer uses — boto3
   for the bucket, dnspython for what DNS answers, psycopg for what the backend
   stored — rather than by parsing `dig` and `psql`. It also runs on OpenTofu,
   which Terragrunt selects by default and which nothing had exercised before.
 - `task e2e:up`, `task e2e`, `task e2e:down` — the fixture on podman-py, driven
   through uv.
-- `check-pins.sh` distinguishes an image the registry does not have from one it
-  would not answer about — the same distinction the action check already made.
-  It surfaced on a tag published as both an OCI image index and a Docker
-  manifest list: two documents, two digests, and a registry that serves
-  whichever the client's `Accept` header allows. A digest is only as portable
-  as the media types the client asking for it accepts.
+- `check-pins.sh` asks the registry over HTTP instead of asking a container
+  client. skopeo consults local storage, mirrors and caches, and resolved a
+  digest that the registry answers 404 for — the pin read as verified locally
+  and failed in CI, and the checker sided with the machine that was wrong. It
+  now sends a manifest request with every media type a registry might answer
+  with, and separates "no such digest" from "the request did not get through".
 
 
 ## [0.1.1] — 2026-07-29
