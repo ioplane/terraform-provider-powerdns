@@ -54,6 +54,57 @@ The mapping between commit type, changelog section and version bump is in
   with, and separates "no such digest" from "the request did not get through".
 
 
+- `CODEOWNERS`, a pull-request template, issue templates and a code of conduct
+  — the four files GitHub looks for, and the ones that tell somebody arriving
+  how this project works before they have read a standard. They carry the rules
+  that already applied: `task verify` for any resource change, `docs/plan.md`
+  updated in the same commit, and which backend a bug was seen on, because
+  gpgsql and LMDB differ.
+- A "Using it" section in the README, with the `required_providers` block.
+- Branch protection on `main`: nine required checks, branches current before
+  merge, linear history, no force-push or deletion. Administrators are not
+  included on purpose — a required check hanging on somebody else's outage
+  would otherwise leave a one-maintainer project unable to merge the fix.
+- Repository settings brought in line with the documented workflow: squash-only
+  merges, branches deleted after merge, secret scanning and push protection on,
+  topics and homepage set.
+
+### Fixed
+
+- Twelve entries had been written into `[0.1.1]` after that version shipped,
+  and two into `[0.1.0]`. A released section describes what went out; adding to
+  it claims a change shipped when it did not, and the next release cut — which
+  reads only `[Unreleased]` — would have dropped them. They are under
+  `[Unreleased]` now, and `check-release.sh` fails on a released section that
+  has gained a line since its tag. Removals still pass, because that is how one
+  of these is corrected.
+- The e2e provider mirror is built for the container's own architecture rather
+  than for `linux_amd64`. On an arm64 host the engine looked in a directory the
+  binary was not in and reported the provider as unavailable.
+- The e2e lock-file cleanup covers every unit. It was written for the two that
+  existed then, and a unit whose lock file survived a provider rebuild refused
+  the new package.
+- The bad-credential scenario asserts that the run failed and that the remote
+  is named, not the sentence Terragrunt used to say it. The same rejected
+  credential reads as "Authentication failed" when the fetch goes straight to
+  git and as "could not read Username" once it goes through the central git
+  store — the fact is the same and the phrase is not.
+- The e2e suite drives Terragrunt through `run`, which
+  `standards/terragrunt-integration.md` requires and Terragrunt 1.0 froze.
+- `task e2e:down` removes the zones the units created before discarding the
+  state that describes them. The lab outlives the fixture, so it was leaving
+  them behind for the next run to collide with.
+- `TimeoutError` was named alongside `OSError` in the automation's exception
+  handlers. It is a subclass of it, and listing both says the author believed
+  otherwise.
+- Every `[` in the shell scripts became `[[`. In bash the second does no word
+  splitting or pathname expansion, so an unquoted variable cannot change what
+  the test means. The scanner flagged one file; applying it to one file and
+  not the rest would have made it a preference.
+- The README said "Status: in development … Not yet published to the Terraform
+  Registry", under a heading called *Planned* surface, on a repository with a
+  signed `v0.1.0` and every API operation covered.
+
 ## [0.1.1] — 2026-07-29
 
 ### Fixed
@@ -81,51 +132,7 @@ The mapping between commit type, changelog section and version bump is in
   was not.
 
 
-### Added
-
-- `CODEOWNERS`, a pull-request template, issue templates and a code of conduct
-  — the four files GitHub looks for, and the ones that tell somebody arriving
-  how this project works before they have read a standard. They carry the rules
-  that already applied: `task verify` for any resource change, `docs/plan.md`
-  updated in the same commit, and which backend a bug was seen on, because
-  gpgsql and LMDB differ.
-- A "Using it" section in the README, with the `required_providers` block.
-- Branch protection on `main`: nine required checks, branches current before
-  merge, linear history, no force-push or deletion. Administrators are not
-  included on purpose — a required check hanging on somebody else's outage
-  would otherwise leave a one-maintainer project unable to merge the fix.
-- Repository settings brought in line with the documented workflow: squash-only
-  merges, branches deleted after merge, secret scanning and push protection on,
-  topics and homepage set.
-
-### Fixed
-
-- The e2e provider mirror is built for the container's own architecture rather
-  than for `linux_amd64`. On an arm64 host the engine looked in a directory the
-  binary was not in and reported the provider as unavailable.
-- The e2e lock-file cleanup covers every unit. It was written for the two that
-  existed then, and a unit whose lock file survived a provider rebuild refused
-  the new package.
-- The e2e suite drives Terragrunt through `run`, which
-  `standards/terragrunt-integration.md` requires and Terragrunt 1.0 froze.
-- `task e2e:down` removes the zones the units created before discarding the
-  state that describes them. The lab outlives the fixture, so it was leaving
-  them behind for the next run to collide with.
-- `TimeoutError` was named alongside `OSError` in the automation's exception
-  handlers. It is a subclass of it, and listing both says the author believed
-  otherwise.
-- Every `[` in the shell scripts became `[[`. In bash the second does no word
-  splitting or pathname expansion, so an unquoted variable cannot change what
-  the test means. The scanner flagged one file; applying it to one file and
-  not the rest would have made it a preference.
-- The README said "Status: in development … Not yet published to the Terraform
-  Registry", under a heading called *Planned* surface, on a repository with a
-  signed `v0.1.0` and every API operation covered.
-
 ## [0.1.0] — 2026-07-29
-
-First release. 29 artefacts across 13 platforms, `SHA256SUMS` signed with an
-RSA-4096 key, an SBOM beside every archive, protocol 6.
 
 
 ### Added
