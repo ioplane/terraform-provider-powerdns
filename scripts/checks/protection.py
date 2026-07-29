@@ -34,6 +34,22 @@ BRANCH = "main"
 
 MATRIX_REFERENCE = re.compile(r"\$\{\{\s*matrix\.([A-Za-z0-9_-]+)\s*\}\}")
 
+# Contexts published by something other than this repository's workflows. Named
+# rather than inferred: the first version of this check treated any lowercase
+# name, or any name containing a slash, as external — which would have quietly
+# excused exactly the drift it exists to catch, because `test` is a lowercase
+# job name and a renamed job leaves a stale lowercase context behind.
+EXTERNAL = frozenset(
+    {
+        "CodeQL",
+        "Trivy",
+        "SonarCloud Code Analysis",
+        "golangci-lint",
+        "osv-scanner",
+        "semgrep-cloud-platform/scan",
+    }
+)
+
 
 def expand(name: str, matrix: dict[str, list[str]]) -> list[str]:
     """Return every name a job template produces under `matrix`.
@@ -198,11 +214,10 @@ def main() -> int:
         )
 
     for context in sorted(contexts):
-        # Third-party checks post their own contexts and have no job in this
-        # repository. They are required deliberately and are not drift.
         if context in declared:
             report.ok(f"{context}")
-        elif "/" in context or context.islower():
+        elif context in EXTERNAL:
+            # Required deliberately, published by a third party, and not drift.
             report.ok(f"{context} (external)")
         else:
             report.fail(f"{context} is required but no job reports that name")

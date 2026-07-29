@@ -15,6 +15,8 @@ variation.
 
 from __future__ import annotations
 
+import os
+import signal
 import subprocess
 import sys
 from typing import TYPE_CHECKING
@@ -70,22 +72,50 @@ def run(  # noqa: PLR0913 - each one is a subprocess option a caller needs
     Raises:
         DeadlineError: when the command did not finish in `timeout` seconds.
     """
+    # Popen with its own session, not subprocess.run. `run`'s timeout kills the
+    # direct child only: every command here is `bash -c "a && b"` or a podman
+    # client, so the thing actually doing the work — go build, terraform, the
+    # process behind `podman exec` — is a grandchild and survives. It then keeps
+    # writing to the mirror, the remote state or the lab while cleanup or a
+    # retry starts, which is worse than no deadline at all.
+    with subprocess.Popen(
+        argv,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE if capture_output else None,
+        stderr=subprocess.PIPE if capture_output else None,
+        text=text,
+        start_new_session=True,
+    ) as process:
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            _kill_session(process)
+            stdout, stderr = process.communicate()
+            message = (
+                f"{what} did not finish in {timeout:.0f}s; "
+                "it and everything it started were killed.\n"
+                f"  command: {' '.join(argv)}\n"
+                "  This is usually a stalled image pull. `podman images` and "
+                "`podman ps -a` show how far it got."
+            )
+            print(message, file=sys.stderr)
+            raise DeadlineError(message) from None
+
+    completed = subprocess.CompletedProcess(argv, process.returncode, stdout, stderr)
+    if check:
+        completed.check_returncode()
+    return completed
+
+
+def _kill_session(process: subprocess.Popen) -> None:
+    """Kill the process group `process` leads, then the process itself.
+
+    `start_new_session=True` made it a group leader, so one signal reaches
+    everything it spawned. The group may already be gone — the child can exit
+    between the timeout and this call — which is not an error.
+    """
     try:
-        return subprocess.run(
-            argv,
-            check=check,
-            cwd=cwd,
-            timeout=timeout,
-            capture_output=capture_output,
-            text=text,
-            env=env,
-        )
-    except subprocess.TimeoutExpired as expiry:
-        message = (
-            f"{what} did not finish in {timeout:.0f}s and was killed.\n"
-            f"  command: {' '.join(argv)}\n"
-            "  This is usually a stalled image pull. `podman images` and "
-            "`podman ps -a` show how far it got."
-        )
-        print(message, file=sys.stderr)
-        raise DeadlineError(message) from expiry
+        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        process.kill()

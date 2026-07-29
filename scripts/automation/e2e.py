@@ -547,6 +547,27 @@ def seed_module_repo(runner: Runner, token: str) -> None:
     runner.exec(script, check=True)
 
 
+def tag_present() -> bool:
+    """Whether RELEASED_TAG resolves to a tree in this checkout."""
+    return (
+        run(
+            [
+                "git",
+                "-C",
+                str(REPO_ROOT),
+                "rev-parse",
+                "--verify",
+                f"{RELEASED_TAG}^{{tree}}",
+            ],
+            what=f"looking for {RELEASED_TAG}",
+            timeout=LOCAL,
+            check=False,
+            capture_output=True,
+        ).returncode
+        == 0
+    )
+
+
 def unpack_released() -> None:
     """Unpack the released tag's tree into RELEASED_DIR, on the host.
 
@@ -557,6 +578,36 @@ def unpack_released() -> None:
     if RELEASED_DIR.exists():
         shutil.rmtree(RELEASED_DIR)
     RELEASED_DIR.mkdir(parents=True)
+
+    # A hosted checkout is shallow and carries no tags — `actions/checkout`
+    # fetches one commit by default — so the tag has to be fetched before it can
+    # be read. Verified rather than assumed: a `--depth=1 --no-tags` clone
+    # answers "Needed a single revision" for this, and one targeted fetch fixes
+    # it without pulling the history.
+    if not tag_present():
+        run(
+            [
+                "git",
+                "-C",
+                str(REPO_ROOT),
+                "fetch",
+                "--depth=1",
+                "origin",
+                "tag",
+                RELEASED_TAG,
+            ],
+            what=f"fetching {RELEASED_TAG}",
+            timeout=LOCAL,
+            capture_output=True,
+        )
+    if not tag_present():
+        message = (
+            f"{RELEASED_TAG} does not resolve in this checkout and could not be "
+            "fetched. The upgrade scenario needs it to build the version being "
+            "upgraded from."
+        )
+        raise RuntimeError(message)
+
     archive = run(
         ["git", "-C", str(REPO_ROOT), "archive", RELEASED_TAG],
         what=f"reading the tree at {RELEASED_TAG}",

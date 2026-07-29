@@ -10,6 +10,7 @@ which is the part worth preventing.
 from __future__ import annotations
 
 import subprocess
+import time
 
 import pytest
 from scripts.automation.run import COMMAND, LOCAL, PULL, DeadlineError, run
@@ -81,3 +82,34 @@ def test_a_command_deadline_is_under_pytests_own_ceiling():
     so this has to arrive first.
     """
     assert COMMAND < 900
+
+
+def test_a_grandchild_does_not_survive_the_deadline(tmp_path):
+    """The hole the first version left, stated as the thing that goes wrong.
+
+    `subprocess.run`'s timeout kills the direct child only. Every command the
+    drivers issue is `bash -c "a && b"` or a podman client, so the process doing
+    the work is a grandchild — and it kept running after the deadline, writing to
+    the mirror or the lab while cleanup started.
+
+    The grandchild here writes a file a second after its parent is killed. If it
+    survived, the file appears.
+    """
+    marker = tmp_path / "survivor"
+    with pytest.raises(DeadlineError):
+        run(
+            ["bash", "-c", f"(sleep 1; touch {marker}) & sleep 10"],
+            what="a command with a background child",
+            timeout=0.3,
+        )
+    time.sleep(2.0)
+    assert not marker.exists(), "a grandchild outlived the deadline"
+
+
+def test_the_parent_is_reaped_rather_than_left_as_a_zombie():
+    """A killed command still has to be waited on, or the driver leaks children."""
+    with pytest.raises(DeadlineError):
+        run(["sleep", "10"], what="sleeping", timeout=0.3)
+    # No assertion beyond returning: a missing wait() shows up as a warning from
+    # Popen's destructor, which pytest turns into an error under -W error. What
+    # this pins is that the failure path completes at all.
