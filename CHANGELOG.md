@@ -188,8 +188,14 @@ The mapping between commit type, changelog section and version bump is in
   versions the dev image is built with, or the gate fails. Versions live in
   `Containerfile.dev`; a workflow line naming one carries `# pin: <ARG>`. A
   bumped version and a deleted marker are both caught.
-- `task lint:actions` — actionlint over the workflows. A workflow is otherwise
-  only executed by pushing it.
+- `task lint:actions`, `task lint:shell`, `task lint:containers` — actionlint,
+  zizmor, shellcheck, shfmt and hadolint. The scripts and the Containerfile had
+  no linter at all; a workflow is otherwise only executed by pushing it.
+  Between them they found a dead variable in `check-pins.sh`, five
+  `readonly X="$(cmd)"` that swallow the command's exit status, a `curl | gpg`
+  that could not fail the image build, sixteen checkouts leaving the token in
+  `.git/config`, and a module cache restored into the release job that signs
+  the artefacts.
 - The ban on AI attribution is enforced on the branch. The `commit-msg` hook
   only ever protected a clone that had run `task hooks`; CI now checks every
   commit in a pull request, and its title and body, because those become the

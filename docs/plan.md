@@ -950,6 +950,38 @@ Two things still fail, and neither is a change to this repository:
   effectively is. Marking a finding as a false positive needs access to the
   SonarCloud project, not a commit here. **S8-12.**
 
+### The linters that were missing entirely
+
+Six shell scripts and a Containerfile had no linter at all — the gate covered
+Go, Python, Markdown, YAML and spelling, and stopped there. Four now run, in
+the dev image and in `ci.yml`, pinned in the same place as everything else:
+
+| Linter | Covers | Found |
+| --- | --- | --- |
+| `shellcheck` | the scripts | a dead `IMAGE_RE` in `check-pins.sh`, and five `readonly X="$(cmd)"` that swallow the command's exit status |
+| `shfmt` | the scripts | seven files, reformatted once |
+| `hadolint` | `Containerfile.dev` | `curl … \| gpg` could not fail the build; `SHELL -o pipefail` set |
+| `zizmor` | the workflows | sixteen checkouts leaving the token in `.git/config`, and a module cache restored into the signing job |
+
+`shellcheck` is not only for the scripts: `actionlint` hands it every `run:`
+block, so the shell inside a workflow is now held to the same standard as a
+script — and without it installed, actionlint silently checks less than it
+appears to.
+
+The two `zizmor` classes are worth naming because both are about a release
+this repository has not cut yet. `actions/checkout` leaves its token in
+`.git/config` for the rest of the job, where anything that archives the
+workspace carries it out too; and `actions/setup-go` with `cache: true` in
+`release.yml` would let a cache entry written by an earlier run reach the job
+whose output is signed and published as immutable.
+
+Super-Linter is deliberately absent. It bundles its own versions of
+golangci-lint, ruff, markdownlint and yamllint, which this repository pins —
+so it would put a second opinion about the same files into the tree, which is
+the thing [ADR 0009](adr/0009-github-actions-is-the-gate.md) exists to prevent.
+What it would have added over the gate is exactly the four above, and those are
+installed at named versions instead.
+
 What SonarCloud was right about is already fixed: `@latest` npm installs in CI
 *and* in the dev image since phase 0, an unpinned `podman-compose`, downloads
 that would follow a redirect off HTTPS, and `uv` willing to build a source

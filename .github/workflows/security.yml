@@ -44,6 +44,11 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -66,6 +71,11 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
       # The same three rule sets `task semgrep` runs, rather than `semgrep ci`
       # against the hosted platform: a scan a developer cannot reproduce
       # locally is a finding they cannot act on.
@@ -87,6 +97,11 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
       - run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.4.0 # pin: OSV_SCANNER_VERSION
       # govulncheck (in the gate) reports only vulnerabilities the binary can
       # actually reach; osv-scanner reports everything the lockfile pulls in.
@@ -112,6 +127,11 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
       # The published image rather than aquasecurity/trivy-action.
       #
       # `check-pins.sh` cannot verify that action's commit SHA from a hosted

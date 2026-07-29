@@ -47,6 +47,11 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
       - name: Install skopeo
         # Without it check-pins.sh reports "skip (skopeo unavailable)" for
         # every image and still exits 0 — a green check that verified nothing.
@@ -71,6 +76,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # Otherwise the token stays in .git/config for the rest of the job,
+          # where anything archiving the workspace carries it out too. Nothing
+          # here pushes with that credential.
+          persist-credentials: false
       - name: Cache Go modules
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -117,6 +126,11 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -146,6 +160,11 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
       - name: Cache Go modules
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -163,6 +182,11 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: "0.11.33" # pin: UV_VERSION
@@ -188,6 +212,11 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -204,6 +233,51 @@ jobs:
       # as provider pages — every time it runs.
       - run: tfplugindocs validate --provider-name powerdns
 
+  # task lint:shell, task lint:containers, task lint:actions
+  lint-shell:
+    name: Lint (shell · containers · workflows)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.33" # pin: UV_VERSION
+      - name: Install the shell and container linters
+        run: |
+          sc=https://github.com/koalaman/shellcheck/releases/download/v0.11.0 # pin: SHELLCHECK_VERSION
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/sc.tar.xz "$sc/shellcheck-v0.11.0.linux.x86_64.tar.xz"
+          tar -xJf /tmp/sc.tar.xz -C /tmp
+          sudo install -m 0755 /tmp/shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
+          hd=https://github.com/hadolint/hadolint/releases/download/v2.14.0 # pin: HADOLINT_VERSION
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/hadolint "$hd/hadolint-Linux-x86_64"
+          sudo install -m 0755 /tmp/hadolint /usr/local/bin/hadolint
+          go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.1             # pin: SHFMT_VERSION
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: shellcheck
+        run: shellcheck scripts/*.sh
+      - name: shfmt
+        run: shfmt -d -i 2 -ci scripts/
+      - name: hadolint
+        run: hadolint deployments/containers/Containerfile.dev
+      - name: actionlint
+        # It shells out to shellcheck for every `run:` block, so it is installed
+        # above rather than pulled by an action that bundles its own copy.
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # pin: ACTIONLINT_VERSION
+          actionlint
+      - name: zizmor
+        # Not "does this parse" but "what could this leak" — a checkout
+        # credential left in .git/config, a cache restored into a signing job.
+        run: uv tool run zizmor@1.28.0 --format plain .github/workflows/ # pin: ZIZMOR_VERSION
+
   # task docs:lint
   lint-docs:
     name: Lint (docs · markdown · yaml · spell · badges)
@@ -213,6 +287,11 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22' # pin: NODE_MAJOR
@@ -245,6 +324,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # Otherwise the token stays in .git/config for the rest of the job,
+          # where anything archiving the workspace carries it out too. Nothing
+          # here pushes with that credential.
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22' # pin: NODE_MAJOR

@@ -11,7 +11,6 @@
 # That is why this is a gate and not a convention.
 set -euo pipefail
 
-readonly IMAGE_RE='(image|FROM|GO_IMAGE|_IMAGE):?[[:space:]]*=?[[:space:]]*"?([a-z0-9./:_-]+)@(sha256:[0-9a-f]{64})'
 declare -i ok=0 bad=0
 
 echo "== container images =="
@@ -40,10 +39,11 @@ while IFS= read -r ref; do
     printf 'skip      %s (skopeo unavailable)\n' "${ref%%@*}"
   fi
 done < <(grep -rhoE '(docker\.io|ghcr\.io|quay\.io)/[a-z0-9./_-]+:[a-zA-Z0-9._-]+(@sha256:[0-9a-f]{64})?' \
-           deployments/ .github/ 2>/dev/null | sort -u)
+  deployments/ .github/ 2>/dev/null | sort -u)
 
 echo
 echo "== unpinned FROM in Containerfiles =="
+# shellcheck disable=SC2016  # a regex, not a string meant to expand
 if grep -rnE '^FROM [^$]' deployments/containers/ 2>/dev/null | grep -v '@sha256:' | grep -v '\${'; then
   echo "  the FROM above does not carry a digest" >&2
   bad+=1
@@ -81,7 +81,7 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
         break
       fi
       case "$err" in
-        *"Not Found"*|*"No commit found"*) break ;;
+        *"Not Found"* | *"No commit found"*) break ;;
       esac
       sleep "$attempt"
     done
@@ -96,8 +96,8 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
       printf 'UNVERIFIED %s — %s\n' "$ref" "$(printf '%s' "$err" | head -1)" >&2
       bad+=1
     fi
-  done < <(grep -rhoE 'uses:[[:space:]]*[A-Za-z0-9._-]+/[A-Za-z0-9._/-]+@[^[:space:]]+' .github/ 2>/dev/null \
-             | sed -E 's/^uses:[[:space:]]*//' | sort -u)
+  done < <(grep -rhoE 'uses:[[:space:]]*[A-Za-z0-9._-]+/[A-Za-z0-9._/-]+@[^[:space:]]+' .github/ 2>/dev/null |
+    sed -E 's/^uses:[[:space:]]*//' | sort -u)
 else
   echo "skip      gh unavailable or unauthenticated; CI runs the same check"
 fi

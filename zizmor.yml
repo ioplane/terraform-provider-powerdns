@@ -1,0 +1,19 @@
+# zizmor — https://docs.zizmor.sh
+#
+# One audit is ignored, and the reason is specific rather than "noisy".
+rules:
+  adhoc-packages:
+    # It fires on `npm install -g pkg@1.2.3` and wants a lockfile instead.
+    #
+    # The concern it encodes — an unpinned install pulling something different
+    # tomorrow — is one this repository already answers, twice: the version is
+    # exact, and npm publishes are immutable, so `cspell@10.0.1` resolves to the
+    # same tarball forever. It is also written in exactly one place,
+    # `Containerfile.dev`, with `scripts/check-tool-versions.sh` failing the
+    # build if the workflow and the image disagree.
+    #
+    # A package-lock.json for four global CLI tools would be a lockfile nothing
+    # else reads, kept in step by hand — a weaker guarantee described in
+    # stronger words.
+    ignore:
+      - ci.yml

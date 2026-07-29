@@ -13,9 +13,9 @@ readonly MSG_FILE="${1:?usage: commitlint.sh <commit-msg-file>}"
 # The suffix picks this checkout's container; see Taskfile.yml.
 suffix=""
 case "$PWD" in
-    */.worktrees/*) suffix="-$(basename "$PWD")" ;;
+  */.worktrees/*) suffix="-$(basename "$PWD")" ;;
 esac
 
 DEV_SUFFIX="$suffix" podman-compose \
-    -f deployments/compose/compose.dev.yml exec -T dev \
-    npx --no-install commitlint --config .commitlintrc.yaml < "$MSG_FILE"
+  -f deployments/compose/compose.dev.yml exec -T dev \
+  npx --no-install commitlint --config .commitlintrc.yaml <"$MSG_FILE"

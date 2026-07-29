@@ -22,6 +22,10 @@ ARG TASK_VERSION=v3.52.0
 ARG GOTESTSUM_VERSION=v1.13.0
 ARG GOPLS_VERSION=v0.23.0
 ARG ACTIONLINT_VERSION=v1.7.12
+ARG SHFMT_VERSION=v3.13.1
+ARG SHELLCHECK_VERSION=v0.11.0
+ARG HADOLINT_VERSION=v2.14.0
+ARG ZIZMOR_VERSION=1.28.0
 ARG TERRAFORM_VERSION=1.15.8
 ARG OPENTOFU_VERSION=1.12.5
 ARG TERRAGRUNT_VERSION=1.1.1
@@ -38,6 +42,10 @@ ARG PODMAN_PY_VERSION=5.8.0
 
 FROM ${GO_IMAGE} AS dev
 
+# pipefail, so a failing curl in `curl ... | gpg` fails the build rather
+# than being masked by the exit status of the last command in the pipe.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 ARG GOLANGCI_LINT_VERSION
 ARG GOVULNCHECK_VERSION
 ARG OSV_SCANNER_VERSION
@@ -47,6 +55,10 @@ ARG TASK_VERSION
 ARG GOTESTSUM_VERSION
 ARG GOPLS_VERSION
 ARG ACTIONLINT_VERSION
+ARG SHFMT_VERSION
+ARG SHELLCHECK_VERSION
+ARG HADOLINT_VERSION
+ARG ZIZMOR_VERSION
 ARG TERRAFORM_VERSION
 ARG OPENTOFU_VERSION
 ARG TERRAGRUNT_VERSION
@@ -88,7 +100,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
-        git ca-certificates tzdata make bash curl unzip jq gnupg \
+        git ca-certificates tzdata make bash curl unzip xz-utils jq gnupg \
         dnsutils postgresql-client python3 python3-pip \
  && rm -rf /var/lib/apt/lists/*
 
@@ -130,7 +142,27 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
  && go install github.com/go-task/task/v3/cmd/task@${TASK_VERSION} \
  && go install golang.org/x/tools/gopls@${GOPLS_VERSION} \
  && go install gotest.tools/gotestsum@${GOTESTSUM_VERSION} \
- && go install github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}
+ && go install github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION} \
+ && go install mvdan.cc/sh/v3/cmd/shfmt@${SHFMT_VERSION}
+
+# Shell and container linters. actionlint shells out to shellcheck for the
+# `run:` blocks inside a workflow, so the two belong together; without it
+# actionlint silently checks less than it appears to.
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in amd64) sc=x86_64; hd=x86_64 ;; arm64) sc=aarch64; hd=arm64 ;; \
+      *) echo "unsupported arch $arch" >&2; exit 1 ;; esac; \
+    curl -fsSL --proto '=https' --tlsv1.2 \
+      "https://github.com/koalaman/shellcheck/releases/download/${SHELLCHECK_VERSION}/shellcheck-${SHELLCHECK_VERSION}.linux.${sc}.tar.xz" \
+      -o /tmp/sc.tar.xz; \
+    tar -xJf /tmp/sc.tar.xz -C /tmp; \
+    install -m 0755 "/tmp/shellcheck-${SHELLCHECK_VERSION}/shellcheck" /usr/local/bin/shellcheck; \
+    curl -fsSL --proto '=https' --tlsv1.2 \
+      "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-Linux-${hd}" \
+      -o /usr/local/bin/hadolint; \
+    chmod +x /usr/local/bin/hadolint; \
+    rm -rf /tmp/sc.tar.xz "/tmp/shellcheck-${SHELLCHECK_VERSION}"; \
+    shellcheck --version; hadolint --version; shfmt --version
 
 # Documentation linters and commitlint.
 # Pinned, and installed without lifecycle scripts. `@latest` here meant the
@@ -156,6 +188,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
  && uv tool install --python 3.12 "ty==${TY_VERSION}" \
  && uv tool install --python 3.12 yamllint \
  && uv tool install --python 3.12 "semgrep==${SEMGREP_VERSION}" \
+ && uv tool install --python 3.12 "zizmor==${ZIZMOR_VERSION}" \
  && uv pip install --system --break-system-packages "podman==${PODMAN_PY_VERSION}"
 
 WORKDIR /app

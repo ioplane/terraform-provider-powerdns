@@ -52,6 +52,11 @@ jobs:
           # goes stale on the next digest bump.
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Otherwise the token stays in .git/config for the rest of
+          # the job, where anything archiving the workspace carries it
+          # out too. Nothing here pushes with that credential.
+          persist-credentials: false
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:

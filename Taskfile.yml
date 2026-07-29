@@ -208,11 +208,30 @@ tasks:
     cmds: [scripts/check-tool-versions.sh]
 
   lint:actions:
-    desc: actionlint and shellcheck over the workflows
+    desc: actionlint, shellcheck and zizmor over the workflows
     # A workflow is only executed by pushing it. Without this the first reader
     # of a typo in a `run:` block is the runner, after the merge.
+    #
+    # actionlint hands every `run:` block to shellcheck, so the shell inside a
+    # workflow is held to the same standard as a script. zizmor asks the other
+    # question — not "does this parse" but "what could this leak": a checkout
+    # credential left in .git/config, a cache restored into a signing job.
     deps: [_dev-running]
-    cmds: ['{{.EXEC}} actionlint']
+    cmds:
+      - '{{.EXEC}} actionlint'
+      - '{{.EXEC}} zizmor --format plain .github/workflows/'
+
+  lint:shell:
+    desc: shellcheck and shfmt over the scripts
+    deps: [_dev-running]
+    cmds:
+      - '{{.EXEC}} shellcheck scripts/*.sh'
+      - '{{.EXEC}} shfmt -d -i 2 -ci scripts/'
+
+  lint:containers:
+    desc: hadolint over the Containerfiles
+    deps: [_dev-running]
+    cmds: ['{{.EXEC}} hadolint deployments/containers/Containerfile.dev']
 
   semgrep:
     desc: Semantic security scan
@@ -317,6 +336,8 @@ tasks:
       - {task: 'lint:pins'}
       - {task: 'lint:tools'}
       - {task: 'lint:actions'}
+      - {task: 'lint:shell'}
+      - {task: 'lint:containers'}
       - {task: semgrep}
       - {task: py}
       - {task: 'tf:fmt:check'}

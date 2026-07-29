@@ -243,7 +243,9 @@ build tag they do not carry — which is what an unexecuted pipeline becomes.
 | Python — ruff + ty | `task py` |
 | Pins resolve, none float | `task lint:pins` |
 | CI and the dev image agree on tool versions | `task lint:tools` |
-| Workflows parse and their expressions resolve | `task lint:actions` |
+| Workflows parse, and leak nothing | `task lint:actions` |
+| Shell scripts | `task lint:shell` |
+| Containerfiles | `task lint:containers` |
 | Semantic security scan | `task semgrep` |
 | Vulnerabilities | `task vulncheck` · `task osv-scan` |
 | Registry docs | `task docs:check` |

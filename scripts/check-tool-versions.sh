@@ -44,6 +44,11 @@ readonly REQUIRED=(
   RUFF_VERSION
   TY_VERSION
   SEMGREP_VERSION
+  SHELLCHECK_VERSION
+  SHFMT_VERSION
+  HADOLINT_VERSION
+  ACTIONLINT_VERSION
+  ZIZMOR_VERSION
   PODMAN_PY_VERSION
 )
 
@@ -60,7 +65,7 @@ while IFS= read -r line; do
   value="${BASH_REMATCH[2]}"
   [[ "$value" == *@* ]] && value="${value#*@}"
   expected["$name"]="$value"
-done < "$CONTAINERFILE"
+done <"$CONTAINERFILE"
 
 echo "== workflow pins vs ${CONTAINERFILE} =="
 
