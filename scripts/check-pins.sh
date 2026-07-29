@@ -28,11 +28,18 @@ while IFS= read -r ref; do
     # the part that actually pins.
     resolvable="${ref%%:*}"
     [[ "$ref" == */*:*@* ]] && resolvable="$(printf '%s' "$ref" | sed -E 's/:[^:@/]+@/@/')"
-    if skopeo inspect "docker://${resolvable}" --format '{{.Digest}}' >/dev/null 2>&1; then
+    # "the registry said no such digest" and "the request did not get through"
+    # are different answers, and conflating them is how a rate-limited run
+    # accuses a correct pin of being fabricated. The action check below learned
+    # this first; the image check had not.
+    if err="$(skopeo inspect "docker://${resolvable}" --format '{{.Digest}}' 2>&1 >/dev/null)"; then
       printf 'ok        %s\n' "${ref%%@*}"
       ok+=1
-    else
+    elif printf '%s' "$err" | grep -qiE 'manifest unknown|not found|unknown: '; then
       printf 'NOT FOUND %s\n' "$ref" >&2
+      bad+=1
+    else
+      printf 'UNVERIFIED %s — %s\n' "$ref" "$(printf '%s' "$err" | tail -1 | cut -c1-120)" >&2
       bad+=1
     fi
   else

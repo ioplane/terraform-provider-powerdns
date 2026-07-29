@@ -20,6 +20,10 @@ The mapping between commit type, changelog section and version bump is in
   which Terragrunt selects by default and which nothing had exercised before.
 - `task e2e:up`, `task e2e`, `task e2e:down` — the fixture on podman-py, driven
   through uv.
+- `check-pins.sh` distinguishes an image the registry does not have from one it
+  would not answer about. It reported a correct MinIO pin as NOT FOUND on a
+  hosted runner, where Docker Hub rate-limits anonymous requests; the action
+  check had already learned this and the image check had not.
 
 
 ## [0.1.1] — 2026-07-29

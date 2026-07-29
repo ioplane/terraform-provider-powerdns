@@ -1199,6 +1199,14 @@ saw "not 200", and the driver reported a running lab as absent.
 cause was nowhere near it. The adoption scenario now has its own unit and its
 own state key.
 
+**And one the fixture found in CI, not here.** `check-pins.sh` reported the
+MinIO image as NOT FOUND on a hosted runner while resolving it locally, and
+quay.io serves the identical digest — so the pin was correct and Docker Hub's
+anonymous rate limit was the answer. The image reference moved to quay.io, and
+the image check now distinguishes "the registry said no such digest" from "the
+request did not get through", which is the same lesson the action check learned
+earlier in phase 8 and which had not been carried across.
+
 **A destroyed zone answers REFUSED, not NXDOMAIN.** With the zone gone the
 server is no longer authoritative and declines the name; dnspython raises that
 as "all nameservers failed", which is also what a dead server looks like. The
