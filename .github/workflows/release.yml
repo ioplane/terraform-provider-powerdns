@@ -136,9 +136,12 @@ jobs:
         run: |
           go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0 # pin: TFPLUGINDOCS_VERSION
           tfplugindocs generate --provider-name powerdns
-          if ! git diff --quiet -- docs/; then
+          # Only the paths tfplugindocs writes: docs/ also holds the plan,
+          # the contract, the standards and the ADRs, and diffing the whole
+          # directory blocks a release on an edit to any of them.
+          if ! git diff --quiet -- docs/index.md docs/resources docs/data-sources docs/functions docs/ephemeral-resources docs/actions; then
             echo "::error::generated documentation is out of date — run 'task docs' and commit the result"
-            git --no-pager diff --stat -- docs/
+            git --no-pager diff --stat -- docs/index.md docs/resources docs/data-sources docs/functions docs/ephemeral-resources docs/actions
             exit 1
           fi
           echo "ok    generated documentation is in sync"

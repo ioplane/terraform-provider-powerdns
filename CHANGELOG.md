@@ -69,8 +69,32 @@ The mapping between commit type, changelog section and version bump is in
   merges, branches deleted after merge, secret scanning and push protection on,
   topics and homepage set.
 
+- `scripts/check-badges.sh` verifies the phase counter in `docs/plan.md` the
+  same way it verifies the task counter: the badge must agree with the number
+  of phase headings marked `[x]`. The task counter was derived from the tables
+  after the first audit found it had rotted; the counter beside it was left
+  hand-maintained and rotted the same way.
+
 ### Fixed
 
+- `task docs:drift` compared the whole `docs/` tree against the generator's
+  output. `tfplugindocs` writes six paths; `docs/` also holds the plan, the
+  contract, the standards and the ADRs, so editing any of those made the check
+  report that the generated documentation was out of date and name files no
+  generator touches. It now diffs only the generated paths. The release
+  workflow was not exposed to this — it asserts a clean tree first — but the
+  check was reachable on its own, and it lied there.
+- Four standards named enforcement that does not exist: `go-1.26-style.md`
+  described a package layout the repository never had (`internal/resources/<area>`,
+  `internal/client/pdns`) and a paralleltest exclusion for a `test/acceptance/`
+  directory that does not exist — the exclusion is by the `_acc_test.go`
+  suffix; `verified-identifiers.md` named `scripts/check-action-pins.sh`, which
+  was renamed to `check-pins.sh` when it grew image checks; and
+  `naming-conventions.md` listed `scripts/check-changelog.sh` and
+  `scripts/check-version.sh` as the enforcement for two rules that are in fact
+  enforced, by `scripts/check-release.sh`.
+- `docs/plan.md` marked phase 9 in progress with all seven of its tasks closed,
+  and its phase badge read 6 against 8 closed phases.
 - Twelve entries had been written into `[0.1.1]` after that version shipped,
   and two into `[0.1.0]`. A released section describes what went out; adding to
   it claims a change shipped when it did not, and the next release cut — which

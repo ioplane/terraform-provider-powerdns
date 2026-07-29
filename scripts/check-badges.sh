@@ -121,6 +121,23 @@ if [[ -f docs/plan.md ]]; then
   else
     printf 'ok    %s tasks marked done, badge agrees\n' "$actual"
   fi
+
+  # The same arithmetic for phases. The task counter was corrected once and
+  # then a phase counter drifted beside it, which is what happens when a check
+  # is written for the instance rather than for the class.
+  claimed_phases="$(grep -oE 'badge/phases_closed-[0-9]+-' docs/plan.md | head -1 | grep -oE '[0-9]+' || true)"
+  # shellcheck disable=SC2016  # a regex, not a string meant to expand
+  actual_phases="$(grep -cE '^## Phase [0-9]+ .*`\[x\]`' docs/plan.md || true)"
+  if [[ -z "$claimed_phases" ]]; then
+    echo "FAIL  docs/plan.md has no phases_closed badge" >&2
+    counter_bad=1
+  elif [[ "$claimed_phases" != "$actual_phases" ]]; then
+    printf 'FAIL  badge claims %s phases closed, the headings show %s\n' \
+      "$claimed_phases" "$actual_phases" >&2
+    counter_bad=1
+  else
+    printf 'ok    %s phases closed, badge agrees\n' "$actual_phases"
+  fi
 fi
 
 echo

@@ -371,9 +371,13 @@ tasks:
     cmds:
       - '{{.EXEC}} tfplugindocs generate --provider-name {{.TYPE}}'
       - cmd: |
-          if ! git diff --quiet -- docs/; then
+          # Only the paths tfplugindocs writes. docs/ also holds this project's
+          # own plan, contract, standards and ADRs, and diffing the directory
+          # reported an edit to any of them as "generated documentation is out
+          # of date" — a release blocked for a reason that was not true.
+          if ! git diff --quiet -- docs/index.md docs/resources docs/data-sources docs/functions docs/ephemeral-resources docs/actions; then
             echo 'the generated documentation is out of date — run `task docs` and commit the result' >&2
-            git --no-pager diff --stat -- docs/ >&2
+            git --no-pager diff --stat -- docs/index.md docs/resources docs/data-sources docs/functions docs/ephemeral-resources docs/actions >&2
             exit 1
           fi
           echo 'ok    generated documentation is in sync'
