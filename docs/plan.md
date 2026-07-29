@@ -948,6 +948,19 @@ Debian-managed interpreter (PEP 668) — the dev image passes
 It is the same class as the `sh`-not-`bash` finding: a difference between the
 image and the runner that no amount of reading catches, and one run does.
 
+Adding `--break-system-packages` got past PEP 668 and straight into the next
+one — `/usr/local/lib/python3.12/dist-packages` is not writable by the runner's
+user, and the dev image only gets away with it by being root. The right answer
+was not a third override: `podman-py` is already a declared dependency in
+`pyproject.toml`, so the workflow runs the driver with `uv run` and the project
+environment supplies it at the pinned version.
+
+Which surfaced a version living in a third place. `pyproject.toml` still said
+`podman==5.7.0` after the bump to 5.8.0 — a drift this sprint's own checker
+introduced and did not catch, because it only read the workflows.
+`check-tool-versions.sh` now reads `pyproject.toml` too, and the three versions
+it declares carry `# pin:` markers like everything else.
+
 One thing still fails, and it is not a change to this repository:
 
 - SonarCloud's quality gate — it objects to `go install pkg@v1.2.3` on the
