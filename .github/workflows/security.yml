@@ -112,16 +112,23 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          # Config too, not only vuln: the Containerfile and the compose files
-          # are the part of this repository that runs as root somewhere.
-          scanners: vuln,secret,misconfig
-          severity: CRITICAL,HIGH
-          format: sarif
-          output: trivy.sarif
+      # The published image rather than aquasecurity/trivy-action.
+      #
+      # `check-pins.sh` cannot verify that action's commit SHA from a hosted
+      # runner: the aquasecurity organisation has an IP allow list, and the
+      # API answers 403 for every runner address. A pin nothing can check is
+      # not a pin, and adding a named exception to the checker for one action
+      # is how a rule becomes a preference. The image is pinned by digest,
+      # which skopeo resolves from anywhere.
+      - name: trivy
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src \
+            docker.io/aquasec/trivy:0.72.0@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f \
+            filesystem . \
+            --scanners vuln,secret,misconfig \
+            --severity CRITICAL,HIGH \
+            --format sarif --output trivy.sarif
+          test -s trivy.sarif
       - uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
         if: always()
         with:

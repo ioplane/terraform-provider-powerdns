@@ -933,9 +933,28 @@ failed four ways, each of them a fact about GitHub Actions rather than a typo:
   installed with `--ignore-scripts`, and every download refuses a redirect off
   HTTPS.
 
-`dependency-review.yml` still fails, and not for a reason in this repository:
-the Dependency graph is disabled for the `ioplane` organisation, which is a
-settings toggle rather than a code change. S8-11.
+The second run then found the one that could not be fixed by trying harder.
+`check-pins.sh` could not verify `aquasecurity/trivy-action`'s SHA from a
+hosted runner at all: that organisation has an IP allow list, and the API
+answers 403 for every runner address. A pin nothing can check is not a pin,
+and a named exception in the checker for one action is how a rule becomes a
+preference — so the action was replaced by the published trivy image, pinned
+by digest, which skopeo resolves from anywhere.
+
+Two things still fail, and neither is a change to this repository:
+
+- `dependency-review.yml` — the Dependency graph is disabled for the `ioplane`
+  organisation. A settings toggle. **S8-11.**
+- SonarCloud's quality gate — it objects to `go install pkg@v1.2.3` on the
+  grounds that it is not a lock-file, which for a pinned module version it
+  effectively is. Marking a finding as a false positive needs access to the
+  SonarCloud project, not a commit here. **S8-12.**
+
+What SonarCloud was right about is already fixed: `@latest` npm installs in CI
+*and* in the dev image since phase 0, an unpinned `podman-compose`, downloads
+that would follow a redirect off HTTPS, and `uv` willing to build a source
+distribution — which is arbitrary Python at install time — now refused by
+`UV_NO_BUILD`.
 
 | ID | Task | Role | Status |
 | --- | --- | --- | --- |
@@ -950,6 +969,7 @@ settings toggle rather than a code change. S8-11.
 | S8-09 | Branch protection: require the gate before merge | PM | `[ ]` |
 | S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[ ]` |
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[ ]` |
+| S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[ ]` |
 
 S8-10 reopens something S0-21 closed. A `github/ci` badge was removed then
 because it rendered "not found": the endpoint answered `200`, but GitHub held

@@ -26,6 +26,9 @@ concurrency:
 
 env:
   GOFLAGS: -buildvcs=false
+  # Refuse source distributions: building one runs arbitrary Python at
+  # install time. Every tool installed here publishes a wheel.
+  UV_NO_BUILD: "1"
 
 defaults:
   run:

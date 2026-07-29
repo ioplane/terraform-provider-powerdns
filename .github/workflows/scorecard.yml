@@ -13,14 +13,21 @@ on:
   schedule:
     - cron: '17 6 * * 1'
 
-permissions: read-all
+# Named rather than `read-all`, which the upstream template uses. Scorecard
+# reads the workflow definitions and the branch configuration; nothing else.
+permissions:
+  contents: read
 
 jobs:
   analysis:
     name: OpenSSF Scorecard
     runs-on: ubuntu-latest
     permissions:
+      contents: read
+      actions: read
       security-events: write
+      # Scorecard publishes its result to the public OpenSSF dataset, which it
+      # authenticates with an OIDC token rather than a stored secret.
       id-token: write
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0

@@ -330,7 +330,16 @@ The first run of the workflows found four more, none of them typos:
   and distinguishes a 404 from a failed call.
 - `markdownlint-cli2`, `cspell` and `commitlint` were installed at `@latest` in
   CI and in the dev image, and `podman-compose` was unpinned. All pinned, and
-  installed with `--ignore-scripts`; downloads refuse a redirect off HTTPS.
+  installed with `--ignore-scripts`; downloads refuse a redirect off HTTPS, and
+  `UV_NO_BUILD` stops `uv` building a source distribution, which is arbitrary
+  Python at install time.
+
+And one that could not be fixed by trying harder: `check-pins.sh` cannot verify
+`aquasecurity/trivy-action`'s commit SHA from a hosted runner, because that
+organisation has an IP allow list and the API answers 403 for every runner
+address. A pin nothing can check is not a pin, and a named exception in the
+checker for one action is how a rule becomes a preference — so the scan runs
+from the published trivy image, pinned by digest, which resolves from anywhere.
 
 ### Security
 
