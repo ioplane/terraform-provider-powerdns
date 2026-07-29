@@ -22,6 +22,9 @@ set -euo pipefail
 
 readonly CONTAINERFILE=deployments/containers/Containerfile.dev
 readonly WORKFLOW_DIR=.github/workflows
+# pyproject declares three of the same versions. It was missed once, and the
+# drift only surfaced when a workflow installed a different podman-py.
+readonly PINNED_FILES=("$WORKFLOW_DIR" pyproject.toml)
 
 # The tools CI is expected to install. An ARG absent from this list is one the
 # dev image needs and CI does not — Task, OpenTofu and Terragrunt are for
@@ -98,7 +101,7 @@ while IFS= read -r hit; do
     printf '          line reads: %s\n' "$(printf '%s' "$code" | sed 's/^[[:space:]]*//')" >&2
     bad+=1
   fi
-done < <(grep -rn '# pin:' "$WORKFLOW_DIR" 2>/dev/null || true)
+done < <(grep -rn '# pin:' "${PINNED_FILES[@]}" 2>/dev/null || true)
 
 echo
 echo "== every CI tool is pinned somewhere =="
@@ -107,7 +110,7 @@ for name in "${REQUIRED[@]}"; do
     printf 'MISSING   %s is required but %s does not define it\n' "$name" "$CONTAINERFILE" >&2
     bad+=1
   elif [ -z "${seen[$name]+set}" ]; then
-    printf 'UNPINNED  %s is not referenced by any workflow\n' "$name" >&2
+    printf 'UNPINNED  %s is not referenced anywhere\n' "$name" >&2
     bad+=1
   else
     printf 'ok        %s\n' "$name"
