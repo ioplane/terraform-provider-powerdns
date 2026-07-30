@@ -1,0 +1,12 @@
+# actionlint configuration — https://github.com/rhysd/actionlint
+#
+# actionlint validates `runs-on:` against the labels GitHub itself offers, so
+# every runner outside that set reads as a typo. The workflows here run on
+# Blacksmith, whose labels are resolved by the Blacksmith GitHub App rather
+# than by GitHub, and which actionlint therefore cannot know about.
+#
+# Listing them keeps the check meaningful: a misspelled Blacksmith label is
+# still an error, rather than the whole rule being switched off.
+self-hosted-runner:
+  labels:
+    - blacksmith-4vcpu-ubuntu-2404
