@@ -1742,11 +1742,13 @@ automatic analysis enabled, a CI analysis fails and disrupts the build.
 The workflow stands the lab up rather than running unit tests alone. Most of
 this provider is an HTTP conversation with PowerDNS, so unit coverage would
 report a number that measures the wrong tests — worse than reporting none,
-which is what the project had. Together they cover **71.6% of statements**. The first version reported 68.9%:
+which is what the project had. Together they cover **71.6% of statements**.
+
+The first version reported 68.9%:
 Go instruments only the package under test unless told otherwise, so the API
 clients exercised *through* the provider were credited with nothing for that
-work. Review caught it; `-coverpkg=./internal/...` is the difference, and both
-numbers were measured against the lab rather than reasoned about.
+work. Review caught it; `-coverpkg=./internal/...` is the difference, and
+both numbers were measured against the lab rather than reasoned about.
 
 One authoritative branch, not the matrix. Coverage is a property of the code;
 running the suite on 5.0 as well would produce the same lines and a second set
