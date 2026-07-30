@@ -94,10 +94,10 @@ The mapping between commit type, changelog section and version bump is in
 - `.github/workflows/sonarcloud.yml` — SonarQube Cloud as a CI analysis with
   real coverage, alongside the automatic analysis the project had been running
   under. Automatic analysis cannot report Go coverage at all. SonarSource's
-  documentation warns that the two modes conflict and that a CI analysis will
-  fail while automatic analysis is on; in practice both ran and the CI analysis
-  landed the number — the warning is still worth acting on, because the documented
-  risk is duplicate analyses corrupting project activity. The job stands the lab up and
+  documentation warns that the two modes conflict, and automatic analysis was
+  already off in this project — so there was never a second analysis, and the
+  `SonarCloud Code Analysis` check that appears alongside the job is the app
+  reporting the CI run rather than a competing one. The job stands the lab up and
   measures unit *and* acceptance tests together — 71.6% of statements, with
   `-coverpkg=./internal/...` so the API clients exercised through the provider
   are credited for it — because
