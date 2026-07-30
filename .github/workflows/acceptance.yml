@@ -35,7 +35,7 @@ concurrency:
 jobs:
   acceptance:
     name: Lab acceptance (auth ${{ matrix.auth }} · gpgsql + lmdb · recursor · dnsdist)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 90
     strategy:
       # The provider claims a range of authoritative versions, and one version

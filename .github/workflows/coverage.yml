@@ -39,7 +39,7 @@ defaults:
 jobs:
   coverage:
     name: Coverage (unit + acceptance)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 45
     env:
       TF_ACC: '1'

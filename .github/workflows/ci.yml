@@ -41,7 +41,7 @@ jobs:
   # task lint:pins, task lint:tools
   pins:
     name: Pins (digests · action SHAs · tool versions)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
@@ -66,7 +66,7 @@ jobs:
   # task build, task test, task test:contract
   build-test:
     name: Build & test
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     container:
       image: docker.io/library/golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 # pin: GO_IMAGE
     steps:
@@ -117,7 +117,7 @@ jobs:
   # task lint
   lint-go:
     name: Lint (Go · golangci-lint v2)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       security-events: write
@@ -152,7 +152,7 @@ jobs:
   # task vulncheck
   vulncheck:
     name: Vulnerability audit (govulncheck)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     container:
       image: docker.io/library/golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 # pin: GO_IMAGE
     steps:
@@ -176,7 +176,7 @@ jobs:
   # task py
   lint-py:
     name: Lint (Python · ruff · ty)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
@@ -206,7 +206,7 @@ jobs:
     # On the runner rather than in the Go image: HashiCorp ships Terraform as a
     # zip and the image has no unzip. Installing one to extract the other is
     # more moving parts than using the host that already has both.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
@@ -236,7 +236,7 @@ jobs:
   # task lint:shell, task lint:containers, task lint:actions
   lint-shell:
     name: Lint (shell · containers · workflows)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
@@ -283,7 +283,7 @@ jobs:
   # task docs:lint
   lint-docs:
     name: Lint (docs · markdown · yaml · spell · badges)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
@@ -318,7 +318,7 @@ jobs:
   commits:
     name: Commits (conventional · no AI attribution)
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
