@@ -1,0 +1,125 @@
+# SonarQube Cloud, CI-based analysis with real coverage.
+#
+# The project was analysed automatically until now — the SonarQube Cloud app
+# reading the repository with no workflow and no token. That mode cannot report
+# Go coverage at all, and the documentation says the two modes conflict: with
+# automatic analysis left on, a CI analysis fails and disrupts the build. So
+# this workflow only works once automatic analysis is turned off in the
+# project's settings, which is a web form and cannot be done from a terminal.
+#
+# It stands the lab up. Unit coverage alone would understate this provider
+# badly: most of its logic is an HTTP conversation with PowerDNS, and the tests
+# that exercise it need a server to talk to. Reporting a number that measures
+# the wrong tests would be worse than reporting none, which is the situation
+# this replaces.
+#
+# One authoritative branch, not the matrix. Coverage is a property of the code,
+# and running the suite twice would produce the same lines with a second set of
+# timings — the matrix answers a different question, and answers it in
+# acceptance.yml.
+name: SonarCloud
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonarcloud-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  sonarcloud:
+    name: SonarCloud (coverage from unit + acceptance)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TF_ACC: '1'
+      UV_NO_BUILD: "1"
+      PDNS_SERVER_URL: http://127.0.0.1:18081
+      PDNS_SERVER_URL_LMDB: http://127.0.0.1:18091
+      PDNS_RECURSOR_SERVER_URL: http://127.0.0.1:18082
+      PDNS_DNSDIST_SERVER_URL: http://127.0.0.1:18083
+      PDNS_API_KEY: labapikey
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          # Four images and a scanner download; a blocking policy would need an
+          # allow-list that goes stale on the next digest bump.
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Sonar reads history to attribute issues to commits and to decide
+          # what is "new code". A single-commit checkout makes every line new.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install Terraform
+        run: |
+          curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/tf.zip \
+            "https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_linux_amd64.zip" # pin: TERRAFORM_VERSION
+          sudo unzip -o -d /usr/local/bin /tmp/tf.zip
+          echo "TF_ACC_TERRAFORM_PATH=/usr/local/bin/terraform" >> "$GITHUB_ENV"
+
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.33" # pin: UV_VERSION
+
+      - name: Install the lab driver
+        run: |
+          uv tool install "podman-compose==1.6.0"
+          systemctl --user enable --now podman.socket || \
+            echo "podman socket unavailable — lab.py will use the CLI"
+
+      - name: Start the lab
+        run: uv run --locked python -m scripts.automation.lab up
+
+      - name: The lab is the pinned PowerDNS versions
+        run: uv run --locked python -m scripts.automation.lab verify
+
+      - name: Tests, with coverage
+        # -covermode=atomic, not the default: the acceptance suite runs with
+        # -race, and set/count are not safe to record concurrently.
+        #
+        # ./internal/... is both the code and the tests. -coverpkg is left at
+        # its default so a package's coverage is attributed to that package,
+        # which is how Sonar reads the profile.
+        run: |
+          go test -tags acceptance ./internal/... \
+            -race -count=1 -timeout 60m \
+            -covermode=atomic -coverprofile=coverage.out
+          go tool cover -func=coverage.out | tail -1
+
+      - name: Tear down
+        if: always()
+        run: uv run --locked python -m scripts.automation.lab down || true
+
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Coverage report
+        if: always()
+        run: |
+          {
+            echo "### Coverage"
+            echo
+            echo '```'
+            go tool cover -func=coverage.out 2>/dev/null | tail -20 || echo "no profile produced"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

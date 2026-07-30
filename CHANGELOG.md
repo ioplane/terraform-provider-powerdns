@@ -91,6 +91,19 @@ The mapping between commit type, changelog section and version bump is in
   registry's templates refuse submissions made anywhere but the issue form UI,
   so this shortens the manual step rather than replacing it.
 
+- `.github/workflows/sonarcloud.yml` — SonarQube Cloud as a CI analysis with
+  real coverage, replacing the automatic analysis the project had been running
+  under. Automatic analysis cannot report Go coverage at all, and the two modes
+  conflict: with it left on, a CI analysis fails. The job stands the lab up and
+  measures unit *and* acceptance tests together — 68.9% of statements — because
+  most of this provider's logic is an HTTP conversation with PowerDNS and unit
+  coverage alone would understate it badly. One authoritative branch, not the
+  matrix: coverage is a property of the code, and the second branch answers a
+  different question in `acceptance.yml`.
+- `sonar-project.properties`, excluding the fixture, the automation, the
+  examples and the generated documentation — measuring those moves the number
+  without saying anything about the provider.
+
 ### Changed
 
 - The gate's nine checks are Python, not shell. 961 lines of bash under

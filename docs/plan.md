@@ -1175,6 +1175,7 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[x]` |
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[x]` the Python move replaced them with six agent-safety findings, all fixed |
+| S8-17 | **Added.** SonarCloud as a CI analysis, with coverage from the real lab | OPS | `[~]` workflow landed; automatic analysis must be switched off in the project's settings |
 | S8-14 | **Added.** Repository hygiene: CODEOWNERS, templates, code of conduct, settings, branch protection | OPS | `[x]` |
 | S8-15 | **Added.** The gate's checks move from shell to Python, with tests | OPS | `[x]` |
 | S8-16 | **Added.** Required status checks are compared against the jobs that exist | OPS | `[x]` |
@@ -1730,6 +1731,26 @@ is unreadable, so the gate does not depend on who is running it.
 
 Writing it found the first regex counting nine spaces where the schema puts
 eight, which returned the job name with the interpolation still in it.
+
+### SonarCloud was measuring the wrong thing, and could not measure coverage
+
+The project had been analysed automatically — the SonarQube Cloud app reading
+the repository, no workflow, no token. That mode cannot report Go coverage at
+all, and the documentation is explicit that the two modes conflict: with
+automatic analysis enabled, a CI analysis fails and disrupts the build.
+
+The workflow stands the lab up rather than running unit tests alone. Most of
+this provider is an HTTP conversation with PowerDNS, so unit coverage would
+report a number that measures the wrong tests — worse than reporting none,
+which is what the project had. Together they cover **68.9% of statements**.
+
+One authoritative branch, not the matrix. Coverage is a property of the code;
+running the suite on 5.0 as well would produce the same lines and a second set
+of timings. The matrix answers a different question and answers it elsewhere.
+
+**Half of this change is not in the repository.** Automatic analysis has to be
+switched off in the project's settings, which is a web form. Until it is, the
+new job fails — by SonarSource's design, not by accident.
 
 ## Audit, 2026-07-29 — before phase 7
 
