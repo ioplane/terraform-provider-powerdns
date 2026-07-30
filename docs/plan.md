@@ -1748,9 +1748,14 @@ One authoritative branch, not the matrix. Coverage is a property of the code;
 running the suite on 5.0 as well would produce the same lines and a second set
 of timings. The matrix answers a different question and answers it elsewhere.
 
-**Half of this change is not in the repository.** Automatic analysis has to be
-switched off in the project's settings, which is a web form. Until it is, the
-new job fails — by SonarSource's design, not by accident.
+**One claim of mine did not survive contact.** I wrote, on the documentation's
+authority, that the new job would fail while automatic analysis was still on.
+It did not: both ran on the first pull request and SonarCloud recorded 76.6%
+coverage from the CI analysis. The documented hazard — duplicate analyses
+corrupting project activity — is still real and automatic analysis should still
+be switched off, in a web form that cannot be reached from here. But "fails by
+design" was the documentation's word, not an observation, and I presented it as
+the latter.
 
 ## Audit, 2026-07-29 — before phase 7
 

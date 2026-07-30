@@ -92,14 +92,21 @@ The mapping between commit type, changelog section and version bump is in
   so this shortens the manual step rather than replacing it.
 
 - `.github/workflows/sonarcloud.yml` — SonarQube Cloud as a CI analysis with
-  real coverage, replacing the automatic analysis the project had been running
-  under. Automatic analysis cannot report Go coverage at all, and the two modes
-  conflict: with it left on, a CI analysis fails. The job stands the lab up and
+  real coverage, alongside the automatic analysis the project had been running
+  under. Automatic analysis cannot report Go coverage at all. SonarSource's
+  documentation warns that the two modes conflict and that a CI analysis will
+  fail while automatic analysis is on; in practice both ran and the CI analysis
+  landed 76.6% — the warning is still worth acting on, because the documented
+  risk is duplicate analyses corrupting project activity. The job stands the lab up and
   measures unit *and* acceptance tests together — 68.9% of statements — because
   most of this provider's logic is an HTTP conversation with PowerDNS and unit
   coverage alone would understate it badly. One authoritative branch, not the
   matrix: coverage is a property of the code, and the second branch answers a
   different question in `acceptance.yml`.
+- The same coverage profile is uploaded to Codecov, which reports the diff on a
+  pull request and keeps the history where Sonar gates. One lab run, one
+  measurement, two readers. A failed upload does not fail the build: the number
+  that gates is already in Sonar.
 - `sonar-project.properties`, excluding the fixture, the automation, the
   examples and the generated documentation — measuring those moves the number
   without saying anything about the provider.

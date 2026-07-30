@@ -1,4 +1,4 @@
-# SonarQube Cloud, CI-based analysis with real coverage.
+# Coverage, measured once and published to two places.
 #
 # The project was analysed automatically until now — the SonarQube Cloud app
 # reading the repository with no workflow and no token. That mode cannot report
@@ -17,7 +17,7 @@
 # and running the suite twice would produce the same lines with a second set of
 # timings — the matrix answers a different question, and answers it in
 # acceptance.yml.
-name: SonarCloud
+name: Coverage
 
 on:
   push:
@@ -29,7 +29,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: sonarcloud-${{ github.ref }}
+  group: coverage-${{ github.ref }}
   cancel-in-progress: true
 
 defaults:
@@ -37,8 +37,8 @@ defaults:
     shell: bash
 
 jobs:
-  sonarcloud:
-    name: SonarCloud (coverage from unit + acceptance)
+  coverage:
+    name: Coverage (unit + acceptance)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -112,6 +112,21 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Codecov
+        # The same profile, a second reader. Sonar reports coverage next to its
+        # own findings and gates on it; Codecov reports the diff on a pull
+        # request and keeps the history. Measuring twice to satisfy both would
+        # cost a second lab.
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          files: coverage.out
+          flags: unit-and-acceptance
+          # A failed upload is somebody else's outage, not a broken build. The
+          # number is already in Sonar, which does gate.
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Coverage report
         if: always()

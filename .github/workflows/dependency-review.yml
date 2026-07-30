@@ -42,4 +42,13 @@ jobs:
             AGPL-3.0-only, AGPL-3.0-or-later,
             LGPL-2.0-only, LGPL-2.1-only, LGPL-2.1-or-later,
             LGPL-3.0-only, LGPL-3.0-or-later
+          # One exception, named rather than blanket. The Sonar scanner action
+          # is LGPL-3.0 and the policy above denies that — correctly, for
+          # anything that ends up in the provider. This does not: it is a step
+          # that runs in CI, is never linked into the binary and is never
+          # distributed with it, so the reciprocal obligation the policy exists
+          # to avoid does not arise. Pinned by name so a different LGPL
+          # dependency still fails.
+          allow-dependencies-licenses: >-
+            pkg:githubactions/SonarSource/sonarqube-scan-action
           comment-summary-in-pr: on-failure
