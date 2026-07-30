@@ -96,9 +96,11 @@ The mapping between commit type, changelog section and version bump is in
   under. Automatic analysis cannot report Go coverage at all. SonarSource's
   documentation warns that the two modes conflict and that a CI analysis will
   fail while automatic analysis is on; in practice both ran and the CI analysis
-  landed 76.6% — the warning is still worth acting on, because the documented
+  landed the number — the warning is still worth acting on, because the documented
   risk is duplicate analyses corrupting project activity. The job stands the lab up and
-  measures unit *and* acceptance tests together — 68.9% of statements — because
+  measures unit *and* acceptance tests together — 71.6% of statements, with
+  `-coverpkg=./internal/...` so the API clients exercised through the provider
+  are credited for it — because
   most of this provider's logic is an HTTP conversation with PowerDNS and unit
   coverage alone would understate it badly. One authoritative branch, not the
   matrix: coverage is a property of the code, and the second branch answers a
