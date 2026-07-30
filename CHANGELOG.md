@@ -115,6 +115,13 @@ The mapping between commit type, changelog section and version bump is in
 
 ### Changed
 
+- Every workflow runs on Blacksmith runners rather than `ubuntu-latest`, with
+  `.github/actionlint.yaml` declaring the label. actionlint validates `runs-on`
+  against the labels GitHub itself provides and reads anything else as a typo —
+  correct by default, and the reason the migration failed its own lint on all
+  twenty-one jobs. The label is listed exactly rather than by wildcard: a
+  misspelled one is still an error, which is the point of the check.
+
 - The gate's nine checks are Python, not shell. 961 lines of bash under
   `scripts/` became `scripts/checks/`, one module per check, imported by
   `test/scripts/` and covered by 87 assertions — including the cases the shell
