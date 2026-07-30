@@ -35,7 +35,7 @@ jobs:
   # answered before building is answered here.
   gate:
     name: Release gate
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       actions: read
@@ -149,7 +149,7 @@ jobs:
   test:
     name: Test
     needs: [gate]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     container:
       image: docker.io/library/golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 # pin: GO_IMAGE
     steps:
@@ -171,7 +171,7 @@ jobs:
   goreleaser:
     name: GoReleaser
     needs: [gate, test]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: write
       id-token: write

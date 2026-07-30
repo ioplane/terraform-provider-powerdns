@@ -34,7 +34,7 @@ defaults:
 jobs:
   e2e:
     name: Terragrunt · S3 state · private module remote
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 60
     env:
       # The lab, exactly as `acceptance.yml` addresses it.

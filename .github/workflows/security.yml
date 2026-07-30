@@ -35,7 +35,7 @@ concurrency:
 jobs:
   codeql:
     name: CodeQL (Go)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       security-events: write
@@ -63,7 +63,7 @@ jobs:
 
   semgrep:
     name: Semgrep (SAST)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     container:
       image: docker.io/semgrep/semgrep:1.172.0@sha256:65dcd4408adda7c183a6b4550cb1e9b19f7f627a6fbb7e0559bd466bedc44d7b # pin: SEMGREP_VERSION
     steps:
@@ -86,7 +86,7 @@ jobs:
 
   osv:
     name: Dependency vulnerabilities (osv-scanner)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       security-events: write
@@ -118,7 +118,7 @@ jobs:
 
   trivy:
     name: Trivy (filesystem · misconfiguration)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       security-events: write
