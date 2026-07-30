@@ -11,7 +11,7 @@
 
 ![phase 9_of_10](https://shieldcn.dev/badge/phase-9_of_10-0969da.svg?variant=secondary)
 ![phases_closed 8](https://shieldcn.dev/badge/phases_closed-8-3fb950.svg?variant=secondary)
-![tasks_done 95](https://shieldcn.dev/badge/tasks_done-95-3fb950.svg?variant=secondary)
+![tasks_done 96](https://shieldcn.dev/badge/tasks_done-96-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -1170,12 +1170,12 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-05 | `scorecard.yml`, `dependency-review.yml`, `dependabot.yml` | OPS | `[x]` |
 | S8-06 | `release.yml` — pinned, tested, SBOMs, notes by version | OPS | `[x]` |
 | S8-07 | `check-tool-versions.sh` and `lint:actions` in the gate | OPS | `[x]` |
-| S8-08 | Acceptance moves to pull requests once its run history says it is stable | QA | `[x]` 15 consecutive green runs on `main` |
+| S8-08 | Acceptance moves to pull requests once its run history says it is stable | QA | `[x]` 15 consecutive green runs on `main`; required for merge since 2026-07-30 |
 | S8-09 | Branch protection: require the gate before merge | PM | `[x]` |
 | S8-10 | README CI badge, once `ci.yml` has a run on `main` to point at | PM | `[x]` |
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[x]` the Python move replaced them with six agent-safety findings, all fixed |
-| S8-17 | **Added.** SonarCloud as a CI analysis, with coverage from the real lab | OPS | `[~]` workflow landed; automatic analysis must be switched off in the project's settings |
+| S8-17 | **Added.** SonarCloud as a CI analysis, with coverage from the real lab | OPS | `[x]` automatic analysis was already off; one analysis, 78.7% coverage |
 | S8-14 | **Added.** Repository hygiene: CODEOWNERS, templates, code of conduct, settings, branch protection | OPS | `[x]` |
 | S8-15 | **Added.** The gate's checks move from shell to Python, with tests | OPS | `[x]` |
 | S8-16 | **Added.** Required status checks are compared against the jobs that exist | OPS | `[x]` |
@@ -1754,14 +1754,20 @@ One authoritative branch, not the matrix. Coverage is a property of the code;
 running the suite on 5.0 as well would produce the same lines and a second set
 of timings. The matrix answers a different question and answers it elsewhere.
 
-**One claim of mine did not survive contact.** I wrote, on the documentation's
-authority, that the new job would fail while automatic analysis was still on.
-It did not: both ran on the first pull request and SonarCloud recorded 76.6%
-coverage from the CI analysis. The documented hazard — duplicate analyses
-corrupting project activity — is still real and automatic analysis should still
-be switched off, in a web form that cannot be reached from here. But "fails by
-design" was the documentation's word, not an observation, and I presented it as
-the latter.
+**A claim of mine, twice wrong.** I wrote, on the documentation's authority,
+that the new job would fail while automatic analysis was still enabled, and
+presented a quotation as an observation. When both the job and the app's check
+went green I corrected it to "both ran despite the documented conflict" — which
+was worse, because it invented a second analysis to explain what I saw.
+
+Automatic analysis was already off. There is one analysis; `SonarCloud Code
+Analysis` is the app's check reporting the CI run, not a competing one. The
+project has four analyses on record, and the two from before this workflow
+existed are the automatic ones that stopped when it was switched off.
+
+The lesson is not about SonarCloud. Twice I explained an observation with a
+mechanism I had not checked, when checking was one API call away — the same
+call that settled it in the end.
 
 ## Audit, 2026-07-29 — before phase 7
 
