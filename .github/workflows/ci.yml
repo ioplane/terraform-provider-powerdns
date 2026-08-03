@@ -143,7 +143,7 @@ jobs:
           # the configuration the repository already has — rather than from a
           # second gosec run with a second set of exclusions to keep in step.
           args: --timeout=10m --output.text.path stdout --output.sarif.path golangci.sarif
-      - uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+      - uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
         if: always()
         with:
           sarif_file: golangci.sarif
