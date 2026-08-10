@@ -62,7 +62,7 @@ jobs:
       PDNS_DNSDIST_SERVER_URL: http://127.0.0.1:18083
       PDNS_API_KEY: labapikey
     steps:
-      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
         with:
           # The lab pulls four images and the suite talks to them over
           # loopback; a blocking policy here would need an allow-list that
