@@ -17,7 +17,7 @@ Normative. Read the standard before changing the thing it governs.
 | [`standards/versioning.md`](standards/versioning.md) | SemVer, what "breaking" means for a provider, dependency pinning. |
 | [`standards/commits.md`](standards/commits.md) | Conventional Commits, evidence in the body. |
 | [`standards/changelog.md`](standards/changelog.md) | Keep a Changelog, the closed vocabulary, release cut. |
-| [`standards/go-1.26-style.md`](standards/go-1.26-style.md) | Go patterns, antipatterns, tooling. |
+| [`standards/go-1.27-style.md`](standards/go-1.27-style.md) | Go patterns, antipatterns, tooling. |
 | [`standards/terraform-provider-best-practices.md`](standards/terraform-provider-best-practices.md) | Provider design and the per-resource Definition of Done. |
 | [`standards/terragrunt-integration.md`](standards/terragrunt-integration.md) | How consumers orchestrate this provider. |
 | [`standards/powerdns-api-discipline.md`](standards/powerdns-api-discipline.md) | How to establish a fact about PowerDNS. |
@@ -40,6 +40,7 @@ editing one.
 | [`adr/0007`](adr/0007-taskfile-over-make.md) | Task is the command interface. |
 | [`adr/0008`](adr/0008-github-only-review.md) | Review happens on GitHub only. |
 | [`adr/0009`](adr/0009-github-actions-is-the-gate.md) | GitHub Actions runs the gate; `.gitlab-ci.yml` removed. |
+| [`adr/0010`](adr/0010-go-1.27-development-toolchain.md) | Go 1.27 toolchain, isolated caches and worktree-owned Compose lifecycle. |
 
 ## Related
 

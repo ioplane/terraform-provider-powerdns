@@ -115,6 +115,10 @@ The mapping between commit type, changelog section and version bump is in
 
 ### Changed
 
+- The complete build surface moves to Go 1.27.0, golangci-lint 2.13.1 and
+  govulncheck 1.7.0; direct modules move to kin-openapi 0.147.0 and
+  terraform-plugin-log 0.11.0 with JSON, HTTP, TLS, Unicode and language
+  compatibility regressions locked by tests.
 - Every workflow runs on Blacksmith runners rather than `ubuntu-latest`, with
   `.github/actionlint.yaml` declaring the label. actionlint validates `runs-on`
   against the labels GitHub itself provides and reads anything else as a typo —
@@ -178,6 +182,14 @@ The mapping between commit type, changelog section and version bump is in
 
 ### Fixed
 
+- Dev-image builds no longer reuse a persistent Go module cache that could
+  retain incomplete source trees and fail `go:embed`; downloaded module sources
+  are removed after the pinned Go tools are installed. Compose projects,
+  containers and local image tags are now isolated per worktree, and container
+  gates reject a Go runtime that differs from `go.mod`. The explicit
+  `task recreate` recovery action builds successfully before replacement and
+  refuses to remove the exact-name container unless its project label and
+  canonical `/app` bind prove it belongs to the current checkout.
 - Running `scripts/automation/lab.py` by path stopped working the moment it
   imported from `scripts.` — the file's own directory goes on `sys.path`, not
   the repository root, so the lab failed with `No module named 'scripts'`. Both

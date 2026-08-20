@@ -68,7 +68,7 @@ jobs:
     name: Build & test
     runs-on: blacksmith-4vcpu-ubuntu-2404
     container:
-      image: docker.io/library/golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 # pin: GO_IMAGE
+      image: docker.io/library/golang:1.27-trixie@sha256:6212da3924947f4b6a939df02ea627c13f338f1a41d6c3fcb0dd9d076eef46c4 # pin: GO_IMAGE
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
@@ -100,7 +100,9 @@ jobs:
       - name: Test
         run: |
           gotestsum --junitfile unit-report.xml --format short-verbose \
-            -- ./... -race -count=1 -coverprofile=coverage.out -covermode=atomic
+            -- ./... -race -shuffle=on -count=1 -coverprofile=coverage.out -covermode=atomic
+      - name: Vet
+        run: go vet ./...
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -1
 
@@ -137,7 +139,7 @@ jobs:
           cache: true
       - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.12.2 # pin: GOLANGCI_LINT_VERSION
+          version: v2.13.1 # pin: GOLANGCI_LINT_VERSION
           # SARIF as well as the human output. gosec is one of the linters
           # .golangci.yml enables, so its findings reach the Security tab from
           # the configuration the repository already has — rather than from a
@@ -154,7 +156,7 @@ jobs:
     name: Vulnerability audit (govulncheck)
     runs-on: blacksmith-4vcpu-ubuntu-2404
     container:
-      image: docker.io/library/golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7 # pin: GO_IMAGE
+      image: docker.io/library/golang:1.27-trixie@sha256:6212da3924947f4b6a939df02ea627c13f338f1a41d6c3fcb0dd9d076eef46c4 # pin: GO_IMAGE
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
@@ -170,7 +172,7 @@ jobs:
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0 # pin: GOVULNCHECK_VERSION
+      - run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0 # pin: GOVULNCHECK_VERSION
       - run: govulncheck ./...
 
   # task py

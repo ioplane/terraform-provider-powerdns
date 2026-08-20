@@ -14,15 +14,17 @@
 version: '3'
 
 vars:
-  # One dev container per checkout. main and each worktree get their own, named
-  # after the directory, because a shared container is bind-mounted on whichever
-  # tree happened to start it — and `task test` would then build the wrong code.
+  # One dev container per checkout. The main checkout keeps the historical
+  # unsuffixed names. A linked worktree gets a readable basename plus a stable
+  # hash of its canonical root, so equal basenames and subdirectories cannot
+  # address another worktree's objects.
   DEV_SUFFIX:
-    sh: 'case "$PWD" in */.worktrees/*) echo "-$(basename "$PWD")" ;; *) echo "" ;; esac'
+    sh: scripts/dev-suffix.sh
   COMPOSE_DEV: deployments/compose/compose.dev.yml
   COMPOSE_LAB: deployments/compose/compose.lab.yml
-  DC: DEV_SUFFIX={{.DEV_SUFFIX}} podman-compose -f deployments/compose/compose.dev.yml
-  EXEC: DEV_SUFFIX={{.DEV_SUFFIX}} podman-compose -f deployments/compose/compose.dev.yml exec -T dev
+  DEV_PROJECT: terraform-provider-powerdns-dev{{.DEV_SUFFIX}}
+  DC: DEV_SUFFIX={{.DEV_SUFFIX}} podman-compose -p {{.DEV_PROJECT}} -f deployments/compose/compose.dev.yml
+  EXEC: DEV_SUFFIX={{.DEV_SUFFIX}} podman-compose -p {{.DEV_PROJECT}} -f deployments/compose/compose.dev.yml exec -T dev
   TYPE: powerdns
   BINARY: terraform-provider-powerdns
   VERSION:
@@ -59,6 +61,10 @@ tasks:
     preconditions:
       - sh: podman container exists terraform-provider-powerdns-dev{{.DEV_SUFFIX}}
         msg: "dev container is not running for this checkout — run: task up"
+      - sh: >-
+          test "$({{.EXEC}} go env GOVERSION)" =
+          "go$(awk '$1 == "go" { print $2; exit }' go.mod)"
+        msg: "dev container Go runtime does not match go.mod — run: task recreate"
 
   _lab-running:
     internal: true
@@ -96,6 +102,40 @@ tasks:
     desc: Build and start the dev container
     deps: [hooks]
     cmds: ['{{.DC}} up -d --build']
+
+  recreate:
+    desc: Rebuild and explicitly replace this checkout's dev container
+    deps: [hooks]
+    cmds:
+      - '{{.DC}} build'
+      - >-
+          target=terraform-provider-powerdns-dev{{.DEV_SUFFIX}};
+          expected_project={{.DEV_PROJECT}};
+          expected_source="$(pwd -P)";
+          if podman container exists "$target"; then
+            inspect_json="$(podman inspect "$target")" ||
+              { echo "refusing to recreate $target: inspect failed" >&2; exit 1; };
+            actual_project="$(printf '%s\n' "$inspect_json" |
+              jq -er '.[0].Config.Labels["com.docker.compose.project"] //
+                .[0].Config.Labels["io.podman.compose.project"]')" ||
+              { echo "refusing to recreate $target: compose project label is missing" >&2; exit 1; };
+            actual_source="$(printf '%s\n' "$inspect_json" |
+              jq -er '[.[0].Mounts[] |
+                select(.Type == "bind" and .Destination == "/app") | .Source] |
+                if length == 1 then .[0] else empty end')" ||
+              { echo "refusing to recreate $target: one /app bind is required" >&2; exit 1; };
+            actual_source="$(CDPATH= cd "$actual_source" 2>/dev/null && pwd -P)" ||
+              { echo "refusing to recreate $target: /app source cannot be resolved" >&2; exit 1; };
+            if [ "$actual_project" != "$expected_project" ] ||
+               [ "$actual_source" != "$expected_source" ]; then
+              echo "refusing to recreate $target: ownership mismatch" >&2;
+              printf '%s\n' "expected project: $expected_project" "found project: $actual_project"
+                "expected /app source: $expected_source" "found /app source: $actual_source" >&2;
+              exit 1;
+            fi;
+            podman rm --force "$target";
+          fi
+      - '{{.DC}} up -d --no-build'
 
   down:
     desc: Stop the dev container
@@ -170,9 +210,9 @@ tasks:
   # === Test ===
 
   test:
-    desc: Unit tests, race detector on
+    desc: Unit tests, race detector, shuffled order, atomic coverage
     deps: [_dev-running]
-    cmds: ['{{.EXEC}} go test ./... -race -count=1']
+    cmds: ['{{.EXEC}} go test ./... -race -shuffle=on -covermode=atomic -count=1']
 
   test:contract:
     desc: Contract tests against recorded fixtures — no containers needed
@@ -215,6 +255,11 @@ tasks:
     deps: [_dev-running]
     cmds: ['{{.EXEC}} golangci-lint run ./...']
 
+  vet:
+    desc: Go vet with the Go 1.27 stdversion analyzer
+    deps: [_dev-running]
+    cmds: ['{{.EXEC}} go vet ./...']
+
   lint:fix:
     desc: golangci-lint with --fix
     deps: [_dev-running]
@@ -255,14 +300,15 @@ tasks:
       - '{{.EXEC}} zizmor --format plain .github/workflows/'
 
   lint:shell:
-    desc: shellcheck over the import snippets
+    desc: shellcheck over repository shell
     deps: [_dev-running]
-    # The repository's own automation is Python; `task py` is its gate. What is
-    # left in shell is the import snippets, which tfplugindocs renders into the
-    # registry pages and readers copy from there.
+    # The host-side worktree identity helper is POSIX shell. The remaining
+    # shell is the import snippets, which tfplugindocs renders into registry
+    # pages and readers copy from there.
     # -s bash, not a shebang: tfplugindocs renders these files verbatim into
     # the registry pages, and a shebang would appear in the published example.
     cmds:
+      - '{{.EXEC}} shellcheck scripts/dev-suffix.sh'
       - '{{.EXEC}} shellcheck -s bash examples/resources/*/import.sh'
 
   lint:containers:
@@ -447,6 +493,7 @@ tasks:
       - {task: build}
       - {task: test}
       - {task: 'test:contract'}
+      - {task: vet}
       - {task: lint}
       - {task: 'lint:pins'}
       - {task: 'lint:tools'}

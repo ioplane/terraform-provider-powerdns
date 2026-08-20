@@ -18,9 +18,12 @@ from scripts.checks.tool_versions import (
     satisfies,
 )
 
-CONTAINERFILE = """\
-FROM docker.io/library/golang:1.26@sha256:abc123 AS base
-ARG GO_IMAGE=docker.io/library/golang:1.26@sha256:abc123
+DIGEST = "a" * 64
+OTHER_DIGEST = "b" * 64
+
+CONTAINERFILE = f"""\
+FROM docker.io/library/golang:1.27-trixie@sha256:{DIGEST} AS base
+ARG GO_IMAGE=docker.io/library/golang:1.27-trixie@sha256:{DIGEST}
 ARG RUFF_VERSION=0.16.0
 ARG NODE_MAJOR=22
 # ARG COMMENTED_OUT=1.0.0
@@ -28,12 +31,79 @@ RUN echo not an arg
 """
 
 
-def test_the_digest_is_what_a_go_image_pin_compares():
-    """A workflow's `container:` names the digest, not the tag.
+def test_the_full_go_image_reference_is_compared():
+    """Both the readable release channel and immutable digest are contractual."""
+    assert declared_versions(CONTAINERFILE)["GO_IMAGE"] == (
+        f"docker.io/library/golang:1.27-trixie@sha256:{DIGEST}"
+    )
 
-    Comparing the whole value would never match.
-    """
-    assert declared_versions(CONTAINERFILE)["GO_IMAGE"] == "sha256:abc123"
+
+def test_a_wrong_go_image_tag_with_the_same_digest_is_rejected():
+    """A valid digest cannot hide a workflow left on an older Go channel."""
+    expected = declared_versions(CONTAINERFILE)["GO_IMAGE"]
+    line = (
+        f"image: docker.io/library/golang:1.26-trixie@sha256:{DIGEST} # pin: GO_IMAGE"
+    )
+    assert not satisfies(line, expected)
+
+
+def test_a_wrong_go_image_digest_with_the_same_tag_is_rejected():
+    """A matching tag cannot hide a workflow using another manifest."""
+    expected = declared_versions(CONTAINERFILE)["GO_IMAGE"]
+    line = (
+        "image: docker.io/library/golang:1.27-trixie@sha256:"
+        f"{OTHER_DIGEST} # pin: GO_IMAGE"
+    )
+    assert not satisfies(line, expected)
+
+
+def test_a_short_docker_hub_go_image_is_rejected():
+    """Every executable image identifier must name its registry explicitly."""
+    expected = f"docker.io/library/golang:1.27-trixie@sha256:{DIGEST}"
+    assert not satisfies(f"image: golang:1.27-trixie@sha256:{DIGEST}", expected)
+    with pytest.raises(ValueError, match="fully qualified"):
+        declared_versions(f"ARG GO_IMAGE=golang:1.27-trixie@sha256:{DIGEST}\n")
+
+
+@pytest.mark.parametrize(
+    "reference",
+    [
+        "docker.io/library/golang:1.27-trixie",
+        "docker.io/library/golang:1.27-trixie@sha256:abc123",
+        f"docker.io/library/golang:1.27-trixie@sha256:{'g' * 64}",
+        f"docker.io/library/golang:1.27-trixie@sha256:{DIGEST}a",
+        f"docker.io/library/golang:1.27-trixie@sha256:{DIGEST}evil",
+        f"docker.io/library/golang:1.27-trixie@sha256:{DIGEST}zsuffix",
+        f"prefix docker.io/library/golang:1.27-trixie@sha256:{DIGEST}",
+    ],
+)
+def test_an_invalid_go_image_reference_fails_closed(reference):
+    """Malformed, floating, and non-hex image identifiers are never accepted."""
+    with pytest.raises(ValueError, match="tag and 64-hex sha256 digest"):
+        declared_versions(f"ARG GO_IMAGE={reference}\n")
+
+
+def test_a_digest_with_trailing_garbage_cannot_satisfy_a_workflow_pin():
+    """The parser must not truncate a malformed digest to its first 64 hex digits."""
+    expected = f"docker.io/library/golang:1.27-trixie@sha256:{DIGEST}"
+    malformed = (
+        f"image: docker.io/library/golang:1.27-trixie@sha256:{DIGEST}evil "
+        "# pin: GO_IMAGE"
+    )
+    assert not satisfies(
+        malformed,
+        expected,
+    )
+
+
+def test_yaml_quotes_and_a_comment_are_valid_reference_delimiters():
+    """Workflow syntax around a complete image reference is not part of the pin."""
+    expected = f"docker.io/library/golang:1.27-trixie@sha256:{DIGEST}"
+    assert satisfies(
+        "image: 'docker.io/library/"
+        f"golang:1.27-trixie@sha256:{DIGEST}' # pin: GO_IMAGE",
+        expected,
+    )
 
 
 def test_plain_versions_are_read_whole():

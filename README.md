@@ -15,7 +15,7 @@
 [![contributors](https://shieldcn.dev/github/contributors/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/graphs/contributors)
 [![issues](https://shieldcn.dev/github/issues/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/issues)
 <br>
-[![go 1.26.5](https://shieldcn.dev/badge/go-1.26.5-00ADD8.svg?variant=branded&logo=go&logoColor=white)](https://go.dev/doc/go1.26)
+[![go 1.27.0](https://shieldcn.dev/badge/go-1.27.0-00ADD8.svg?variant=branded&logo=go&logoColor=white)](https://go.dev/doc/go1.27)
 [![framework v1.19](https://shieldcn.dev/badge/framework-v1.19-7B42BC.svg?variant=secondary&logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform/plugin/framework)
 [![terraform 1.11+](https://shieldcn.dev/badge/terraform-1.11+-7B42BC.svg?variant=secondary&logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform)
 [![protocol 6.0](https://shieldcn.dev/badge/protocol-6.0-7B42BC.svg?variant=secondary)](docs/adr/0003-framework-protocol-6.md)

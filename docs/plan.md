@@ -9,9 +9,9 @@
 
 <div align="center">
 
-![phase 9_of_10](https://shieldcn.dev/badge/phase-9_of_10-0969da.svg?variant=secondary)
+![phase 10_of_11](https://shieldcn.dev/badge/phase-10_of_11-0969da.svg?variant=secondary)
 ![phases_closed 8](https://shieldcn.dev/badge/phases_closed-8-3fb950.svg?variant=secondary)
-![tasks_done 96](https://shieldcn.dev/badge/tasks_done-96-3fb950.svg?variant=secondary)
+![tasks_done 97](https://shieldcn.dev/badge/tasks_done-97-3fb950.svg?variant=secondary)
 [![last-commit](https://shieldcn.dev/github/last-commit/ioplane/terraform-provider-powerdns.svg?variant=secondary)](https://github.com/ioplane/terraform-provider-powerdns/commits/main)
 
 </div>
@@ -24,10 +24,10 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 8 — the gate now runs in GitHub Actions. Phase 7 stays open
-alongside it: the version matrix and the signed release are release decisions,
-not CI work.
-**Last updated:** 2026-07-29
+**Status:** phase 10 — the Go 1.27 and environment modernization design is
+approved with PostgreSQL 18 required. Phase 7 and phase 8 stay open alongside
+it for their existing release and hosted-gate decisions.
+**Last updated:** 2026-08-21
 
 ## How a sprint runs
 
@@ -1176,6 +1176,7 @@ distribution — which is arbitrary Python at install time — now refused by
 | S8-11 | Enable Dependency graph for the organisation, so dependency review can run | PM | `[x]` |
 | S8-12 | Triage SonarCloud's `go install pkg@version` findings in the project | PM | `[x]` the Python move replaced them with six agent-safety findings, all fixed |
 | S8-17 | **Added.** SonarCloud as a CI analysis, with coverage from the real lab | OPS | `[x]` automatic analysis was already off; one analysis, 78.7% coverage |
+| S8-18 | Isolate dev-image Go module downloads and worktree Compose projects, with fail-closed runtime parity and explicit recreation (`tfp-bqt.2.1`) | OPS | `[x]` |
 | S8-14 | **Added.** Repository hygiene: CODEOWNERS, templates, code of conduct, settings, branch protection | OPS | `[x]` |
 | S8-15 | **Added.** The gate's checks move from shell to Python, with tests | OPS | `[x]` |
 | S8-16 | **Added.** Required status checks are compared against the jobs that exist | OPS | `[x]` |
@@ -1768,6 +1769,46 @@ existed are the automatic ones that stopped when it was switched off.
 The lesson is not about SonarCloud. Twice I explained an observation with a
 mechanism I had not checked, when checking was one API call away — the same
 call that settled it in the end.
+
+## Phase 10 — Go 1.27 and environment modernization · `[~]` in progress
+
+**Goal:** move the provider, development image, CI and complete lab/e2e
+environment to current stable delivery channels; migrate the disposable
+database to PostgreSQL 18; and close the measured correctness, efficiency and
+quality-gate findings exposed by the audit.
+
+**Design:**
+[`2026-08-21-go-1-27-modernization-design.md`](superpowers/specs/2026-08-21-go-1-27-modernization-design.md).
+Beads epic `tfp-bqt` is the durable dependency graph. PostgreSQL 18 has its own
+pull-request boundary; the remaining Compose images move separately.
+
+**Exit gate:** `task all` and `task verify` pass in the Go 1.27 development
+container; both Authoritative branches pass acceptance against PostgreSQL
+18.6; Terraform and OpenTofu pass their supported e2e paths; all OCI and Action
+pins resolve; vulnerability, secret, licence and documentation gates are green.
+
+| ID | Task | Bead | Role | Depends | Status |
+| --- | --- | --- | --- | --- | --- |
+| P10-01 | Design, version evidence and staged pull-request boundaries | `tfp-bqt.1` | ARC | — | `[x]` |
+| P10-02 | Recover dev-container build capacity after scoped approval | `tfp-bqt.2` | OPS | — | `[~]` cache/lifecycle gates passed; exact evidence candidate review pending |
+| P10-03 | Go 1.27 toolchain, required analyzers, direct modules and compatibility tests | `tfp-bqt.3` | DEV | P10-01, P10-02 | `[~]` final gates passed; exact evidence candidate review pending |
+| P10-04 | Remaining development-image tools, integrity pins and build layering | `tfp-bqt.4` | OPS | P10-01, P10-02 | `[ ]` |
+| P10-05 | Workflow containers and GitHub Actions | `tfp-bqt.5` | OPS | P10-04 | `[ ]` |
+| P10-06 | PostgreSQL 18.6 disposable lab migration | `tfp-bqt.6.1` | OPS | P10-01, P10-02 | `[ ]` |
+| P10-07 | PowerDNS, SeaweedFS and Forgejo image updates | `tfp-bqt.6.2` | OPS | P10-01, P10-02 | `[ ]` |
+| P10-08 | Provider-wide efficiency, duplication and idempotence audit | `tfp-bqt.7` | DEV | P10-03 | `[ ]` |
+| P10-09 | Maximum useful golangci-lint and scanner profile | `tfp-bqt.8` | QA | P10-03, P10-04, P10-08, P10-12 | `[ ]` |
+| P10-10 | Historical review findings and naming invariants | `tfp-bqt.9` | QA | P10-01 | `[ ]` |
+| P10-11 | Terraform, OpenTofu and Terragrunt compatibility | `tfp-bqt.10` | QA | P10-03, P10-04, P10-06, P10-07 | `[ ]` |
+| P10-12 | Migrate custom Python automation and tests to Go; retain only the approved Python toolchain boundary | `tfp-bqt.12` | DEV | P10-03 | `[ ]` brainstorming boundary pending |
+| P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[ ]` |
+
+Every row updates this table in the same commit as its implementation. A
+user-visible change also updates `CHANGELOG.md` under `Unreleased`; version
+badges, tested-version tables, standards and generated registry documentation
+move with their owning row.
+
+---
 
 ## Audit, 2026-07-29 — before phase 7
 
