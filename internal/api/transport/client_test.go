@@ -3,13 +3,127 @@ package transport
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func TestDo_EncodesRequestJSON(t *testing.T) {
+	t.Parallel()
+
+	gotBody := make(chan string, 1)
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("ReadAll: %v", err)
+		}
+		gotBody <- string(raw)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	body := struct {
+		Name string `json:"name"`
+		TTL  int    `json:"ttl"`
+	}{Name: "example.com.", TTL: 300}
+	if err := client.Do(context.Background(), "create zone", http.MethodPost, "/zones", body, nil); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if got := <-gotBody; got != `{"name":"example.com.","ttl":300}` {
+		t.Errorf("body = %q", got)
+	}
+}
+
+func TestDo_PreservesJSONV1ResponseSemantics(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		body []byte
+		want string
+	}{
+		{"duplicate name keeps last", []byte(`{"name":"first","name":"last"}`), "last"},
+		{"invalid UTF-8 is replaced", []byte{'{', '"', 'n', 'a', 'm', 'e', '"', ':', '"', 0xff, '"', '}'}, "\ufffd"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(tt.body) }))
+			var out struct {
+				Name string `json:"name"`
+			}
+			if err := client.Do(context.Background(), "get zone", http.MethodGet, "/zone", nil, &out); err != nil {
+				t.Fatalf("Do: %v", err)
+			}
+			if out.Name != tt.want {
+				t.Errorf("Name = %q, want %q", out.Name, tt.want)
+			}
+		})
+	}
+}
+
+func TestDo_NoContentDoesNotDecode(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	out := struct{ Name string }{Name: "unchanged"}
+	if err := client.Do(context.Background(), "delete zone", http.MethodDelete, "/zone", nil, &out); err != nil {
+		t.Fatalf("Do: %v", err)
+	}
+	if out.Name != "unchanged" {
+		t.Errorf("Name = %q, want unchanged", out.Name)
+	}
+}
+
+func TestDo_BoundsAnOversizedErrorBody(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(strings.Repeat("x", maxErrorBody+1024)))
+	}))
+	err := client.Do(context.Background(), "list zones", http.MethodGet, "/zones", nil, nil)
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("err = %T, want *APIError", err)
+	}
+	if len(apiErr.ServerMessage) != maxErrorBody {
+		t.Errorf("message length = %d, want %d", len(apiErr.ServerMessage), maxErrorBody)
+	}
+}
+
+func TestDo_DrainsIgnoredSuccessBodyForConnectionReuse(t *testing.T) {
+	t.Parallel()
+	var remoteAddresses []string
+	var mu sync.Mutex
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		remoteAddresses = append(remoteAddresses, r.RemoteAddr)
+		mu.Unlock()
+		_, _ = w.Write([]byte(strings.Repeat("x", 1024)))
+	}))
+	t.Cleanup(srv.Close)
+	client, err := New(Config{BaseURL: srv.URL, Attempts: 1})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	for attempt := range 2 {
+		if err := client.Do(context.Background(), "probe", http.MethodGet, "/", nil, nil); err != nil {
+			t.Fatalf("Do: %v", err)
+		}
+		if attempt == 0 {
+			// Go 1.27 drains an unread HTTP/1 response asynchronously for at
+			// most 50 ms. Starting the next request immediately would race the
+			// drain instead of testing connection reuse after it completes.
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(remoteAddresses) != 2 || remoteAddresses[0] != remoteAddresses[1] {
+		t.Fatalf("connections = %v, want one reused connection", remoteAddresses)
+	}
+}
 
 func newTestClient(t *testing.T, handler http.Handler) *Client {
 	t.Helper()
@@ -214,8 +328,8 @@ func TestDo_NonJSONErrorBody(t *testing.T) {
 	t.Parallel()
 
 	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadGateway)
-		_, _ = w.Write([]byte("<html><body>502 Bad Gateway</body></html>"))
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte("<html><body>400 Bad Request</body></html>"))
 	}))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -225,7 +339,7 @@ func TestDo_NonJSONErrorBody(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error")
 	}
-	if !strings.Contains(err.Error(), "Bad Gateway") {
+	if !strings.Contains(err.Error(), "Bad Request") {
 		t.Errorf("the body must survive into the error, got: %v", err)
 	}
 }

@@ -88,8 +88,8 @@ offers one:
 | Go tools in the image | exact version tag | build reproducibility |
 | Python tools | exact version in `pyproject.toml` | `uv.lock` |
 
-A tag is a mutable reference. `golang:1.26-trixie` may point at a different
-image tomorrow; `golang:1.26-trixie@sha256:…` may not. Anything that runs in CI
+A tag is a mutable reference. `golang:1.27-trixie` may point at a different
+image tomorrow; `golang:1.27-trixie@sha256:…` may not. Anything that runs in CI
 or in the dev image is referenced by digest.
 
 Dependabot proposes weekly bumps; each arrives as a `build(deps)` commit and

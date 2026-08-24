@@ -5,7 +5,7 @@ cheaply reproduce that — building the image costs more per job than the job �
 so the workflows install the same tools themselves. The toolchain now exists in
 two places, and two places drift.
 
-The drift is the whole risk. A linter at v2.12.2 locally and v2.13 in CI
+The drift is the whole risk. A linter at v2.13.1 locally and v2.14 in CI
 disagrees about a finding, and the argument that follows is about which machine
 is right rather than about the code. So Containerfile.dev holds the versions, a
 workflow line that names one carries `# pin: <ARG>`, and this refuses the
@@ -34,6 +34,14 @@ PINNED_FILES = (Path(".github/workflows"), Path("pyproject.toml"))
 
 ARG_LINE = re.compile(r"^ARG\s+([A-Z0-9_]+)=(.+)$")
 PIN_MARKER = re.compile(r"#\s*pin:\s*([A-Z0-9_]+)")
+GO_IMAGE_REF = re.compile(
+    r"(?<![A-Za-z0-9._/-])"
+    r"docker\.io/library/golang:[^\s@'\"]+@sha256:[0-9a-f]{64}"
+    r"(?=$|[\s'\"])"
+)
+INVALID_GO_IMAGE = (
+    "GO_IMAGE must be fully qualified and contain a tag and 64-hex sha256 digest"
+)
 
 # The tools CI is expected to install. An ARG absent from this list is one the
 # dev image needs and CI does not — Task is for developers, and requiring a
@@ -76,9 +84,7 @@ REQUIRED = (
 def declared_versions(containerfile: str) -> dict[str, str]:
     """Read the ARG defaults out of a Containerfile.
 
-    GO_IMAGE carries a tag and a digest; the digest is the part that pins, and
-    it is the part a workflow's `container:` reference has in common with a
-    Containerfile's FROM.
+    GO_IMAGE retains both its human-readable tag and immutable digest.
     """
     versions: dict[str, str] = {}
     for line in containerfile.splitlines():
@@ -86,10 +92,22 @@ def declared_versions(containerfile: str) -> dict[str, str]:
         if not match:
             continue
         name, value = match.group(1), match.group(2)
-        if "@" in value:
-            value = value.split("@", 1)[1]
-        versions[name] = value
+        if name == "GO_IMAGE":
+            image = normalise_go_image(value)
+            if image is None or image != value:
+                raise ValueError(INVALID_GO_IMAGE)
+            versions[name] = image
+        else:
+            versions[name] = value
     return versions
+
+
+def normalise_go_image(value: str) -> str | None:
+    """Return one canonical Docker Hub Go image reference from text."""
+    match = GO_IMAGE_REF.search(value)
+    if match is None:
+        return None
+    return match.group(0)
 
 
 def marked_pin(line: str) -> str | None:
@@ -104,7 +122,10 @@ def satisfies(line: str, value: str) -> bool:
     Matching against the line without its comment is deliberate: a comment
     naming the ARG must not be able to satisfy the check on its own.
     """
-    return value in line.split("#", 1)[0]
+    code = line.split("#", 1)[0]
+    if value.startswith("docker.io/library/golang:"):
+        return normalise_go_image(code) == value
+    return value in code
 
 
 def pinned_lines(paths: tuple[Path, ...]) -> list[tuple[Path, int, str]]:

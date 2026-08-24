@@ -51,7 +51,8 @@ This is not a fork. Prior analysis of the ecosystem lives in the sibling
 ## Golden rules
 
 1. **Use the dev container.** No host toolchain. `task up && task shell`.
-   Everything is baked into `golang:1.26-trixie`, pinned by digest. See
+   Everything is baked into a fully qualified, digest-pinned Go 1.27.0 image. See
+   [`ADR 0010`](docs/adr/0010-go-1.27-development-toolchain.md) and
    [`docs/development.md`](docs/development.md).
 2. **Latest, pinned by hash.** Newest releases, then pinned exactly: Go modules
    by version and `go.sum`, container images by `sha256:` digest, CI actions by
@@ -88,7 +89,7 @@ Normative. Read the standard before changing the thing it governs.
 | Versioning — SemVer 2.0.0 | [`docs/standards/versioning.md`](docs/standards/versioning.md) |
 | Commits — Conventional Commits 1.0.0 | [`docs/standards/commits.md`](docs/standards/commits.md) |
 | Changelog — Keep a Changelog 1.1.0 | [`docs/standards/changelog.md`](docs/standards/changelog.md) |
-| Go 1.26 style | [`docs/standards/go-1.26-style.md`](docs/standards/go-1.26-style.md) |
+| Go 1.27 style | [`docs/standards/go-1.27-style.md`](docs/standards/go-1.27-style.md) |
 | Provider design + Definition of Done | [`docs/standards/terraform-provider-best-practices.md`](docs/standards/terraform-provider-best-practices.md) |
 | Terragrunt integration | [`docs/standards/terragrunt-integration.md`](docs/standards/terragrunt-integration.md) |
 | PowerDNS API discipline | [`docs/standards/powerdns-api-discipline.md`](docs/standards/powerdns-api-discipline.md) |

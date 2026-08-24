@@ -2,9 +2,21 @@ package normalise_test
 
 import (
 	"testing"
+	"unicode"
 
 	"github.com/ioplane/terraform-provider-powerdns/internal/provider/normalise"
 )
+
+func TestUnicode17Tables(t *testing.T) {
+	t.Parallel()
+	const tolongSikiLetterA = '\U00011DB4'
+	if !unicode.IsLetter(tolongSikiLetterA) {
+		t.Fatal("U+11DB4 must be classified as a letter by Unicode 17")
+	}
+	if !normalise.DNSName("\U00011DB4.example", "\U00011DB4.example.") {
+		t.Fatal("DNSName must preserve the new letter and apply the trailing-dot rule")
+	}
+}
 
 // Each case here is either a normalisation observed on a live PowerDNS server
 // — the `same` cases — or a genuine difference that must survive comparison —

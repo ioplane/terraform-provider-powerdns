@@ -8,13 +8,13 @@
 # Run via: deployments/compose/compose.dev.yml (Compose Specification).
 #
 # Every version here is pinned, and the base image is pinned by digest rather
-# than tag: golang:1.26-trixie is a moving reference, the digest is not.
+# than its 1.27-trixie tag, which is a moving reference; the digest is not.
 # `scripts/checks/pins.py` rejects an unpinned FROM.
 
-ARG GO_IMAGE=golang:1.26-trixie@sha256:4ee9ffa999b4583ce281939cdff828763083610292f252279a0cee77473bd9a7
+ARG GO_IMAGE=docker.io/library/golang:1.27-trixie@sha256:6212da3924947f4b6a939df02ea627c13f338f1a41d6c3fcb0dd9d076eef46c4
 
-ARG GOLANGCI_LINT_VERSION=v2.12.2
-ARG GOVULNCHECK_VERSION=v1.6.0
+ARG GOLANGCI_LINT_VERSION=v2.13.1
+ARG GOVULNCHECK_VERSION=v1.7.0
 ARG OSV_SCANNER_VERSION=v2.4.0
 ARG TFPLUGINDOCS_VERSION=v0.25.0
 ARG GORELEASER_VERSION=v2.17.1
@@ -133,8 +133,7 @@ RUN set -eux; \
     terraform version; tofu version; terragrunt --version
 
 # Go tooling.
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg/mod \
+RUN --mount=type=cache,target=/tmp/go-cache \
     go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION} \
  && go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION} \
  && go install github.com/google/osv-scanner/v2/cmd/osv-scanner@${OSV_SCANNER_VERSION} \
@@ -144,7 +143,8 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
  && go install github.com/go-task/task/v3/cmd/task@${TASK_VERSION} \
  && go install golang.org/x/tools/gopls@${GOPLS_VERSION} \
  && go install gotest.tools/gotestsum@${GOTESTSUM_VERSION} \
- && go install github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}
+ && go install github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION} \
+ && go clean -modcache
 
 # Shell and container linters. actionlint shells out to shellcheck for the
 # `run:` blocks inside a workflow, so the two belong together; without it

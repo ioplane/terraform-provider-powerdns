@@ -1,8 +1,8 @@
 <!-- markdownlint-disable MD013 -->
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Go+1.26+style&subtitle=Patterns%2C+antipatterns%2C+tooling&logo=go&mode=dark&align=left&font=geist-mono&border=false" />
-    <img alt="Go 1.26 style" src="https://shieldcn.dev/header/graph.svg?title=Go+1.26+style&subtitle=Patterns%2C+antipatterns%2C+tooling&logo=go&mode=light&align=left&font=geist-mono&border=false" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=Go+1.27+style&subtitle=Patterns%2C+antipatterns%2C+tooling&logo=go&mode=dark&align=left&font=geist-mono&border=false" />
+    <img alt="Go 1.27 style" src="https://shieldcn.dev/header/graph.svg?title=Go+1.27+style&subtitle=Patterns%2C+antipatterns%2C+tooling&logo=go&mode=light&align=left&font=geist-mono&border=false" />
   </picture>
 </p>
 <!-- markdownlint-enable MD013 -->
@@ -10,34 +10,32 @@
 <div align="center">
 
 [![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
-![go 1.26.5](https://shieldcn.dev/badge/go-1.26.5-0969da.svg?variant=secondary)
+![go 1.27.0](https://shieldcn.dev/badge/go-1.27.0-0969da.svg?variant=secondary)
 ![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)
 
 </div>
 
-# Go 1.26 patterns, antipatterns, standards
+# Go 1.27 patterns, antipatterns, standards
 
-Project Go standard, pinned to **Go 1.26.5** (dev container
-`golang:1.26-trixie`). Aligned with the
-[Go 1.26 release notes](https://go.dev/doc/go1.26).
+Project Go standard, pinned to **Go 1.27.0** in the digest-pinned dev container.
+Aligned with the
+[Go 1.27 release notes](https://go.dev/doc/go1.27) and the
+[language specification](https://go.dev/ref/spec).
 
 Before writing Go, consult the current API through the `gopls` LSP and the
 `context7` MCP. Do not rely on training-data recall for library signatures.
 
 ## 1. Language and stdlib features adopted
 
-| Feature (Go 1.26) | Pattern here | Rationale |
+| Feature (Go 1.27) | Pattern here | Rationale |
 | --- | --- | --- |
-| `new(expr)` accepting an expression | `new("Native")` for `*string` schema defaults | Drops the `v := …; &v` ceremony. Flagged by `modernize`. |
-| `errors.AsType[T]()` | `if e, ok := errors.AsType[*APIError](err); ok {…}` | Type-safe matching on the PowerDNS error type without an out-parameter. |
-| `reflect.Type.Fields()` / `.Methods()` iterators | schema and codegen tooling only | Never in CRUD hot paths. |
-| `net/http.ClientConn` | connection reuse in the PowerDNS client if profiling justifies it | The provider is HTTP-bound; measure before adopting. |
-| `net.Dialer.DialTCP` taking `netip.AddrPort` | address handling in the client | Avoids a string round-trip for parsed addresses. |
-| Green Tea GC (default) | no code change | Lower GC overhead. |
-| Heap address randomisation (default) | no code change | Mitigates address-prediction attacks. |
-
-`new(expr)` is genuinely useful in a provider: schema defaults and optional
-API-payload fields are pointer-typed everywhere.
+| Generic methods | May declare their own type parameters; interface methods may not, and generic methods cannot implement interface methods. | Follows the normative method and method-set rules. |
+| Generalized function inference | A generic function may infer type arguments when assigned or converted to a matching function type. | Removes redundant instantiation without weakening types. |
+| Selector keys | A struct literal key may be any valid field selector for the struct type. | Covered by the Go 1.27 language contract test. |
+| `stdversion` vet | Mandatory through both `go test` and explicit `go vet ./...`. | Rejects standard-library symbols newer than the module directive. |
+| `encoding/json` v1 over v2 | Continue using the v1 API and lock duplicate-name and invalid-UTF-8 semantics. | Go 1.27 preserves v1 behavior while changing its implementation. |
+| HTTP/1 bounded close drain | Ignored success bodies are closed and reuse is tested. | Prevents unnecessary connections without unbounded reads. |
+| Unicode 17 | DNS normalization preserves newly assigned letters byte-for-byte. | Locks both the standard table and trailing-dot behavior. |
 
 ## 2. Provider-specific conventions
 
@@ -51,7 +49,7 @@ API-payload fields are pointer-typed everywhere.
 | Pointer receivers | Every method on a resource type uses a pointer receiver (`recvcheck`). |
 | Framework types | Convert `types.String` / `types.Bool` at the boundary; never assume non-null — check `IsNull()` and `IsUnknown()`. |
 | Randomness | `crypto/rand` for anything secret; `math/rand/v2` otherwise. `depguard` denies `math/rand`. |
-| TLS | Minimum TLS 1.2, preferring 1.3; leave the Go 1.26 post-quantum hybrid defaults on. `InsecureSkipVerify` only behind the documented `insecure_https` provider flag, never a code default. |
+| TLS | Minimum TLS 1.2, preferring 1.3. Custom CA and mTLS tests are hermetic. `SystemCertPool` environment changes on Darwin and Windows are not simulated on Linux. `InsecureSkipVerify` only behind the documented provider flag. |
 | Secrets | API keys, TSIG keys and DNSSEC private keys are `Sensitive`. Terraform state is **not** encrypted — a value that need not persist should use a write-only attribute or an ephemeral resource instead. |
 
 ## 3. Antipatterns banned
@@ -80,7 +78,7 @@ issue. They are listed because they are the mistakes this domain invites.
 | Area | Standard |
 | --- | --- |
 | Module path | `github.com/ioplane/terraform-provider-powerdns`. |
-| Go directive | `go 1.26.5`. |
+| Go directive | `go 1.27.0`. [ADR 0010](../adr/0010-go-1.27-development-toolchain.md) records why the matching implicit toolchain line is omitted and how exact execution is enforced. |
 | Layout | `internal/provider` for the framework surface, `internal/api/{transport,auth,rec,dnsdist}` for the clients, `internal/testutil` for the contract layer. Everything unexported under `internal/`. |
 | Vendoring | None. `vendor/` is removed; the module cache and `go.sum` are the reproducibility mechanism. |
 | Imports | `gofumpt` order; `goimports.local-prefixes` set to the module path. |
@@ -94,19 +92,20 @@ issue. They are listed because they are the mistakes this domain invites.
 
 | Tool | Version | Use |
 | --- | --- | --- |
-| `go` | 1.26.5 | language and build |
-| `gofmt` / `gofumpt` / `goimports` | bundled | format gate |
-| `golangci-lint` | v2.12.2 | aggregate linter, allowlist mode |
-| `gopls` | latest | LSP: references, rename, diagnostics |
-| `govulncheck` | v1.6.0 | vulnerability gate |
+| `go` | 1.27.0 | language and build |
+| `gofmt` / `gofumpt` / `goimports` | Go 1.27 / golangci-lint v2.13.1 formatters | format gate |
+| `golangci-lint` | v2.13.1 | aggregate linter, allowlist mode |
+| `gopls` | v0.23.0 | LSP: references, rename, diagnostics |
+| `govulncheck` | v1.7.0 | vulnerability gate |
 | `osv-scanner` | v2.4.0 | vulnerability gate |
 | `tfplugindocs` | v0.25.0 | registry documentation |
 | `goreleaser` | v2.17.1 | signed release bundle |
-| `gotestsum` | latest | JUnit reporting in CI |
+| `gotestsum` | v1.13.0 | JUnit reporting in CI |
 
 ## 6. Reading list
 
-- [Go 1.26 release notes](https://go.dev/doc/go1.26) — authoritative.
+- [Go 1.27 release notes](https://go.dev/doc/go1.27) — release behavior.
+- [Go language specification](https://go.dev/ref/spec) — normative language rules.
 - [Effective Go](https://go.dev/doc/effective_go) — baseline style.
 - [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework)
   — the framework's own conventions win where this guide is silent.
