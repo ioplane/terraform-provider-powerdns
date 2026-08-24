@@ -1794,7 +1794,7 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-03 | Go 1.27 toolchain, required analyzers, direct modules and compatibility tests | `tfp-bqt.3` | DEV | P10-01, P10-02 | `[x]` merged by PR #34; Bead closed after final reviews |
 | P10-04 | Remaining development-image tools, integrity pins and build layering | `tfp-bqt.4` | OPS | P10-01, P10-02 | `[ ]` |
 | P10-05 | Workflow containers and GitHub Actions | `tfp-bqt.5` | OPS | P10-04 | `[ ]` |
-| P10-06 | PostgreSQL 18.6 disposable lab migration | `tfp-bqt.6.1` | OPS | P10-01, P10-02, P10-14 | `[ ]` prerequisite merged; Task 0 active |
+| P10-06 | PostgreSQL 18.6 disposable lab migration | `tfp-bqt.6.1` | OPS | P10-01, P10-02, P10-14, P10-15 | `[!]` Task 5 image scan blocked by P10-15 |
 | P10-07 | PowerDNS, SeaweedFS and Forgejo image updates | `tfp-bqt.6.2` | OPS | P10-01, P10-02 | `[ ]` |
 | P10-08 | Provider-wide efficiency, duplication and idempotence audit | `tfp-bqt.7` | DEV | P10-03 | `[ ]` |
 | P10-09 | Maximum useful golangci-lint and scanner profile | `tfp-bqt.8` | QA | P10-03, P10-04, P10-08, P10-12 | `[ ]` |
@@ -1803,6 +1803,7 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-12 | Migrate custom Python automation and tests to Go; retain only the approved Python toolchain boundary | `tfp-bqt.12` | DEV | P10-03 | `[ ]` brainstorming boundary pending |
 | P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[ ]` |
 | P10-14 | Restore linked-worktree dev-container identity consumers | `tfp-bqt.13` | DEV | P10-03 | `[x]` merged by PR #35; Bead closed after final reviews |
+| P10-15 | Remediate PostgreSQL 18.6 executable-image security and licence findings | `tfp-bqt.6.5` | SEC | P10-01 | `[~]` hardened image design SPEC-approved; exact user review pending |
 
 Every row updates this table in the same commit as its implementation. A
 user-visible change also updates `CHANGELOG.md` under `Unreleased`; version
