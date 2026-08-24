@@ -4,7 +4,7 @@
 
 **Bead:** `tfp-bqt.3`
 
-**Status:** replacement evidence candidate pending sequential review
+**Status:** candidate approved; exact closure HEAD pending sequential review
 
 ## Authoritative release evidence
 
@@ -608,6 +608,13 @@ running and unchanged.
 Before this candidate commit, Step 3 appended the exact cache/lifecycle
 evidence to `tfp-bqt.2.1` and the exact toolchain/release/acceptance evidence to
 `tfp-bqt.3`. Both updates completed at `2026-08-24T10:35:28Z`, and both Beads
-remain `IN_PROGRESS`. No further Bead mutation is permitted between or after
-candidate reviews. P10-03 and Steps 4 through 6 remain active pending fresh
-sequential review.
+remain `IN_PROGRESS`.
+
+Exact replacement evidence candidate
+`4434999d09dc6bba4d962446e999764f7c96a195` received fresh specification
+approval and then fresh quality approval. No Git, Beads or Podman state changed
+between those candidate reviews. After candidate quality approval, no Beads or
+Podman state changed; this docs-only closure commit is the sole subsequent Git
+change. The closure records both approvals and completes P10-03. Its exact HEAD
+still requires sequential specification and quality review before either Bead
+may close.

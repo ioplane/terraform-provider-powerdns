@@ -1071,10 +1071,17 @@ measurement and found no cache residue. Auth 5.1.3 and Auth 5.0.6 each passed
 5.4.4 and dnsdist 2.1.0; paired down commands left the lab namespace empty.
 Before the candidate commit, Step 3 appended exact evidence to both
 `tfp-bqt.2.1` and `tfp-bqt.3` at `2026-08-24T10:35:28Z`; both remain
-`IN_PROGRESS`. No further Bead mutation may occur between or after candidate
-reviews. P10-03 stays `[~]`, and Steps 4 through 6 remain open.
+`IN_PROGRESS`.
 
-- [ ] **Step 4: Review the exact post-gate candidate sequentially**
+Exact replacement evidence candidate
+`4434999d09dc6bba4d962446e999764f7c96a195` received fresh specification
+approval and then fresh quality approval. No Git, Beads or Podman state changed
+between those candidate reviews. After candidate quality approval, no Beads or
+Podman state changed; this docs-only closure commit is the sole subsequent Git
+change. P10-03 is complete, while both Beads remain `IN_PROGRESS` until the
+exact closure HEAD passes Step 6.
+
+- [x] **Step 4: Review the exact post-gate candidate sequentially**
 
 First dispatch a specification reviewer against the design, this plan and the
 exact post-gate candidate HEAD. Only after specification approval, dispatch a
@@ -1085,7 +1092,7 @@ through 3 in full, create a new evidence commit and restart Step 4 with
 specification review. The candidate-review loop ends only when both reviewers
 approve the same evidence HEAD.
 
-- [ ] **Step 5: Create the closure-docs commit after candidate approval**
+- [x] **Step 5: Create the closure-docs commit after candidate approval**
 
 After both candidate reviewers approve the same HEAD, add their exact outcomes
 to `AUDIT-02`, set P10-03 to `[x]`, and create one docs-only closure commit.
