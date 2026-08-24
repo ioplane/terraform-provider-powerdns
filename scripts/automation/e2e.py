@@ -46,6 +46,7 @@ from tenacity import (
     wait_fixed,
 )
 
+from scripts.automation.dev_identity import dev_suffix
 from scripts.automation.run import COMMAND, LOCAL, PULL, run
 
 try:
@@ -332,12 +333,10 @@ def wait_for_forgejo() -> bool:
     return http_ok(f"{FORGEJO_URL}/api/healthz")
 
 
-def dev_container() -> str:
+def dev_container(repo_root: Path | None = None) -> str:
     """The dev container for this checkout, which is per-worktree."""
-    suffix = ""
-    if "/.worktrees/" in str(REPO_ROOT):
-        suffix = f"-{REPO_ROOT.name}"
-    return f"{DEV_CONTAINER_DEFAULT}{suffix}"
+    root = REPO_ROOT if repo_root is None else repo_root
+    return f"{DEV_CONTAINER_DEFAULT}{dev_suffix(root)}"
 
 
 def container_states() -> dict[str, str]:

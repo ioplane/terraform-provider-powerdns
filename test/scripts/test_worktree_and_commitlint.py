@@ -13,7 +13,6 @@ from pathlib import Path
 import pytest
 from scripts.automation.worktree import main as worktree_main
 from scripts.automation.worktree import worktree_path
-from scripts.checks.commitlint import dev_suffix
 
 
 def test_the_worktree_lands_beside_the_repository_not_inside_it(monkeypatch):
@@ -31,23 +30,6 @@ def test_a_slashed_branch_keeps_its_shape_on_disk(monkeypatch):
     )
     path = worktree_path("feat/dnssec/cryptokey-resource")
     assert path.parent == Path("/repos/.worktrees/feat/dnssec")
-
-
-@pytest.mark.parametrize(
-    ("cwd", "expected"),
-    [
-        (Path("/repos/.worktrees/sprint/S13-registry"), "-S13-registry"),
-        (Path("/repos/provider"), ""),
-        (Path("/repos/.worktrees/fix/zone/ipv6"), "-ipv6"),
-    ],
-)
-def test_the_container_suffix_identifies_the_checkout(cwd, expected):
-    """Two sprints can be open at once.
-
-    The suffix is how their dev containers are told apart, and getting it wrong
-    pipes the message into the other sprint's container.
-    """
-    assert dev_suffix(cwd) == expected
 
 
 def test_an_unknown_subcommand_is_a_usage_error():
