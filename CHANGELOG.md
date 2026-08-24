@@ -182,6 +182,9 @@ The mapping between commit type, changelog section and version bump is in
 
 ### Fixed
 
+- Linked-worktree end-to-end runs, commit-message linting, and Go formatting
+  now select the canonical hashed development container through the same Task
+  identity boundary instead of basename-only or suffix-free Compose paths.
 - Dev-image builds no longer reuse a persistent Go module cache that could
   retain incomplete source trees and fail `go:embed`; downloaded module sources
   are removed after the pinned Go tools are installed. Compose projects,

@@ -39,8 +39,7 @@ repos:
         types: [go]
         exclude: '^vendor/'
         pass_filenames: false
-        entry: podman-compose -f deployments/compose/compose.dev.yml exec -T dev
-               golangci-lint fmt ./...
+        entry: task fmt
 
       - id: check-pins
         name: verify image digests and action pins
