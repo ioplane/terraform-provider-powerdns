@@ -1803,7 +1803,7 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-12 | Migrate custom Python automation and tests to Go; retain only the approved Python toolchain boundary | `tfp-bqt.12` | DEV | P10-03 | `[ ]` brainstorming boundary pending |
 | P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[ ]` |
 | P10-14 | Restore linked-worktree dev-container identity consumers | `tfp-bqt.13` | DEV | P10-03 | `[x]` merged by PR #35; Bead closed after final reviews |
-| P10-15 | Remediate PostgreSQL 18.6 executable-image security and licence findings | `tfp-bqt.6.5` | SEC | P10-01 | `[~]` hardened image design SPEC-approved; exact user review pending |
+| P10-15 | Remediate PostgreSQL 18.6 executable-image security and licence findings | `tfp-bqt.6.5` | SEC | P10-01 | `[~]` exact design and plan SPEC then QUALITY approved; TDD implementation active |
 
 Every row updates this table in the same commit as its implementation. A
 user-visible change also updates `CHANGELOG.md` under `Unreleased`; version
