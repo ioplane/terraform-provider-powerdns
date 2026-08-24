@@ -1790,7 +1790,7 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | ID | Task | Bead | Role | Depends | Status |
 | --- | --- | --- | --- | --- | --- |
 | P10-01 | Design, version evidence and staged pull-request boundaries | `tfp-bqt.1` | ARC | — | `[x]` |
-| P10-02 | Recover dev-container build capacity after scoped approval | `tfp-bqt.2` | OPS | — | `[~]` replacement evidence candidate pending sequential review |
+| P10-02 | Recover dev-container build capacity after scoped approval | `tfp-bqt.2` | OPS | — | `[~]` cache/lifecycle candidate approved; closure review pending |
 | P10-03 | Go 1.27 toolchain, required analyzers, direct modules and compatibility tests | `tfp-bqt.3` | DEV | P10-01, P10-02 | `[~]` replacement evidence candidate pending sequential review |
 | P10-04 | Remaining development-image tools, integrity pins and build layering | `tfp-bqt.4` | OPS | P10-01, P10-02 | `[ ]` |
 | P10-05 | Workflow containers and GitHub Actions | `tfp-bqt.5` | OPS | P10-04 | `[ ]` |

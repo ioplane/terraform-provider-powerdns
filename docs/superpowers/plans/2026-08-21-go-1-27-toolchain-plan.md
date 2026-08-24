@@ -971,6 +971,8 @@ Append exact outputs to `AUDIT-02`, keep P10-03 `[~]`, and create the post-gate
 candidate commit before requesting review:
 
 ```bash
+bd update tfp-bqt.2.1 --append-notes \
+  "Cache/lifecycle gates passed; exact evidence is recorded in AUDIT-02."
 bd update tfp-bqt.3 --append-notes \
   "Full gates passed; exact counts and durations are recorded in AUDIT-02."
 git add docs/audit/AUDIT-02-go-1.27-toolchain.md docs/plan.md
@@ -1027,6 +1029,50 @@ intentionally skipped, alongside Recursor 5.4.4 and dnsdist 2.1.0. Both paired
 down commands left lab containers, volumes and network absent. The existing
 isolated verifier stayed running and unchanged. P10-03 remains `[~]`; the
 replacement evidence candidate now awaits a fresh Step 4 specification review.
+
+Replacement evidence candidate
+`6dd9aa4b0b5c0787de9a583b0756c5e78d364f03` then received fresh specification
+approval. Only after that approval did fresh quality review approve the same
+exact HEAD. No Git, Beads or Podman state changed between the candidate
+reviews. After candidate quality approval, no Beads or Podman state changed;
+docs-only closure `f399df3efe3650bd234c07c6cd13fc80e5cf7a13` was the sole
+subsequent Git change before final specification review. That final approval
+was withdrawn before quality review completed, and the interrupted quality
+review does not count. The Important finding was the false claim that Git had
+not changed after candidate approval. P10-03 and Steps 4 through 6 return to
+active state; Steps 1 through 3 must repeat in full before a replacement
+evidence candidate. Both Beads remain `IN_PROGRESS` and unchanged.
+
+After that correction, Steps 1 through 3 repeated in full. `task all`, OSV and
+the 13-archive release dry run exited zero; immutable OCI and rootfs inspection
+remained clean. Auth 5.1.3 and Auth 5.0.6 each passed 35 acceptance tests with
+the one documented `api_dir` case intentionally skipped, alongside Recursor
+5.4.4 and dnsdist 2.1.0. Both paired down commands left lab containers, three
+volumes and network absent. The existing isolated verifier remained running
+and unchanged. Both Beads stayed `IN_PROGRESS` without mutation. P10-03 remains
+`[~]`; the replacement evidence candidate awaits fresh Step 4 specification
+review.
+
+Quality review did not approve exact candidate
+`72e3d40f48186606ff54635aa357e068a5ad72f3`. Step 3 had not appended the gate
+evidence to either Bead before that commit, despite its executable command.
+The review also found two rootfs byte counts without comparable measurement
+provenance. The active audit now uses GNU `du --bytes --summarize`, repeated
+across two independent mount/unmount cycles with identical results. P10-03 and
+Steps 4 through 6 remain active. Steps 1 through 3 must repeat in full, then
+Step 3 must update both `tfp-bqt.2.1` and `tfp-bqt.3` with exact evidence before
+the replacement candidate commit. Both statuses remain `IN_PROGRESS`.
+
+The corrected Steps 1 through 3 then repeated in full. `task all`, OSV and the
+13-archive release dry run exited zero. Two independent immutable-image
+mount/unmount cycles returned the same GNU `du --bytes --summarize` rootfs
+measurement and found no cache residue. Auth 5.1.3 and Auth 5.0.6 each passed
+35 acceptance tests with one intentional `api_dir` skip, alongside Recursor
+5.4.4 and dnsdist 2.1.0; paired down commands left the lab namespace empty.
+Before the candidate commit, Step 3 appended exact evidence to both
+`tfp-bqt.2.1` and `tfp-bqt.3` at `2026-08-24T10:35:28Z`; both remain
+`IN_PROGRESS`. No further Bead mutation may occur between or after candidate
+reviews. P10-03 stays `[~]`, and Steps 4 through 6 remain open.
 
 - [ ] **Step 4: Review the exact post-gate candidate sequentially**
 

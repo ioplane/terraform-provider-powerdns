@@ -497,8 +497,10 @@ Immutable image
 digest
 `sha256:72c4272d6095b45ccece726cd4ab9e9ea80e6f9ade16d85c6e4468b99e4fce47`,
 size 2,784,983,862 bytes, 15 layers and six labels. Its mounted rootfs was
-2,880,978,944 bytes and contained none of `/go/pkg/mod`, `/tmp/go-cache` or
-`/root/.cache/go-build`; it unmounted successfully.
+inspected and contained none of `/go/pkg/mod`, `/tmp/go-cache` or
+`/root/.cache/go-build`; it unmounted successfully. The byte count originally
+recorded for this pass did not retain its measurement command and is superseded
+by the reproducible method below.
 
 Auth 5.1 reported Authoritative 5.1.3 on PostgreSQL and LMDB, Recursor 5.4.4
 and dnsdist 2.1.0. Its full `task verify` exited zero with 35 acceptance tests
@@ -510,3 +512,102 @@ Recursor 5.4.4 and dnsdist 2.1.0; its full verify also exited zero with the same
 left the complete lab namespace absent. Final free space was 36,058,812,416
 bytes. Both Beads remain `IN_PROGRESS`; Steps 4 through 6 remain open for a
 fresh sequential review of the replacement evidence candidate.
+
+The replacement evidence candidate was committed as
+`6dd9aa4b0b5c0787de9a583b0756c5e78d364f03`. Fresh specification review
+approved that exact HEAD. Only after that approval did fresh quality review
+approve the same candidate. No Git, Beads or Podman state changed between the
+candidate reviews. After candidate quality approval, no Beads or Podman state
+changed; docs-only closure
+`f399df3efe3650bd234c07c6cd13fc80e5cf7a13` was the sole subsequent Git
+change before its final specification review.
+
+Final specification approval of that closure HEAD was withdrawn before quality
+review completed, and the immediately interrupted quality review does not
+count. The Important finding was that the closure evidence falsely claimed no
+Git changes after candidate approval even though the closure commit itself was
+that later Git change. P10-03 and Task 7 Steps 4 through 6 return to active
+state, and Steps 1 through 3 must repeat in full before a replacement evidence
+candidate. Both Beads remain `IN_PROGRESS` and unchanged.
+
+## Withdrawn-approval remediation gate repetition
+
+Task 7 Steps 1 through 3 repeated in full after the chronology correction.
+The existing verifier
+`3b0b830715be883d40c03651cafe2d286f6120eb17dae853414639cff1981c9a`
+remained running on image
+`031859a098b36df474ddacd9e6d1f40327ea8426cb3c296e50a3d071ecda750d`
+under isolated project `terraform-provider-powerdns-dev-go127-cache-final`.
+
+`task all` completed every stage successfully: race, shuffle and atomic
+coverage, explicit vet, golangci-lint and Semgrep zero findings, 185 Python
+tests, 29 pin checks, 11 protection-context checks, 110 badge checks and no
+`govulncheck` findings. OSV scanned 62 Go and 27 Python packages and reported
+zero affected packages and zero vulnerabilities. The release dry run exited
+zero in 18 seconds, produced 13 archives, verified every digest and matched the
+registry manifest.
+
+Immutable image
+`fb4af4f276a7e7f95ed6ebe16cce858ae8101ea4521de841aeb3fc9c7353a757` retained
+OCI digest
+`sha256:72c4272d6095b45ccece726cd4ab9e9ea80e6f9ade16d85c6e4468b99e4fce47`,
+size 2,784,983,862 bytes, 15 layers and six labels. GNU
+`du --bytes --summarize` measured the mounted rootfs in two independent
+mount/unmount cycles; both returned 2,731,966,581 bytes. The rootfs contained
+none of `/go/pkg/mod`, `/tmp/go-cache` or `/root/.cache/go-build`, and each
+cycle unmounted successfully.
+
+Auth 5.1 used Authoritative 5.1.3 on PostgreSQL and LMDB, Recursor 5.4.4 and
+dnsdist 2.1.0. Auth 5.0 used Authoritative 5.0.6 on both backends with the same
+Recursor and dnsdist versions. Each full `task verify` exited zero with 35
+acceptance tests passing and the one documented `api_dir` case intentionally
+skipped. Each paired `lab:down` exited zero and left lab containers, three
+volumes and the network absent. Final free space was 32,806,137,856 bytes. The
+verifier remained running and unchanged. Both Beads remain `IN_PROGRESS` and
+were not mutated; Steps 4 through 6 remain open for fresh sequential review of
+the replacement evidence candidate.
+
+Quality review did not approve exact candidate
+`72e3d40f48186606ff54635aa357e068a5ad72f3`. Its Important finding was that
+Step 3 requires a Bead evidence update before the candidate commit, while the
+latest loop left both Beads' update timestamps unchanged. The Minor finding was
+that two rootfs byte counts for the same immutable image lacked comparable
+measurement provenance. The reproducible two-pass GNU `du` method above
+supersedes the untraceable count. P10-03 and Steps 4 through 6 remain active;
+Steps 1 through 3 must repeat in full, and Step 3 must append exact evidence to
+both `tfp-bqt.2.1` and `tfp-bqt.3` before the next candidate commit. Both Beads
+remain `IN_PROGRESS`.
+
+## Candidate-quality remediation gate repetition
+
+Task 7 Steps 1 through 3 repeated in full after both review findings were
+corrected. `task all` exited zero with race, shuffle and atomic coverage,
+explicit vet, golangci-lint and Semgrep zero findings, 185 Python tests, 29 pin
+checks, 11 protection-context checks, 110 badge checks and no `govulncheck`
+findings. OSV scanned 62 Go and 27 Python packages and reported zero affected
+packages and zero vulnerabilities. The release dry run exited zero in 18
+seconds, produced 13 archives, verified every digest and matched the registry
+manifest.
+
+Immutable OCI image
+`fb4af4f276a7e7f95ed6ebe16cce858ae8101ea4521de841aeb3fc9c7353a757`, digest
+`sha256:72c4272d6095b45ccece726cd4ab9e9ea80e6f9ade16d85c6e4468b99e4fce47`,
+remained 2,784,983,862 bytes with 15 layers and six labels. Two independent
+mount/unmount cycles each measured 2,731,966,581 rootfs bytes with GNU
+`du --bytes --summarize`; all three cache paths were absent in both passes.
+
+Auth 5.1 used Authoritative 5.1.3 on both backends; Auth 5.0 used
+Authoritative 5.0.6. Both used Recursor 5.4.4 and dnsdist 2.1.0. Each full
+`task verify` exited zero with 35 acceptance tests passing and the one
+documented `api_dir` case intentionally skipped. Each paired `lab:down` exited
+zero and left lab containers, three volumes and the network absent. Final free
+space was 34,823,774,208 bytes; verifier
+`3b0b830715be883d40c03651cafe2d286f6120eb17dae853414639cff1981c9a` remained
+running and unchanged.
+
+Before this candidate commit, Step 3 appended the exact cache/lifecycle
+evidence to `tfp-bqt.2.1` and the exact toolchain/release/acceptance evidence to
+`tfp-bqt.3`. Both updates completed at `2026-08-24T10:35:28Z`, and both Beads
+remain `IN_PROGRESS`. No further Bead mutation is permitted between or after
+candidate reviews. P10-03 and Steps 4 through 6 remain active pending fresh
+sequential review.
