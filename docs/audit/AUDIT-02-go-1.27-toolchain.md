@@ -4,7 +4,7 @@
 
 **Bead:** `tfp-bqt.3`
 
-**Status:** final gates passed; exact evidence candidate pending sequential review
+**Status:** replacement evidence candidate pending sequential review
 
 ## Authoritative release evidence
 
@@ -454,5 +454,59 @@ cache volumes are absent, while image `fb4af4f276a7` is preserved. The lab is
 empty. Pre-existing development containers `ae5ab9bfba65`, `7e7569a62c42`,
 `37471b3b2732` and `3b0b830715be` retain their prior running, running, exited
 and running states respectively. Final free space is 36,979,503,104 bytes.
-The amended evidence candidate and sequential specification/quality review
-remain open; neither Bead is complete.
+The amended evidence candidate was committed as
+`995309ba8edae941738f083a1a3c72c9e1b3851c`. A fresh specification review
+approved that exact candidate, followed by a fresh quality review that also
+approved the same HEAD. Git and Podman state did not change between the
+reviews. Both Beads remained `IN_PROGRESS`; approval notes were appended only
+after both approvals and before the closure-docs commit.
+
+Those sequential approvals complete the implementation-candidate review
+boundary. The closure commit records only these outcomes and the completed
+P10-03 row. `tfp-bqt.2.1` and `tfp-bqt.3` remain in progress until sequential
+specification and quality reviews approve the exact closure HEAD.
+
+The docs-only closure was committed as
+`330bdb5170017b27d29a3830e571a666bd05609d` with the repository-valid subject
+`docs(docs): complete the go 1.27 toolchain migration`. Final specification
+review did not approve that HEAD because the evidence incorrectly claimed no
+Beads changes after candidate approval and the execution record named the
+rejected `docs(plan)` subject instead of the command that succeeded. Both are
+Important process-evidence defects. P10-03 and Task 7 Steps 4 through 6 return
+to active state, and Steps 1 through 3 must pass in full before a replacement
+evidence candidate is created.
+
+## Closure-review remediation gate repetition
+
+The two documentation defects were corrected without changing production code,
+workflows or container configuration. Task 7 Steps 1 through 3 then repeated
+in full against the existing isolated Go 1.27 verifier
+`terraform-provider-powerdns-dev-go127-cache-final`; its container ID remained
+`3b0b830715be883d40c03651cafe2d286f6120eb17dae853414639cff1981c9a` and it
+remained running throughout the repetition.
+
+`task all` exited zero with race, shuffle and atomic coverage, explicit vet,
+golangci-lint and Semgrep zero findings, 185 Python tests, 29 pin checks, 11
+protection-context checks, 110 badge checks and no `govulncheck` findings. OSV
+scanned 62 Go and 27 Python packages and reported zero affected packages and
+zero vulnerabilities. The release dry run exited zero in 19 seconds, produced
+13 archives, verified every recorded digest and matched the registry manifest.
+
+Immutable image
+`fb4af4f276a7e7f95ed6ebe16cce858ae8101ea4521de841aeb3fc9c7353a757` has OCI
+digest
+`sha256:72c4272d6095b45ccece726cd4ab9e9ea80e6f9ade16d85c6e4468b99e4fce47`,
+size 2,784,983,862 bytes, 15 layers and six labels. Its mounted rootfs was
+2,880,978,944 bytes and contained none of `/go/pkg/mod`, `/tmp/go-cache` or
+`/root/.cache/go-build`; it unmounted successfully.
+
+Auth 5.1 reported Authoritative 5.1.3 on PostgreSQL and LMDB, Recursor 5.4.4
+and dnsdist 2.1.0. Its full `task verify` exited zero with 35 acceptance tests
+passing and one documented `api_dir` case intentionally skipped. The paired
+`task lab:down AUTH=5.1` exited zero and left lab containers, volumes and the
+network absent. Auth 5.0 then reported Authoritative 5.0.6 on both backends,
+Recursor 5.4.4 and dnsdist 2.1.0; its full verify also exited zero with the same
+35 passes and one intentional skip. Its paired teardown exited zero and again
+left the complete lab namespace absent. Final free space was 36,058,812,416
+bytes. Both Beads remain `IN_PROGRESS`; Steps 4 through 6 remain open for a
+fresh sequential review of the replacement evidence candidate.

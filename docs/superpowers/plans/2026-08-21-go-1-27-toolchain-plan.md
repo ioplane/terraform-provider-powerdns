@@ -1003,7 +1003,30 @@ prerequisite. Steps 1 through 3 were reopened and passed: the exact automatic
 lifecycle, Task 7 gates, OSV, release dry run, immutable OCI inspection and both
 Auth branches are green again. The exact teardown left the authorized
 automatic project absent, its image preserved and pre-existing objects
-unchanged. The amended evidence candidate must now be completed before Step 4.
+unchanged. The amended evidence candidate was committed as
+`995309ba8edae941738f083a1a3c72c9e1b3851c`. Fresh specification review
+approved that exact HEAD. Only then did fresh quality review approve the same
+HEAD. No Git or Podman state changed between the reviews. Both Beads remained
+`IN_PROGRESS`; approval notes were appended only after both approvals and
+before the closure-docs commit.
+
+Closure commit `330bdb5170017b27d29a3830e571a666bd05609d` then recorded those
+outcomes with the repository-valid subject
+`docs(docs): complete the go 1.27 toolchain migration`. Final specification
+review did not approve that HEAD: the audit overstated Beads immutability after
+the candidate approvals, and this plan recorded the rejected `docs(plan)`
+subject rather than the successful command. Per Step 6, P10-03 and Steps 4
+through 6 return to active state; Steps 1 through 3 must repeat in full before
+a replacement candidate is created.
+
+The documentation findings were corrected and Steps 1 through 3 repeated in
+full. `task all`, OSV and the 13-archive release dry run exited zero; immutable
+OCI and mounted-rootfs inspection remained clean. Auth 5.1.3 and Auth 5.0.6
+each passed 35 acceptance tests with the one documented `api_dir` case
+intentionally skipped, alongside Recursor 5.4.4 and dnsdist 2.1.0. Both paired
+down commands left lab containers, volumes and network absent. The existing
+isolated verifier stayed running and unchanged. P10-03 remains `[~]`; the
+replacement evidence candidate now awaits a fresh Step 4 specification review.
 
 - [ ] **Step 4: Review the exact post-gate candidate sequentially**
 
@@ -1024,8 +1047,9 @@ Keep `tfp-bqt.2.1` and `tfp-bqt.3` open: closing Beads is external lifecycle
 state and must not create an unreviewed Git state.
 
 ```bash
-git add docs/audit/AUDIT-02-go-1.27-toolchain.md docs/plan.md
-git commit -m "docs(plan): complete the Go 1.27 toolchain migration"
+git add docs/audit/AUDIT-02-go-1.27-toolchain.md docs/plan.md \
+  docs/superpowers/plans/2026-08-21-go-1-27-toolchain-plan.md
+git commit -m "docs(docs): complete the go 1.27 toolchain migration"
 ```
 
 - [ ] **Step 6: Review the exact closure HEAD sequentially**
