@@ -340,7 +340,7 @@ the Task command that already consumes `H`.
   the corresponding evidence for Go formatting. Do not bypass hooks or close
   the Bead.
 
-- [ ] **Step 3: Obtain sequential candidate review**
+- [x] **Step 3: Obtain sequential candidate review**
 
   Obtain SPEC review of exact candidate HEAD, then QUALITY review of the same
   immutable HEAD. Review source-of-truth delegation, failure propagation,
@@ -350,7 +350,7 @@ the Task command that already consumes `H`.
   restarts SPEC then QUALITY. No Git, Beads, or Podman state changes between
   the two reviews; read-only checks are allowed.
 
-- [ ] **Step 4: Create and review a docs-only closure**
+- [x] **Step 4: Create a docs-only closure**
 
   After both candidate approvals, fetch the default branch through GraphQL and
   Git and require both `defaultBranchRef.target.oid` and `origin/main` still
@@ -365,10 +365,15 @@ the Task command that already consumes `H`.
   docs(docs): complete the worktree identity fix
   ```
 
-  Obtain final SPEC then final QUALITY against the exact immutable closure
-  HEAD. No Git, Beads, or Podman mutation occurs between those reviews.
+- [ ] **Step 5: Review the exact closure HEAD sequentially**
 
-- [ ] **Step 5: Push, verify, and merge the pull request**
+  Obtain final SPEC then final QUALITY against the exact immutable closure
+  HEAD. No Git, Beads, or Podman mutation occurs between those reviews. Any
+  Critical or Important finding resets P10-14 to `[~]`, repeats the affected
+  focused and complete gates, creates a new candidate and closure, and restarts
+  both sequential review cycles.
+
+- [ ] **Step 6: Push, verify, and merge the pull request**
 
   Reconfirm `origin` is the canonical non-fork
   `ioplane/terraform-provider-powerdns`, push this branch only there, and open a
@@ -381,7 +386,7 @@ the Task command that already consumes `H`.
   Squash-merge only when all policy gates are green; verify the exact squash
   commit is on `origin/main`.
 
-- [ ] **Step 6: Close the prerequisite and unblock PostgreSQL**
+- [ ] **Step 7: Close the prerequisite and unblock PostgreSQL**
 
   Append the exact PR, squash commit, checks, and final reviewed HEAD to
   `tfp-bqt.13`, close it, and update `tfp-bqt.6.1` with the prerequisite
@@ -709,3 +714,12 @@ failures.
   `repo: local`, and all prior false-green mutations remain covered. Every
   enabled commit hook passed without bypass. The Bead stays open for a fresh
   immutable SPEC then QUALITY sequence.
+- Exact candidate `f9412de355f1b3cb676ec8abf451ce72436c7717`
+  received SPEC approval and then QUALITY approval with no Critical or
+  Important finding. No Git, Beads, or Podman state changed between those
+  reviews. Fresh Git and paginated GraphQL afterward still resolve
+  `origin/main`, the sole merge base, and `defaultBranchRef.target.oid` to
+  `e65b4c78455ab0659b5b462b7fd4b507a207186a` with 11 strict contexts.
+  Approval evidence was appended to the still-open Bead only after both
+  reviews. This docs-only closure is the sole subsequent Git change and awaits
+  final sequential SPEC then QUALITY review.

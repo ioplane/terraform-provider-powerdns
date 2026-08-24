@@ -1802,7 +1802,7 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-11 | Terraform, OpenTofu and Terragrunt compatibility | `tfp-bqt.10` | QA | P10-03, P10-04, P10-06, P10-07 | `[ ]` |
 | P10-12 | Migrate custom Python automation and tests to Go; retain only the approved Python toolchain boundary | `tfp-bqt.12` | DEV | P10-03 | `[ ]` brainstorming boundary pending |
 | P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[ ]` |
-| P10-14 | Restore linked-worktree dev-container identity consumers | `tfp-bqt.13` | DEV | P10-03 | `[~]` prerequisite sprint active |
+| P10-14 | Restore linked-worktree dev-container identity consumers | `tfp-bqt.13` | DEV | P10-03 | `[x]` candidate approved; closure review pending |
 
 Every row updates this table in the same commit as its implementation. A
 user-visible change also updates `CHANGELOG.md` under `Unreleased`; version
