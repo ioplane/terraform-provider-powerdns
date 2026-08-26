@@ -760,6 +760,9 @@ ZONE_APIS = {
     "recursor": "http://127.0.0.1:18082/api/v1/servers/localhost",
 }
 
+# PowerDNS/pdns rec-5.4.4 (64c4f00f2b3d): ws-recursor.cc:418-424 raises
+# this exact message for a missing zone, and webserver.cc:194-199 serializes
+# ApiException as HTTP 422 JSON. The real E2E teardown exercises that response.
 RECURSOR_ABSENCE = {"error": "Could not find domain 'internal.e2e.example'"}
 ZONE_REQUEST_TIMEOUT = 10
 
