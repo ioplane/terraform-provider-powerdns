@@ -4,7 +4,7 @@
 
 **Bead:** `tfp-bqt.7`
 
-**Status:** local candidate approved; GitHub Actions and merge remain open
+**Status:** approved and integrated in `dev` by PR #36 candidate
 
 ## Scope and method
 
@@ -145,7 +145,12 @@ local E2E fixture passes 59/59 cases across Terraform and OpenTofu, including
 state upgrade, drift, private module transport and DNS behavior, and leaves
 zero residue after teardown.
 
-The final local candidate passes `task all`, both complete `task verify`
-matrices (PowerDNS Authoritative 5.1 and 5.0), and the 59-case E2E suite. The
-runtime stacks and generated fixture files are absent after teardown. The
-audit remains open only until the `dev` GitHub Actions and merge gate pass.
+The final candidate passes `task all`, both complete `task verify` matrices
+(PowerDNS Authoritative 5.1 and 5.0), and the 59-case E2E suite. The runtime
+stacks and generated fixture files are absent after teardown. PR #36 verifies
+the same commit with CI run `33019977870`, Acceptance `33019977884`, Security
+`33019977865`, Coverage `33019977923`, Dependency review `33019977859`, and
+End-to-end `33019799418`; every required job completed successfully. The local
+release dry run then built and verified all 13 provider archives and the
+registry manifest. The top-level release check correctly remains fail-closed
+until the future `0.1.2` release moves `VERSION` and `[Unreleased]` together.

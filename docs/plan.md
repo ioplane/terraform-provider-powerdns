@@ -1794,9 +1794,9 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-03 | Go 1.27 toolchain, required analyzers, direct modules and compatibility tests | `tfp-bqt.3` | DEV | P10-01, P10-02 | `[x]` merged by PR #34; Bead closed after final reviews |
 | P10-04 | Remaining development-image tools, integrity pins and build layering | `tfp-bqt.4` | OPS | P10-01, P10-02 | `[ ]` |
 | P10-05 | Workflow containers and GitHub Actions | `tfp-bqt.5` | OPS | P10-04 | `[ ]` |
-| P10-06 | PostgreSQL 18.6 disposable lab migration | `tfp-bqt.6.1` | OPS | P10-01, P10-02, P10-14 | `[~]` official pinned Alpine image and tmpfs; local E2E 59/59 plus Auth 5.1 and 5.0 `task verify` are green with zero residue; GitHub pending |
+| P10-06 | PostgreSQL 18.6 disposable lab migration | `tfp-bqt.6.1` | OPS | P10-01, P10-02, P10-14 | `[x]` official pinned Alpine image and tmpfs; E2E 59/59 plus Auth 5.1 and 5.0 are green locally and in PR #36, with zero residue |
 | P10-07 | PowerDNS, SeaweedFS and Forgejo image updates | `tfp-bqt.6.2` | OPS | P10-01, P10-02 | `[ ]` |
-| P10-08 | Provider-wide efficiency, duplication and idempotence audit | `tfp-bqt.7` | DEV | P10-03 | `[~]` nine packages and six direct modules inventoried; duplicate algorithms consolidated; integer backoff, modifier order and canonical multiset fixes pass local `task all`, dual-Auth verify and E2E; GitHub pending |
+| P10-08 | Provider-wide efficiency, duplication and idempotence audit | `tfp-bqt.7` | DEV | P10-03 | `[x]` nine packages and six direct modules inventoried; duplicate algorithms consolidated; integer backoff, modifier order and canonical multiset fixes pass local and PR #36 gates |
 | P10-09 | Maximum useful golangci-lint and scanner profile | `tfp-bqt.8` | QA | P10-03, P10-04, P10-08, P10-12 | `[ ]` |
 | P10-10 | Historical review findings and naming invariants | `tfp-bqt.9` | QA | P10-01 | `[ ]` |
 | P10-11 | Terraform, OpenTofu and Terragrunt compatibility | `tfp-bqt.10` | QA | P10-03, P10-04, P10-06, P10-07 | `[ ]` |
