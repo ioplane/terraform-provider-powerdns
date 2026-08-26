@@ -84,9 +84,9 @@ func (r *autoprimaryResource) Schema(
 					"IPv6 address written uncompressed does not produce a diff.",
 				Required: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					planmodify.SemanticString(
 						"compared as an address, not as a string", normalise.IPAddress),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"nameserver": schema.StringAttribute{
@@ -96,9 +96,9 @@ func (r *autoprimaryResource) Schema(
 					stringvalidator.LengthAtLeast(1),
 				},
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					planmodify.SemanticString(
 						"compared as a DNS name", normalise.DNSName),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"account": schema.StringAttribute{

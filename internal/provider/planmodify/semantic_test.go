@@ -88,7 +88,7 @@ func TestSemanticSet(t *testing.T) {
 	t.Parallel()
 
 	modifier := planmodify.SemanticSet(
-		"addresses are compared by value, ignoring order", normalise.IPAddress)
+		"addresses are compared by value, ignoring order", normalise.IPAddressKey)
 
 	list := func(values ...string) types.List {
 		elements := make([]types.String, 0, len(values))
@@ -169,7 +169,7 @@ func TestSemanticSet(t *testing.T) {
 func TestSemanticSet_NullAndUnknown(t *testing.T) {
 	t.Parallel()
 
-	modifier := planmodify.SemanticSet("", normalise.IPAddress)
+	modifier := planmodify.SemanticSet("", normalise.IPAddressKey)
 	listType := types.ListNull(types.StringType)
 
 	for _, tt := range []struct {

@@ -174,10 +174,10 @@ func (recordValuesModifier) PlanModifyList(
 		return
 	}
 
-	same := func(a, b string) bool {
-		return normalise.RecordContent(recordType.ValueString(), a, b)
+	key := func(value string) string {
+		return normalise.RecordContentKey(recordType.ValueString(), value)
 	}
-	if normalise.StringSet(planned, current, same) {
+	if normalise.StringMultiset(planned, current, key) {
 		resp.PlanValue = req.StateValue
 	}
 }

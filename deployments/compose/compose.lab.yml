@@ -13,18 +13,23 @@ name: terraform-provider-powerdns-lab
 services:
   postgres:
     container_name: pdns-lab-pg
-    image: docker.io/library/postgres:17@sha256:a426e44bac0b759c95894d68e1a0ac03ecc20b619f498a91aae373bf06d8508d
+    image: docker.io/library/postgres:18.6-alpine3.24@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
     environment:
       POSTGRES_USER: pdns
       POSTGRES_PASSWORD: pdns
       POSTGRES_DB: pdns
     ports:
-      - "15432:5432"
+      - "127.0.0.1:15432:5432"
     volumes:
       # Short form, not long: the Compose Specification long syntax cannot
       # request SELinux relabelling, and without :z the container cannot read
       # the file on an SELinux host.
       - ../../test/lab/schema.pgsql.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro,z
+    # PostgreSQL 18 declares VOLUME /var/lib/postgresql and keeps PGDATA below
+    # it. Overlay the destination so every lab run is a bounded clean bootstrap
+    # and the engine cannot create an unowned anonymous data volume.
+    tmpfs:
+      - /var/lib/postgresql:rw,nosuid,nodev,noexec,size=512m
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pdns -d pdns"]
       interval: 3s
@@ -41,9 +46,9 @@ services:
     volumes:
       - ../../test/lab/auth-gpgsql.conf:/etc/powerdns/pdns.conf:ro,z
     ports:
-      - "15300:5300/udp"
-      - "15300:5300/tcp"
-      - "18081:8081/tcp"
+      - "127.0.0.1:15300:5300/udp"
+      - "127.0.0.1:15300:5300/tcp"
+      - "127.0.0.1:18081:8081/tcp"
     healthcheck:
       test: ["CMD-SHELL", "curl -sf -H 'X-API-Key: labapikey' http://127.0.0.1:8081/api/v1/servers"]
       interval: 3s
@@ -60,7 +65,7 @@ services:
       - ../../test/lab/auth-lmdb.conf:/etc/powerdns/pdns.conf:ro,z
       - lmdb-data:/data
     ports:
-      - "18091:8081/tcp"
+      - "127.0.0.1:18091:8081/tcp"
     healthcheck:
       test: ["CMD-SHELL", "curl -sf -H 'X-API-Key: labapikey' http://127.0.0.1:8081/api/v1/servers"]
       interval: 3s
@@ -77,9 +82,9 @@ services:
       - ../../test/lab/recursor.yml:/etc/powerdns/recursor.yml:ro,z
       - rec-api:/var/lib/powerdns-api
     ports:
-      - "15301:5301/udp"
-      - "15301:5301/tcp"
-      - "18082:8082/tcp"
+      - "127.0.0.1:15301:5301/udp"
+      - "127.0.0.1:15301:5301/tcp"
+      - "127.0.0.1:18082:8082/tcp"
     healthcheck:
       test: ["CMD-SHELL", "curl -sf -H 'X-API-Key: labapikey' http://127.0.0.1:8082/api/v1/servers"]
       interval: 3s
@@ -96,9 +101,9 @@ services:
       - ../../test/lab/dnsdist.conf:/etc/dnsdist/dnsdist.conf:ro,z
       - dnsdist-api:/var/lib/dnsdist
     ports:
-      - "15302:5302/udp"
-      - "15302:5302/tcp"
-      - "18083:8083/tcp"
+      - "127.0.0.1:15302:5302/udp"
+      - "127.0.0.1:15302:5302/tcp"
+      - "127.0.0.1:18083:8083/tcp"
     healthcheck:
       test: ["CMD-SHELL", "curl -sf -H 'X-API-Key: labapikey' http://127.0.0.1:8083/api/v1/servers/localhost"]
       interval: 3s

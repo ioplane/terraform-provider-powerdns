@@ -229,7 +229,9 @@ def markdown_files(root: Path = Path()) -> list[Path]:
     )
     if listed.returncode == 0 and listed.stdout:
         names = listed.stdout.decode("utf-8").split("\0")
-        return sorted(root / name for name in names if name)
+        return sorted(
+            path for name in names if name and (path := root / name).is_file()
+        )
 
     skip = {".git", "node_modules", ".venv", ".worktrees", ".released", ".mirror"}
     return sorted(

@@ -107,7 +107,7 @@ func (r *recursorACLResource) Schema(
 				},
 				PlanModifiers: []planmodifier.List{
 					planmodify.SemanticSet(
-						"compared as subnets, ignoring order", normalise.CIDR),
+						"compared as subnets, ignoring order", normalise.CIDRKey),
 				},
 			},
 		},
@@ -302,7 +302,7 @@ func (r *dnsdistACLResource) Schema(
 				},
 				PlanModifiers: []planmodifier.List{
 					planmodify.SemanticSet(
-						"compared as subnets, ignoring order", normalise.CIDR),
+						"compared as subnets, ignoring order", normalise.CIDRKey),
 				},
 			},
 		},

@@ -90,9 +90,9 @@ func (r *recursorZoneResource) Schema(
 				MarkdownDescription: "The zone name.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					planmodify.SemanticString(
 						"compared as a DNS name", normalise.DNSName),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"kind": schema.StringAttribute{
@@ -118,7 +118,7 @@ func (r *recursorZoneResource) Schema(
 				PlanModifiers: []planmodifier.List{
 					planmodify.SemanticSet(
 						"compared as upstreams, defaulting the port to 53 and ignoring order",
-						normalise.UpstreamServer),
+						normalise.UpstreamServerKey),
 				},
 			},
 			"recursion_desired": schema.BoolAttribute{

@@ -112,11 +112,13 @@ jobs:
             -race -count=1 -timeout 60m \
             -covermode=atomic -coverpkg=./internal/... \
             -coverprofile=coverage.out
-          go tool cover -func=coverage.out | tail -1
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1
 
       - name: Tear down
         if: always()
-        run: uv run --locked python -m scripts.automation.lab down || true
+        run: uv run --locked python -m scripts.automation.lab down
 
       - name: SonarQube scan
         if: env.SONAR_TOKEN != ''

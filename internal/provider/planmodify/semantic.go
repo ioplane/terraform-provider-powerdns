@@ -18,11 +18,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/ioplane/terraform-provider-powerdns/internal/provider/normalise"
 )
 
 // stringComparer answers whether a configured value and a state value are the
 // same thing.
 type stringComparer func(configured, actual string) bool
+
+type stringCanonicalizer func(value string) string
 
 // semanticString keeps the state value when it means the same as the plan.
 type semanticString struct {
@@ -68,7 +72,7 @@ func SemanticString(description string, same stringComparer) planmodifier.String
 // in any order.
 type semanticSet struct {
 	description string
-	same        stringComparer
+	key         stringCanonicalizer
 }
 
 func (m semanticSet) Description(_ context.Context) string { return m.description }
@@ -95,19 +99,19 @@ func (m semanticSet) PlanModifyList(
 		return
 	}
 
-	if setsMatch(planned, current, m.same) {
+	if normalise.StringMultiset(planned, current, m.key) {
 		resp.PlanValue = req.StateValue
 	}
 }
 
 // SemanticSet builds a list modifier that ignores order and compares elements
-// with same.
+// through their canonical key.
 //
 // The attribute stays a list rather than a set because PowerDNS returns these
 // as JSON arrays and a set would lose the server's ordering entirely; what is
 // wanted is to ignore order when comparing, not to discard it.
-func SemanticSet(description string, same stringComparer) planmodifier.List {
-	return semanticSet{description: description, same: same}
+func SemanticSet(description string, key stringCanonicalizer) planmodifier.List {
+	return semanticSet{description: description, key: key}
 }
 
 // stringsFromList extracts the elements, reporting a conversion failure into
@@ -121,30 +125,6 @@ func stringsFromList(
 	diags := list.ElementsAs(ctx, &out, false)
 	resp.Diagnostics.Append(diags...)
 	return out, !diags.HasError()
-}
-
-// setsMatch is normalise.StringSet, inlined here to keep this package free of
-// a dependency on the comparison it is given.
-func setsMatch(planned, current []string, same stringComparer) bool {
-	if len(planned) != len(current) {
-		return false
-	}
-
-	used := make([]bool, len(current))
-	for _, want := range planned {
-		var found bool
-		for i, got := range current {
-			if used[i] || !same(want, got) {
-				continue
-			}
-			used[i], found = true, true
-			break
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
 }
 
 // AttributePath is re-exported so a resource can build a diagnostic pointing

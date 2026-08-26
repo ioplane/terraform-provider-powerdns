@@ -110,6 +110,7 @@ downstream servers are Lua or YAML and are not reachable over HTTP. See
 | Authoritative | 5.1.3 and 5.0.6 |
 | Recursor | 5.4.4 |
 | dnsdist | 2.1.0 |
+| PostgreSQL lab backend | 18.6 |
 
 The authoritative branch is a matrix, not a single pin: the same 203
 assertions run on 5.1.3 and on 5.0.6, on every pull request, and both must
@@ -120,6 +121,11 @@ that is the tag they were read from, and it is a different claim from the
 range the provider is exercised over.
 
 Run either yourself: `task lab:up AUTH=5.0 && task testacc`.
+
+The database fixture is deliberately disposable: bounded tmpfs overlays the
+official image's `/var/lib/postgresql` volume, and every run initializes the
+pinned PowerDNS schema into a clean PostgreSQL 18.6 cluster. It does not model
+`pg_upgrade` or reuse persistent database files.
 
 ## Surface
 

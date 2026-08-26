@@ -218,6 +218,10 @@ def unpinned_from(directory: Path) -> list[str]:
         for number, line in enumerate(text.splitlines(), start=1):
             floats = (
                 line.startswith("FROM ")
+                and re.fullmatch(
+                    r"FROM scratch(?: AS [A-Za-z0-9._-]+)?", line, re.IGNORECASE
+                )
+                is None
                 and not line.startswith("FROM $")
                 and "@sha256:" not in line
                 and "${" not in line

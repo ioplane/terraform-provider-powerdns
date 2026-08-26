@@ -126,8 +126,10 @@ jobs:
             echo "::endgroup::"
           done
 
-      - name: Tear down
+      - name: Tear down E2E fixture
         if: always()
-        run: |
-          uv run --locked --group e2e python -m scripts.automation.e2e down || true
-          uv run --locked --group e2e python -m scripts.automation.lab down || true
+        run: uv run --locked --group e2e python -m scripts.automation.e2e down
+
+      - name: Tear down lab
+        if: always()
+        run: uv run --locked --group e2e python -m scripts.automation.lab down

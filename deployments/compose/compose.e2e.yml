@@ -79,6 +79,7 @@ services:
       FORGEJO__security__INSTALL_LOCK: "true"
       FORGEJO__database__DB_TYPE: sqlite3
       FORGEJO__server__HTTP_PORT: "19300"
+      FORGEJO__server__HTTP_ADDR: 127.0.0.1
       # TLS, on a fixture. Not ceremony: a module source is fetched over HTTPS
       # everywhere it matters, and a fixture that authenticates over plain HTTP
       # is a fixture people copy the wrong shape from. The certificate is

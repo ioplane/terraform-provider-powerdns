@@ -115,6 +115,15 @@ The mapping between commit type, changelog section and version bump is in
 
 ### Changed
 
+- Semantic list comparison now uses one canonical, multiplicity-aware
+  implementation with linear behavior for large ACL and RRSet inputs. Retry
+  backoff uses saturating integer arithmetic, and semantic plan modifiers run
+  before replacement modifiers so equivalent server-normalized values do not
+  schedule destructive replacement.
+- The disposable gpgsql lab backend moves from PostgreSQL 17 to the exact
+  official PostgreSQL 18.6 Alpine OCI image. Its image-declared data volume is
+  overlaid with bounded tmpfs, so acceptance and E2E always start from a clean
+  schema without a separate custom-image build or persistent database state.
 - The complete build surface moves to Go 1.27.0, golangci-lint 2.13.1 and
   govulncheck 1.7.0; direct modules move to kin-openapi 0.147.0 and
   terraform-plugin-log 0.11.0 with JSON, HTTP, TLS, Unicode and language

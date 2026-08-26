@@ -1794,21 +1794,28 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-03 | Go 1.27 toolchain, required analyzers, direct modules and compatibility tests | `tfp-bqt.3` | DEV | P10-01, P10-02 | `[x]` merged by PR #34; Bead closed after final reviews |
 | P10-04 | Remaining development-image tools, integrity pins and build layering | `tfp-bqt.4` | OPS | P10-01, P10-02 | `[ ]` |
 | P10-05 | Workflow containers and GitHub Actions | `tfp-bqt.5` | OPS | P10-04 | `[ ]` |
-| P10-06 | PostgreSQL 18.6 disposable lab migration | `tfp-bqt.6.1` | OPS | P10-01, P10-02, P10-14, P10-15 | `[!]` Task 5 image scan blocked by P10-15 |
+| P10-06 | PostgreSQL 18.6 disposable lab migration | `tfp-bqt.6.1` | OPS | P10-01, P10-02, P10-14 | `[~]` official pinned Alpine image and tmpfs; local E2E 59/59 plus Auth 5.1 and 5.0 `task verify` are green with zero residue; GitHub pending |
 | P10-07 | PowerDNS, SeaweedFS and Forgejo image updates | `tfp-bqt.6.2` | OPS | P10-01, P10-02 | `[ ]` |
-| P10-08 | Provider-wide efficiency, duplication and idempotence audit | `tfp-bqt.7` | DEV | P10-03 | `[ ]` |
+| P10-08 | Provider-wide efficiency, duplication and idempotence audit | `tfp-bqt.7` | DEV | P10-03 | `[~]` nine packages and six direct modules inventoried; duplicate algorithms consolidated; integer backoff, modifier order and canonical multiset fixes pass local `task all`, dual-Auth verify and E2E; GitHub pending |
 | P10-09 | Maximum useful golangci-lint and scanner profile | `tfp-bqt.8` | QA | P10-03, P10-04, P10-08, P10-12 | `[ ]` |
 | P10-10 | Historical review findings and naming invariants | `tfp-bqt.9` | QA | P10-01 | `[ ]` |
 | P10-11 | Terraform, OpenTofu and Terragrunt compatibility | `tfp-bqt.10` | QA | P10-03, P10-04, P10-06, P10-07 | `[ ]` |
-| P10-12 | Migrate custom Python automation and tests to Go; retain only the approved Python toolchain boundary | `tfp-bqt.12` | DEV | P10-03 | `[ ]` brainstorming boundary pending |
+| P10-12 | Keep lab and E2E automation on the smallest executable boundary | `tfp-bqt.12` | DEV | P10-03 | `[x]` unused Go control plane and image-evidence WIP removed; tested Python lifecycle retained |
 | P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[ ]` |
 | P10-14 | Restore linked-worktree dev-container identity consumers | `tfp-bqt.13` | DEV | P10-03 | `[x]` merged by PR #35; Bead closed after final reviews |
-| P10-15 | Remediate PostgreSQL 18.6 executable-image security and licence findings | `tfp-bqt.6.5` | SEC | P10-01 | `[~]` exact design and plan SPEC then QUALITY approved; TDD implementation active |
 
 Every row updates this table in the same commit as its implementation. A
 user-visible change also updates `CHANGELOG.md` under `Unreleased`; version
 badges, tested-version tables, standards and generated registry documentation
 move with their owning row.
+
+The PostgreSQL service is a disposable acceptance/E2E dependency, not shipped
+provider code. On 2026-08-27 the unapproved Go lab control plane, custom image
+build and evidence-capture work were removed after they repeatedly added
+complexity without changing provider behavior. The executable contract is now
+the small Python lifecycle plus the digest-pinned official PostgreSQL 18.6
+Alpine image. A fresh local run passed all 59 E2E cases and left zero fixture
+containers, networks, volumes or generated files.
 
 ---
 

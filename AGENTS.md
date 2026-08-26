@@ -172,11 +172,11 @@ Five services. The count is the design, not thoroughness:
 
 | Endpoint | What | Why it exists |
 | --- | --- | --- |
-| `:18081` | Authoritative on PostgreSQL 17 | the common deployment |
+| `:18081` | Authoritative on PostgreSQL 18.6 | the common deployment |
 | `:18091` | Authoritative on LMDB | **views and networks are unimplemented by gpgsql** — without this they are untestable |
 | `:18082` | Recursor with `api_dir` set | without it every recursor write returns 422 |
 | `:18083` | dnsdist | the only place its two write operations can be exercised |
-| `:15432` | PostgreSQL | backend for the first |
+| `:15432` | PostgreSQL 18.6 | clean disposable backend for the first |
 
 ```bash
 task lab:up
@@ -186,6 +186,11 @@ task testacc
 
 Namespace test objects `tf-acc-<RUN_ID>`; leave zero residue in `CheckDestroy`.
 Never point acceptance tests at a production PowerDNS.
+
+The PostgreSQL image declares `/var/lib/postgresql` as its data volume. The lab
+overlays that exact destination with bounded tmpfs, so every `lab:up` processes
+the pinned PowerDNS schema into a new PostgreSQL 18.6 cluster; this is not a
+`pg_upgrade` or persistent-data migration test.
 
 ## Workflow
 

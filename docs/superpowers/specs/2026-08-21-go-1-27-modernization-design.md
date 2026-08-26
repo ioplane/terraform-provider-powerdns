@@ -123,7 +123,7 @@ cannot pass its mandatory gates. All other development-image tools remain in
 
 | Service | Target image |
 | --- | --- |
-| PostgreSQL | `docker.io/library/postgres:18.6@sha256:06cad38a5d9f5d24b4d83d86def30795d5e4b757fedbf5281172b576dedcd941` |
+| PostgreSQL | `docker.io/library/postgres:18.6-alpine3.24@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2` |
 | PowerDNS Auth current | `docker.io/powerdns/pdns-auth-51:5.1.4@sha256:bb5b1c133bcca1dd455075321de7d55db4945a8d7f2ba23339e3c7bbe416b205` |
 | PowerDNS Auth lower bound | `docker.io/powerdns/pdns-auth-50:5.0.6@sha256:c6d296669d720dd3f596bf2b42dc25d2e272f40a2b2493a1c476b3007a1a4a75` |
 | PowerDNS Recursor | `docker.io/powerdns/pdns-recursor-54:5.4.5@sha256:33aadc74a8d6b68cb422b06a5bff0c032dbf0f712ba6e5a62cf5bd9739dbac70` |
@@ -270,6 +270,21 @@ Properties enforced by tests are:
 - permutation invariance and multiplicity sensitivity for multisets;
 - empty multiset identity;
 - monotonicity and saturation for retry backoff.
+
+Canonical keys are owned by `internal/provider/normalise`. A caller supplies a
+key, not another comparison loop; `planmodify` and record helpers consume the
+same multiplicity-aware implementation. The small-list path is bounded to eight
+items and allocation-free for already-canonical ASCII values; larger inputs use
+a frequency map. Malformed values remain fail-closed, and every key must remain
+idempotent under native fuzzing, including invalid UTF-8 and malformed upstream
+address syntax.
+
+Clone analysis is semantic rather than threshold-driven. An implementation is
+shared only when its result, error behavior, and ownership boundary are the
+same. Product-specific HTTP adapters, Terraform Framework schema declarations,
+and domain aliases remain separate even when a token clone detector reports a
+similar body. Short exact algorithms that fall below the detector threshold are
+still found through syntax-aware inventory and `gopls` reference analysis.
 
 Backoff uses bounded integer arithmetic instead of floating-point exponentiation.
 Semantic plan modifiers run before `RequiresReplace`, so canonically equivalent
