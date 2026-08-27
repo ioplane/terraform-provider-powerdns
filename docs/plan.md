@@ -1804,7 +1804,7 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-10 | Historical review findings and naming invariants | `tfp-bqt.9` | QA | P10-01 | `[ ]` |
 | P10-11 | Terraform, OpenTofu and Terragrunt compatibility | `tfp-bqt.10` | QA | P10-03, P10-04, P10-06, P10-07 | `[ ]` |
 | P10-12 | Keep lab and E2E automation on the smallest executable boundary | `tfp-bqt.12` | DEV | P10-03 | `[x]` unused Go control plane and image-evidence WIP removed; tested Python lifecycle retained |
-| P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[~]` independent `v0.1.1..main` audit tracked by `tfp-34v`; release cut is isolated and must pass its own exact-SHA hosted closure before tagging |
+| P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[~]` independent `v0.1.1..main` audit tracked by `tfp-34v`; release cut documents the unreachable `GO-2026-5932` module-level exception and must pass exact-SHA hosted closure before tagging |
 | P10-14 | Restore linked-worktree dev-container identity consumers | `tfp-bqt.13` | DEV | P10-03 | `[x]` merged by PR #35; Bead closed after final reviews |
 | P10-15 | Protect release signing secrets in a GitHub environment | `tfp-34v.1` | OPS | P10-13 | `[x]` protected environment owns both signing secrets; repository copies are absent; tag policy, sole-maintainer approval and no-admin-bypass are live |
 
@@ -1840,6 +1840,10 @@ signing material remains confined to the final GoReleaser job. The public
 README, changelog, semantic contract and this plan also described old releases,
 scripts, comparison boundaries, coverage and pipeline ownership. Every
 behavioral correction has a failing test recorded before its implementation.
+The release-cut review then found the module-level `GO-2026-5932` alert: the
+affected `x/crypto/openpgp` package is absent from the complete production/test
+dependency closure, so the exact OSV exception is committed with that reason
+and remains guarded by `govulncheck` reachability.
 Exact audit evidence and the final pass/fail decision live in
 [`AUDIT-05-pre-release.md`](audit/AUDIT-05-pre-release.md).
 

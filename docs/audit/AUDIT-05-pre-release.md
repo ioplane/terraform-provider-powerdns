@@ -103,9 +103,12 @@ The final local candidate passed the required executable checks on 2026-08-27:
 - the consumer-path E2E suite: 59/59 passed in 17.77 seconds for Terraform,
   OpenTofu, Terragrunt, S3 state, the authenticated HTTPS module source and the
   `v0.1.1` to `v0.2.0` state upgrade; fixture and lab teardown then completed;
-- OSV: zero affected packages; pinned Trivy 0.74.0: zero HIGH/CRITICAL
-  vulnerabilities, secrets or misconfigurations in the clean-checkout source
-  boundary;
+- `govulncheck`: zero reachable vulnerabilities. OSV Scanner reports no
+  unignored issue: `GO-2026-5932` is a documented module-level exception
+  because neither the provider nor its tests import the affected, unmaintained
+  `golang.org/x/crypto/openpgp` package; pinned Trivy 0.74.0 reports zero
+  HIGH/CRITICAL vulnerabilities, secrets or misconfigurations in the
+  clean-checkout source boundary;
 - a complete development-image rebuild from the changed Containerfile,
   including successful verification of every pinned downloaded asset;
 - `task release:dryrun`: all 13 release archives matched their recorded
@@ -113,12 +116,20 @@ The final local candidate passed the required executable checks on 2026-08-27:
 
 The pre-cut `task release:check VERSION_ARG=0.2.0` proved the release-only
 boundary by failing on the old `VERSION`, missing changelog section, copied
-`0.1.x` constraints and dirty review tree. This release commit changes
+`0.1.x` constraints and dirty review tree. This release cut changes
 `VERSION`, the changelog, README, provider example, generated Registry index
 and Terragrunt standard to `0.2.0`/`~> 0.2` together. The `v0.2.0` tag remains
 absent until the clean committed tree passes the complete release check;
 released changelog sections remain unchanged and protocol 6 still matches the
 manifest.
+
+The release-cut orchestration review also reconciled live code-scanning alert
+`GO-2026-5932`. The module is present for `x/crypto/sha3`, but the affected
+`x/crypto/openpgp` package is absent from `go list -deps -test ./...`;
+`go mod why` likewise reports that the main module does not need that package.
+The exact exception and reason are committed in `osv-scanner.toml`, and a
+regression test prevents an unexplained or broader ignore. Hosted Security on
+the final release-cut SHA must confirm the intended alert state before merge.
 
 ## Release decision
 

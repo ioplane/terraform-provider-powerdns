@@ -153,8 +153,10 @@ The mapping between commit type, changelog section and version bump is in
   tag policy and sole-maintainer approval are active. The release checker also rejects copied
   provider constraints that exclude the release minor.
 - Transitive `golang.org/x/mod`, `x/crypto`, `x/net`, `x/text` and `x/tools`
-  dependencies move to their fixed compatible versions; the local OSV and
-  govulncheck gates report no affected package.
+  dependencies move to their fixed compatible versions. `govulncheck` reports
+  no reachable vulnerability. OSV advisory `GO-2026-5932` is documented as a
+  module-level exception because neither the provider nor its tests import the
+  affected, unmaintained `golang.org/x/crypto/openpgp` package.
 
 - The gate's nine checks are Python, not shell. 961 lines of bash under
   `scripts/` became `scripts/checks/`, one module per check, imported by
