@@ -9,6 +9,8 @@ The mapping between commit type, changelog section and version bump is in
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-27
+
 ### Added
 
 - `test/e2e` — the path a consumer's configuration travels, which the
@@ -763,6 +765,7 @@ from the published trivy image, pinned by digest, which resolves from anywhere.
   sibling key, and `autoprimaries_url` is sent by every `Server` object while
   the schema omits it under `additionalProperties: false`.
 
-[Unreleased]: https://github.com/ioplane/terraform-provider-powerdns/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/ioplane/terraform-provider-powerdns/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ioplane/terraform-provider-powerdns/releases/tag/v0.2.0
 [0.1.1]: https://github.com/ioplane/terraform-provider-powerdns/releases/tag/v0.1.1
 [0.1.0]: https://github.com/ioplane/terraform-provider-powerdns/releases/tag/v0.1.0

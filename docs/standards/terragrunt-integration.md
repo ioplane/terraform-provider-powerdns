@@ -77,7 +77,7 @@ generate "provider" {
       required_providers {
         powerdns = {
           source  = "ioplane/powerdns"
-          version = "~> 0.1"
+          version = "~> 0.2"
         }
       }
     }

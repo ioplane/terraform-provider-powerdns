@@ -24,10 +24,11 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 10 — pre-release reconciliation for `v0.2.0` is in progress.
-The provider and disposable PostgreSQL 18 lab are green locally; publication
-remains blocked until the remediated CI, security, release and documentation
-contracts pass the complete local gate and an exact-SHA GitHub run.
+**Status:** phase 10 — the isolated `v0.2.0` release cut is in progress. The
+provider, disposable PostgreSQL 18 lab, local gates and exact-SHA GitHub runs
+are green. Signing material is confined to the protected `release`
+environment; publication still requires this release commit's hosted gates,
+the annotated signed tag and the environment approval.
 **Last updated:** 2026-08-27
 
 ## How a sprint runs
@@ -1803,9 +1804,9 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-10 | Historical review findings and naming invariants | `tfp-bqt.9` | QA | P10-01 | `[ ]` |
 | P10-11 | Terraform, OpenTofu and Terragrunt compatibility | `tfp-bqt.10` | QA | P10-03, P10-04, P10-06, P10-07 | `[ ]` |
 | P10-12 | Keep lab and E2E automation on the smallest executable boundary | `tfp-bqt.12` | DEV | P10-03 | `[x]` unused Go control plane and image-evidence WIP removed; tested Python lifecycle retained |
-| P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[~]` independent `v0.1.1..main` audit tracked by `tfp-34v`; complete local gate is green, final independent diff review and hosted exact-SHA closure remain |
+| P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[~]` independent `v0.1.1..main` audit tracked by `tfp-34v`; release cut is isolated and must pass its own exact-SHA hosted closure before tagging |
 | P10-14 | Restore linked-worktree dev-container identity consumers | `tfp-bqt.13` | DEV | P10-03 | `[x]` merged by PR #35; Bead closed after final reviews |
-| P10-15 | Protect release signing secrets in a GitHub environment | `tfp-34v.1` | OPS | P10-13 | `[~]` live environment restricts tags, requires sole-maintainer approval and forbids admin bypass; move the secrets and delete repository copies before publication |
+| P10-15 | Protect release signing secrets in a GitHub environment | `tfp-34v.1` | OPS | P10-13 | `[x]` protected environment owns both signing secrets; repository copies are absent; tag policy, sole-maintainer approval and no-admin-bypass are live |
 
 Every row updates this table in the same commit as its implementation. A
 user-visible change also updates `CHANGELOG.md` under `Unreleased`; version
@@ -1822,9 +1823,9 @@ containers, networks, volumes or generated files.
 
 ### Independent pre-release audit, 2026-08-27
 
-The audit boundary is the 14 commits and 167 changed files from Registry
+The final audit boundary is the 15 commits and 174 changed files from Registry
 release `v0.1.1` (`c34fc02b96ed321b49a0ac10f61afbac22b582cb`) through
-`main` (`37905257aeb1dc7590f5e149eddc6611b6d70211`). Three independent
+`main` (`5683d5dee8e66f85d5b1706d2678457978108dba`). Three independent
 read-only passes covered provider semantics, delivery/security orchestration,
 and public documentation. Provider code had no Critical or Important defect;
 the release surface did.
@@ -1842,19 +1843,19 @@ behavioral correction has a failing test recorded before its implementation.
 Exact audit evidence and the final pass/fail decision live in
 [`AUDIT-05-pre-release.md`](audit/AUDIT-05-pre-release.md).
 
-The target is `v0.2.0`, not `v0.1.2`: the unpublished change is a
+The target is `v0.2.0`, not `v0.1.2`: the release delta contains a
 `feat(provider)` and makes semantic comparison stricter, both of which are a
-MINOR change under the repository's binding versioning rules. `VERSION` and
-the changelog stay unreleased until a separate release commit after local and
-hosted gates pass. Publication is additionally blocked on P10-15. On
+MINOR change under the repository's binding versioning rules. This isolated
+release commit moves `VERSION`, the changelog and copied provider constraints
+together after the audited main gates passed. On
 2026-08-27 the live `release` environment was created with the authenticated
 sole maintainer as its required reviewer, `prevent_self_review=false`,
 `can_admins_bypass=false`, and the tag policy `v[0-9]*.[0-9]*.[0-9]*`.
 Self-approval is intentional because this repository has one release author;
 the manual approval remains a separate action, but is not an independent
-identity boundary. GitHub does not expose secret values, so the signing key
-and passphrase still must be re-entered as environment secrets and their
-repository-level copies deleted before any tag is created.
+identity boundary. Both signing secrets are environment-scoped and their
+repository-level copies are absent. No `v0.2.0` tag existed when this release
+cut began.
 
 ---
 

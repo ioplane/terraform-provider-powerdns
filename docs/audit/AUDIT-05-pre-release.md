@@ -4,15 +4,15 @@
 
 **Bead:** `tfp-34v`
 
-**Status:** local remediation verified; hosted exact-SHA gates and publication
-remain blocked
+**Status:** remediation merged and exact-SHA gates verified; isolated release
+cut awaiting its own hosted gates and signed tag
 
 ## Boundary and method
 
 The audit starts at the last Terraform Registry release, `v0.1.1` commit
-`c34fc02b96ed321b49a0ac10f61afbac22b582cb`, and ends at audited `main`
-commit `37905257aeb1dc7590f5e149eddc6611b6d70211`. The boundary contains 14
-commits and 167 changed files. It is deliberately wider than the most recent
+`c34fc02b96ed321b49a0ac10f61afbac22b582cb`, and ends at final audited `main`
+commit `5683d5dee8e66f85d5b1706d2678457978108dba`. The boundary contains 15
+commits and 174 changed files. It is deliberately wider than the most recent
 pull request: publication exposes the complete delta from the version users
 can install.
 
@@ -38,9 +38,10 @@ change and makes a semantic comparison stricter. Both map to MINOR under
 uses MINOR for this class of compatibility change. `v0.1.2` would therefore be
 an incorrect release.
 
-`VERSION` remains `0.1.1` and the changelog remains under `[Unreleased]` during
-this remediation. Moving them, creating the annotated signed tag and
-publishing are a separate, post-gate release commit.
+The remediation kept `VERSION` at `0.1.1` and the changelog under
+`[Unreleased]`. This separate release commit moves them to `0.2.0` only after
+the audited main gates passed; the annotated signed tag and publication remain
+later, fail-closed steps.
 
 ## Independent findings
 
@@ -110,24 +111,24 @@ The final local candidate passed the required executable checks on 2026-08-27:
 - `task release:dryrun`: all 13 release archives matched their recorded
   digests and the Registry manifest matched the repository.
 
-The pre-cut `task release:check VERSION_ARG=0.2.0` remains deliberately red on
-the release-only conditions that the separate release commit must satisfy:
-`VERSION` still says `0.1.1`, the changelog has no `[0.2.0]` section, copied
-provider constraints still describe the published `0.1.x` line, and this review
-worktree is uncommitted. The checker requires the release commit to change the
-README, provider example, generated Registry index and Terragrunt standard to
-`~> 0.2` together. The `v0.2.0` tag is absent, released changelog sections
-remain unchanged, and protocol 6 matches the manifest.
+The pre-cut `task release:check VERSION_ARG=0.2.0` proved the release-only
+boundary by failing on the old `VERSION`, missing changelog section, copied
+`0.1.x` constraints and dirty review tree. This release commit changes
+`VERSION`, the changelog, README, provider example, generated Registry index
+and Terragrunt standard to `0.2.0`/`~> 0.2` together. The `v0.2.0` tag remains
+absent until the clean committed tree passes the complete release check;
+released changelog sections remain unchanged and protocol 6 still matches the
+manifest.
 
 ## Release decision
 
-Publication is fail-closed. The local execution boundary is complete; a fresh
-independent diff review still must approve the exact candidate bytes. A pull
-request must then pass the amended exact-SHA GitHub gates before a separate
-`v0.2.0` release commit and annotated signed tag are considered. The tag is
-also blocked on `tfp-34v.1`. The live GitHub environment now has a selected tag
-policy, the authenticated sole maintainer as its required reviewer,
-`prevent_self_review=false`, and `can_admins_bypass=false`. Self-approval is the
-only workable manual gate for this single-author repository and is explicitly
-not independent review. Publication remains blocked until both GPG secrets are
-environment-scoped and their repository-scoped copies are absent.
+Publication is fail-closed. Independent provider, orchestration and
+documentation reviews approved the remediation, PR #37 merged it, and the
+exact main SHA passed CI, Acceptance, End-to-end and Security. The protected
+`release` environment has the selected tag policy, the authenticated sole
+maintainer as its required reviewer, `prevent_self_review=false` and
+`can_admins_bypass=false`; both GPG secrets are environment-scoped and the
+repository copies are absent. This release-cut pull request must pass its own
+hosted gates before an annotated signed `v0.2.0` tag is created. Environment
+self-approval is the only workable manual publication gate for this
+single-author repository and is explicitly not an independent review.
