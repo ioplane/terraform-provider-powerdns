@@ -14,7 +14,7 @@
   "words": [
     "autoprimaries", "autoprimary", "autosecondary", "axfr", "cryptokey",
     "cryptokeys", "dnsdist", "dnskey", "dnssec", "dnsutils", "gopls", "gpgsql",
-    "keyrings", "lmdb", "nosec", "nsec", "opentofu", "pdns", "pdnsutil",
+    "keyrings", "lmdb", "nosec", "nsec", "openpgp", "opentofu", "pdns", "pdnsutil",
     "prefixlen", "gmysql", "gsqlite", "bindbackend", "ECDSAP", "cryptokey",
     "RRSIG", "algprobe", "digprobe", "norecurse", "dnsutils",
     "uncoverable", "YYYYMMD", "arpa", "nibble", "nibbles",
