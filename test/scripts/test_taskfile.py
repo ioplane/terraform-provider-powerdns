@@ -1,5 +1,6 @@
 """Repository contracts for the development-container lifecycle."""
 
+import hashlib
 import json
 import os
 import re
@@ -11,6 +12,10 @@ TASKFILE = Path("Taskfile.yml").read_text(encoding="utf-8")
 COMPOSEFILE = Path("deployments/compose/compose.dev.yml").read_text(encoding="utf-8")
 DEV_SUFFIX_SCRIPT = Path("scripts/dev-suffix.sh").resolve()
 CI_WORKFLOW = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+E2E_WORKFLOW = Path(".github/workflows/e2e.yml").read_text(encoding="utf-8")
+RELEASE_WORKFLOW = Path(".github/workflows/release.yml").read_text(encoding="utf-8")
+SECURITY_WORKFLOW = Path(".github/workflows/security.yml").read_text(encoding="utf-8")
+RELEASE_SIGNING_KEY = Path(".github/release-signing-key.asc")
 
 DEV_CONTAINERFILE = "deployments/containers/Containerfile.dev"
 
@@ -135,6 +140,113 @@ def variable(name: str) -> str:
     match = re.search(rf"(?m)^  {re.escape(name)}: (?P<value>.+)$", TASKFILE)
     assert match is not None
     return match.group("value")
+
+
+def test_required_ci_runs_the_complete_python_gate():
+    """Required CI must exercise the same Python surface as local task py."""
+    job = workflow_job(CI_WORKFLOW, "lint-py")
+    assert (
+        "uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0"
+    ) in job
+    assert 'go-version: "1.27.0"' in job
+    assert "cache: false" in job
+    assert workflow_commands(workflow_step(job, "Install Task")) == [
+        "go install github.com/go-task/task/v3/cmd/task@v3.52.0 # pin: TASK_VERSION"
+    ]
+    assert workflow_commands(workflow_step(job, "ruff")) == [
+        "uv run --locked ruff check scripts/ test/scripts/",
+        "uv run --locked ruff format --check scripts/ test/scripts/",
+    ]
+    ty = workflow_step(job, "ty")
+    assert "continue-on-error" not in ty
+    assert workflow_commands(ty) == [
+        "uv run --locked --group e2e ty check scripts/ test/scripts/"
+    ]
+    assert workflow_commands(workflow_step(job, "pytest")) == ["uv run --locked pytest"]
+
+
+def test_required_ci_shellchecks_the_worktree_identity_script():
+    """The required workflow must not omit a shell path covered by task all."""
+    job = workflow_job(CI_WORKFLOW, "lint-shell")
+    commands = workflow_commands(workflow_step(job, "shellcheck"))
+    assert "shellcheck scripts/dev-suffix.sh" in commands
+
+
+def test_local_e2e_commands_refuse_to_rewrite_the_lockfile():
+    """Local evidence must use the exact locked environment CI uses."""
+    for task in ("e2e:up", "e2e:down", "e2e:status", "e2e"):
+        commands = task_commands_from(TASKFILE, task)
+        assert commands
+        assert all("uv run --locked" in command for command in commands)
+
+
+def test_release_requires_exact_main_push_evidence():
+    """A tag may publish only after every release-relevant workflow passed."""
+    tags = RELEASE_WORKFLOW.split("    tags:\n", 1)[1].split("\n\npermissions:", 1)[0]
+    assert re.findall(r"(?m)^      - '(.*)'$", tags) == [
+        "v[0-9]+.[0-9]+.[0-9]+",
+        "v[0-9]+.[0-9]+.[0-9]+-*",
+        r"v[0-9]+.[0-9]+.[0-9]+\+*",
+    ]
+    gate = workflow_job(RELEASE_WORKFLOW, "gate")
+    step = workflow_step(gate, "The gate and the lab were green for this commit")
+    text = "\n".join(workflow_commands(step))
+    assert "for wf in CI Acceptance End-to-end Security" in text
+    assert ".head_branch" in text
+    assert "main" in text
+    assert ".event" in text
+    assert "push" in text
+
+
+def test_release_imports_the_tag_verification_key_before_the_gate():
+    """Verify tags with a public key; private signing material belongs downstream."""
+    gate = workflow_job(RELEASE_WORKFLOW, "gate")
+    key_import = gate.index("gpg --batch --import .github/release-signing-key.asc")
+    tag_check = gate.index("- name: Version, changelog, manifest, tag")
+    assert key_import < tag_check
+    assert "470479157AED6BD0ABA0DBD2436437EC9E89665F" in gate
+    assert "GPG_PRIVATE_KEY" not in gate
+    assert "PASSPHRASE" not in gate
+    assert hashlib.sha256(RELEASE_SIGNING_KEY.read_bytes()).hexdigest() == (
+        "864affa4945160b611588b1f02e9964b8be6e10d241a5cad3649d6f5e62f50db"
+    )
+
+
+def test_private_signing_material_is_scoped_to_the_release_environment():
+    """Repository-level secrets let an arbitrary tag workflow bypass the gate."""
+    gate = workflow_job(RELEASE_WORKFLOW, "gate")
+    signer = workflow_job(RELEASE_WORKFLOW, "goreleaser")
+    assert "GPG_PRIVATE_KEY" not in gate
+    assert "PASSPHRASE" not in gate
+    assert re.search(r"(?m)^    environment: release$", signer)
+    assert "gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}" in signer
+    assert "passphrase: ${{ secrets.PASSPHRASE }}" in signer
+
+
+def test_security_scanners_fail_after_writing_sarif():
+    """SARIF publication must not turn a known High into a green job."""
+    osv = workflow_step(workflow_job(SECURITY_WORKFLOW, "osv"), "osv-scanner")
+    trivy = workflow_step(workflow_job(SECURITY_WORKFLOW, "trivy"), "trivy")
+    osv_text = "\n".join(workflow_commands(osv))
+    trivy_text = "\n".join(workflow_commands(trivy))
+    assert "|| true" not in osv_text
+    assert 'exit "$status"' in osv_text
+    assert "--exit-code 1" in trivy_text
+    assert 'exit "$status"' in trivy_text
+
+
+def test_downloaded_tool_archives_are_verified_before_installation():
+    """TLS and a versioned URL are not content-integrity controls."""
+    workflows = (
+        CI_WORKFLOW,
+        E2E_WORKFLOW,
+        Path(".github/workflows/acceptance.yml").read_text(encoding="utf-8"),
+        Path(".github/workflows/coverage.yml").read_text(encoding="utf-8"),
+    )
+    for workflow in workflows:
+        for archive in re.findall(r"(?m)^\s*curl .* -o (?P<path>/tmp/\S+)", workflow):
+            suffix = workflow.split(f"-o {archive}", 1)[1].split("sudo ", 1)[0]
+            assert "sha256sum -c -" in suffix
 
 
 def shell_variable(name: str) -> str:

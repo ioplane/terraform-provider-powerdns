@@ -221,7 +221,7 @@ Everything runs in GitHub Actions ([ADR 0009](docs/adr/0009-github-actions-is-th
 | Workflow | Owns | Runs on |
 | --- | --- | --- |
 | `ci.yml` | The gate — build, test, lint, docs, commits. Job for job, this is `task all` | every push and pull request |
-| `acceptance.yml` | `task testacc` against the five-container lab | main, nightly, on demand |
+| `acceptance.yml` | `task testacc` against the five-container lab | every pull request, main, nightly, on demand |
 | `e2e.yml` | `task e2e` — Terragrunt, S3 state, a private module remote | main, nightly, on demand |
 | `security.yml` | CodeQL, Semgrep, osv-scanner, Trivy — findings become code-scanning alerts | push, pull request, weekly |
 | `scorecard.yml` | OpenSSF Scorecard | main, weekly |

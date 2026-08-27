@@ -139,8 +139,9 @@ func (r *recordResource) Schema(
 			"values": schema.ListAttribute{
 				MarkdownDescription: "The record values, one per record in the set. " +
 					"Address values are compared numerically, so an IPv6 address written " +
-					"uncompressed does not produce a permanent diff; every other type is " +
-					"compared exactly, because a TXT record's quoting is significant.",
+					"uncompressed does not produce a permanent diff. CNAME, NS, PTR and " +
+					"DNAME targets are compared as DNS names. Remaining content is compared " +
+					"exactly, because a TXT record's quoting is significant. Order is ignored.",
 				Required:    true,
 				ElementType: types.StringType,
 				Validators: []validator.List{

@@ -7,15 +7,21 @@ than a check, which is the reason they exist at all.
 
 from __future__ import annotations
 
+import subprocess
+
 import pytest
+from scripts.automation.opentofu_submission import SEMVER as SUBMISSION_SEMVER
 from scripts.checks.release import (
     SEMVER,
     added_since,
     changelog_section,
+    check_documented_constraints,
+    check_tag,
     declared_protocols,
     served_protocol,
 )
 from scripts.checks.release_artifacts import parse_sums
+from scripts.checks.report import Report
 
 CHANGELOG = """\
 # Changelog
@@ -91,14 +97,83 @@ def test_a_change_in_another_section_does_not_implicate_this_one():
     [
         ("0.1.1", True),
         ("1.0.0-rc.1", True),
+        ("1.0.0+build.7", True),
+        ("1.0.0-rc.1+build.7", True),
         ("0.1", False),
         ("v0.1.1", False),
         ("0.1.1.1", False),
+        ("01.2.3", False),
+        ("1.02.3", False),
+        ("1.2.03", False),
+        ("1.2.3-01", False),
+        ("1.2.3-a..b", False),
+        ("1.2.3-.a", False),
+        ("1.2.3-a.", False),
+        ("1.2.3+", False),
+        ("1.2.3+a..b", False),
+        ("1.2.3-rc_1", False),
+        ("1.2.3-\u03b1", False),
+        ("1.2.3\n", False),
     ],
 )
 def test_the_version_must_be_semantic(version, valid):
     """The Registry orders versions by this, and cannot be corrected afterwards."""
     assert bool(SEMVER.match(version)) is valid
+
+
+def test_publication_tools_share_one_semver_grammar():
+    """Release and registry-submission paths must not validate different tags."""
+    assert SUBMISSION_SEMVER is SEMVER
+
+
+def test_release_documents_must_admit_the_release_minor():
+    """A copied constraint must not exclude the version whose docs contain it."""
+    report = Report("constraint-test")
+    check_documented_constraints(
+        report,
+        "0.2.0",
+        {
+            "matching.tf": 'version = "~> 0.2"',
+            "stale.tf": 'version = "~> 0.1"',
+        },
+    )
+    assert report.failures == [
+        'stale.tf must contain the provider constraint version = "~> 0.2"'
+    ]
+
+
+@pytest.mark.parametrize(
+    ("object_type", "verify_status", "expected_failures"),
+    [
+        ("tag", 0, []),
+        ("tag", 1, ["v0.2.0 is not an annotated, validly signed tag"]),
+        ("commit", 1, ["v0.2.0 is not an annotated, validly signed tag"]),
+    ],
+    ids=["annotated-signed", "bad-signature", "lightweight"],
+)
+def test_an_existing_release_tag_must_be_annotated_and_signed(
+    monkeypatch: pytest.MonkeyPatch,
+    object_type: str,
+    verify_status: int,
+    expected_failures: list[str],
+) -> None:
+    """A lightweight or unsigned source tag cannot authorize publication."""
+    results = {
+        ("rev-parse", "-q", "--verify", "refs/tags/v0.2.0"): (0, "tag-object\n"),
+        ("rev-parse", "HEAD"): (0, "release-commit\n"),
+        ("rev-parse", "v0.2.0^{commit}"): (0, "release-commit\n"),
+        ("cat-file", "-t", "v0.2.0"): (0, f"{object_type}\n"),
+        ("verify-tag", "v0.2.0"): (verify_status, ""),
+    }
+
+    def fake_git(*args: str) -> subprocess.CompletedProcess[str]:
+        returncode, stdout = results[args]
+        return subprocess.CompletedProcess(["git", *args], returncode, stdout, "")
+
+    monkeypatch.setattr("scripts.checks.release.git", fake_git)
+    report = Report("tag-test")
+    check_tag(report, "0.2.0")
+    assert report.failures == expected_failures
 
 
 def test_the_framework_serves_six_unless_asked_for_five():

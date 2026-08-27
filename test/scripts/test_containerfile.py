@@ -186,3 +186,64 @@ def test_workflow_go_images_match_the_complete_containerfile_pin():
 
     assert workflow_images
     assert all(GO_IMAGE.group(1) in image for image in workflow_images)
+
+
+def test_downloaded_engine_binaries_are_verified_before_installation():
+    """Every supported architecture must bind downloaded bytes to a SHA-256."""
+    engine_run = next(
+        executable(instruction)
+        for instruction in instructions(CONTAINERFILE)
+        if instruction.startswith("RUN set -eux;") and "/tmp/tf.zip" in instruction  # noqa: S108 -- asserted build contract
+    )
+    for tool in ("tf", "tofu", "terragrunt"):
+        assert f"{tool}_sha=" in engine_run
+    assert engine_run.count('actual="$(sha256sum ') == 3
+    assert engine_run.count('test "${actual%% *}" = "$') == 3
+    assert engine_run.index("tf_sha=") < engine_run.index(
+        "unzip -d /usr/local/bin /tmp/tf.zip"
+    )
+    assert engine_run.index("tofu_sha=") < engine_run.index(
+        "unzip -d /usr/local/bin /tmp/tofu.zip"
+    )
+    assert engine_run.index("terragrunt_sha=") < engine_run.index(
+        "chmod +x /usr/local/bin/terragrunt"
+    )
+
+
+def test_downloaded_linter_and_uv_binaries_are_verified_before_execution():
+    """Bootstrap tools need the same content identity as Terraform engines."""
+    logical = [executable(instruction) for instruction in instructions(CONTAINERFILE)]
+    linter_run = next(
+        item
+        for item in logical
+        if "/tmp/sc.tar.xz" in item  # noqa: S108 -- asserted build contract
+    )
+    uv_run = next(
+        item
+        for item in logical
+        if "/tmp/uv.tar.gz" in item  # noqa: S108 -- asserted build contract
+    )
+
+    assert linter_run.count('actual="$(sha256sum ') == 2
+    assert linter_run.count('test "${actual%% *}" = "$') == 2
+    assert linter_run.index("sc_sha=") < linter_run.index("tar -xJf /tmp/sc.tar.xz")
+    assert linter_run.index("hadolint_sha=") < linter_run.index(
+        "chmod +x /usr/local/bin/hadolint"
+    )
+    assert "uv_sha=" in uv_run
+    assert uv_run.index('actual="$(sha256sum ') < uv_run.index(
+        "tar -xzf /tmp/uv.tar.gz"
+    )
+
+
+def test_nodesource_repository_key_is_verified_before_import():
+    """A repository signature starts at the downloaded key's own identity."""
+    node_run = next(
+        executable(instruction)
+        for instruction in instructions(CONTAINERFILE)
+        if "/tmp/nodesource.key" in instruction  # noqa: S108 -- asserted build contract
+    )
+    assert "NODESOURCE_GPG_SHA256" in CONTAINERFILE
+    assert "NODESOURCE_GPG_KEY_SHA256" not in CONTAINERFILE
+    assert 'actual="$(sha256sum /tmp/nodesource.key)"' in node_run
+    assert node_run.index('test "${actual%% *}"') < node_run.index("gpg --dearmor")

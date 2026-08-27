@@ -44,8 +44,8 @@ INVALID_GO_IMAGE = (
 )
 
 # The tools CI is expected to install. An ARG absent from this list is one the
-# dev image needs and CI does not — Task is for developers, and requiring a
-# marker for it would force a fake reference.
+# dev image needs and CI does not. Task joined the list when the hosted Python
+# gate began executing the real Taskfile expansion oracle.
 #
 # OpenTofu and Terragrunt joined the list when the end-to-end suite reached CI.
 # Terragrunt's version is not a formality there: `run` arrived when the CLI
@@ -59,10 +59,16 @@ REQUIRED = (
     "TFPLUGINDOCS_VERSION",
     "GORELEASER_VERSION",
     "SYFT_VERSION",
+    "TASK_VERSION",
     "GOTESTSUM_VERSION",
     "TERRAFORM_VERSION",
     "OPENTOFU_VERSION",
     "TERRAGRUNT_VERSION",
+    "TERRAFORM_LINUX_AMD64_SHA256",
+    "OPENTOFU_LINUX_AMD64_SHA256",
+    "TERRAGRUNT_LINUX_AMD64_SHA256",
+    "SHELLCHECK_LINUX_AMD64_SHA256",
+    "HADOLINT_LINUX_AMD64_SHA256",
     "NODE_MAJOR",
     "MARKDOWNLINT_VERSION",
     "CSPELL_VERSION",

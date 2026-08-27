@@ -354,7 +354,7 @@ tasks:
       - '{{.EXEC}} uv run --locked ruff check --fix scripts/ test/scripts/'
 
   py:typecheck:
-    desc: ty type check (pre-1.0 — a ty-only failure is reviewed, not obeyed)
+    desc: ty type check over Python code and tests
     deps: [_dev-running]
     # --group e2e: scripts/automation/e2e.py imports boto3 and tenacity, which
     # live in that group. Without it ty resolved them only when a previous
@@ -413,24 +413,24 @@ tasks:
   # === End-to-end ===
 
   e2e:up:
-    desc: Bring up the end-to-end fixture — MinIO, git, the bucket, the module
+    desc: Bring up the end-to-end fixture — SeaweedFS, git, the bucket, the module
     # Host-side, like the lab: it drives podman rather than running inside it.
     deps: [_lab-running]
-    cmds: ['uv run --group e2e python -m scripts.automation.e2e up']
+    cmds: ['uv run --locked --group e2e python -m scripts.automation.e2e up']
 
   e2e:down:
     desc: Remove the end-to-end fixture, including its volumes
-    cmds: ['uv run --group e2e python -m scripts.automation.e2e down']
+    cmds: ['uv run --locked --group e2e python -m scripts.automation.e2e down']
 
   e2e:status:
     desc: Report what the end-to-end fixture is running
-    cmds: ['uv run --group e2e python -m scripts.automation.e2e status']
+    cmds: ['uv run --locked --group e2e python -m scripts.automation.e2e status']
 
   e2e:
     desc: The end-to-end suite — terragrunt, S3 state, git module, real DNS
     deps: [_dev-running, _lab-running]
     cmds:
-      - '{{.EXEC}} uv run --group e2e pytest test/e2e -v --timeout=900'
+      - '{{.EXEC}} uv run --locked --group e2e pytest test/e2e -v --timeout=900'
 
   # === Release ===
 

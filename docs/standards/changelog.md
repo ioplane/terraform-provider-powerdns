@@ -56,9 +56,11 @@ fixed:
 1. Rename `[Unreleased]` to `## [X.Y.Z] — YYYY-MM-DD`; recreate an empty
    `[Unreleased]`.
 2. Update `VERSION`.
-3. Commit `chore(release): X.Y.Z`.
-4. Tag `vX.Y.Z`, annotated and GPG-signed.
-5. The release workflow extracts the section between two `## [` headings and
+3. Update every copied provider constraint (README, provider example, generated
+   Registry index and Terragrunt standard) to `~> X.Y`, then regenerate docs.
+4. Commit `chore(release): X.Y.Z`.
+5. Tag `vX.Y.Z`, annotated and GPG-signed.
+6. The release workflow extracts the section between two `## [` headings and
    feeds it to goreleaser as the release notes.
 
 **A released section is closed.** Once `X.Y.Z` is tagged, its section

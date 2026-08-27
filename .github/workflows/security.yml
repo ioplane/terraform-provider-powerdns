@@ -108,8 +108,10 @@ jobs:
       # The narrower one blocks a merge, the broader one raises an alert.
       - name: osv-scanner
         run: |
-          osv-scanner scan --recursive --format sarif --output osv.sarif . || true
+          status=0
+          osv-scanner scan --recursive --format sarif --output osv.sarif . || status=$?
           test -s osv.sarif
+          exit "$status"
       - uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
         if: always()
         with:
@@ -142,14 +144,17 @@ jobs:
       # which skopeo resolves from anywhere.
       - name: trivy
         run: |
+          status=0
           docker run --rm -v "$PWD:/src" -w /src \
             docker.io/aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969 \
             filesystem . \
             --scanners vuln,secret,misconfig \
             --ignorefile .trivyignore \
             --severity CRITICAL,HIGH \
-            --format sarif --output trivy.sarif
+            --exit-code 1 \
+            --format sarif --output trivy.sarif || status=$?
           test -s trivy.sarif
+          exit "$status"
       - uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
         if: always()
         with:

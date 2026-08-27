@@ -18,13 +18,19 @@ import sys
 from pathlib import Path
 
 from scripts.checks.report import Report
+from scripts.checks.semver import SEMVER
 
 MANIFEST = Path("terraform-registry-manifest.json")
 CHANGELOG = Path("CHANGELOG.md")
 VERSION_FILE = Path("VERSION")
 MAIN = Path("main.go")
+DOCUMENTED_CONSTRAINTS = (
+    Path("README.md"),
+    Path("examples/provider/provider.tf"),
+    Path("docs/index.md"),
+    Path("docs/standards/terragrunt-integration.md"),
+)
 
-SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$")
 RELEASED_HEADING = re.compile(r"^## \[([0-9]+\.[0-9]+\.[0-9]+)\]", re.MULTILINE)
 PROTOCOL = re.compile(r'"([0-9]+\.[0-9]+)"')
 LINK_DEFINITION = re.compile(r"^\[[^\]]+\]:\s*http")
@@ -120,9 +126,29 @@ def check_tag(report: Report, version: str) -> None:
     head = git("rev-parse", "HEAD").stdout.strip()
     tagged = git("rev-parse", f"{tag}^{{commit}}").stdout.strip()
     if head == tagged:
-        report.ok(f"{tag} already points at HEAD")
+        object_type = git("cat-file", "-t", tag).stdout.strip()
+        verified = git("verify-tag", tag).returncode == 0
+        if object_type == "tag" and verified:
+            report.ok(f"{tag} is annotated, signed, and points at HEAD")
+        else:
+            report.fail(f"{tag} is not an annotated, validly signed tag")
     else:
         report.fail(f"{tag} exists and points at {tagged[:12]}, not at HEAD")
+
+
+def check_documented_constraints(
+    report: Report,
+    version: str,
+    documents: dict[str, str],
+) -> None:
+    """Require every copied provider constraint to admit the release minor."""
+    major, minor, _ = version.split(".", 2)
+    expected = f'version = "~> {major}.{minor}"'
+    for name, content in documents.items():
+        if expected in content:
+            report.ok(f"{name} admits {major}.{minor}.x")
+        else:
+            report.fail(f"{name} must contain the provider constraint {expected}")
 
 
 def check_changelog(report: Report, changelog: str, version: str) -> None:
@@ -213,6 +239,15 @@ def main(argv: list[str]) -> int:
     check_version(report, version, file_version)
     check_tag(report, version)
     check_changelog(report, changelog, version)
+    print("\n== documented provider constraints admit this release ==")
+    check_documented_constraints(
+        report,
+        version,
+        {
+            str(path): path.read_text(encoding="utf-8")
+            for path in DOCUMENTED_CONSTRAINTS
+        },
+    )
     check_released_sections_are_closed(report, changelog)
     check_manifest(report)
     check_clean_tree(report)

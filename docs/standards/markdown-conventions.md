@@ -141,10 +141,10 @@ keeps a documentation set visually coherent.
    real licence; `badge/license-Apache--2.0` is a claim that rots. A static
    badge is for a fact with no endpoint behind it — a language version, a
    convention adopted.
-2. **Never ship a badge whose endpoint errors.** `github/ci` returns
-   `{"error":"not found"}` for this repository, because the quality pipeline is
-   GitLab and GitHub holds only the release workflow. A broken image on the
-   front page is worse than an absent one. Check with `.json` before adding.
+2. **Never ship a badge whose endpoint errors.** GitHub Actions owns the
+   quality gate, and the CI badge names `workflow=ci.yml` so it cannot drift to
+   another workflow. A broken image on the front page is worse than an absent
+   one. Check the endpoint's `.json` response before adding.
 3. **Three to six per row, at most three rows.** Group them by meaning —
    repository state, stack, conventions — and separate rows with `<br>`.
 4. **Do not set `size`.** The shieldcn default is `sm` (184×32), which is what

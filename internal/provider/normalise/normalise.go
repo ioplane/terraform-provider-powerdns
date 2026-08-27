@@ -213,9 +213,10 @@ func countedStringMultiset(configured, actual []string, key func(string) string)
 //
 // PowerDNS rewrites the content of address records: an AAAA given as
 // `2001:0db8:0000:0000:0000:0000:0000:0001` reads back `2001:db8::1`. Verified
-// against auth-5.1.3. For every other type the content is compared exactly —
-// a TXT record's quoting and whitespace are significant, and treating two
-// spellings as equal there would hide a real edit.
+// against auth-5.1.3. PowerDNS also canonicalises CNAME, NS, PTR and DNAME
+// targets as DNS names. Every remaining type is compared exactly — a TXT
+// record's quoting and whitespace are significant, and treating two spellings
+// as equal there would hide a real edit.
 func RecordContent(recordType, configured, actual string) bool {
 	return RecordContentKey(recordType, configured) == RecordContentKey(recordType, actual)
 }

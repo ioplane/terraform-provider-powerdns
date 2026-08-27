@@ -22,6 +22,7 @@ Normative. Read the standard before changing the thing it governs.
 | [`standards/terragrunt-integration.md`](standards/terragrunt-integration.md) | How consumers orchestrate this provider. |
 | [`standards/powerdns-api-discipline.md`](standards/powerdns-api-discipline.md) | How to establish a fact about PowerDNS. |
 | [`standards/python-tooling.md`](standards/python-tooling.md) | uv, ruff, ty. |
+| [`standards/markdown-conventions.md`](standards/markdown-conventions.md) | Markdown structure, badges and diagrams. |
 | [`standards/verified-identifiers.md`](standards/verified-identifiers.md) | Never write a digest, SHA or version from memory. |
 
 ## Decisions
@@ -41,6 +42,14 @@ editing one.
 | [`adr/0008`](adr/0008-github-only-review.md) | Review happens on GitHub only. |
 | [`adr/0009`](adr/0009-github-actions-is-the-gate.md) | GitHub Actions runs the gate; `.gitlab-ci.yml` removed. |
 | [`adr/0010`](adr/0010-go-1.27-development-toolchain.md) | Go 1.27 toolchain, isolated caches and worktree-owned Compose lifecycle. |
+
+## Audits
+
+| Audit | Scope |
+| --- | --- |
+| [`audit/AUDIT-02`](audit/AUDIT-02-go-1.27-toolchain.md) | Go 1.27 toolchain and development image. |
+| [`audit/AUDIT-04`](audit/AUDIT-04-provider-efficiency.md) | Provider efficiency, duplication and idempotence. |
+| [`audit/AUDIT-05`](audit/AUDIT-05-pre-release.md) | Independent release audit from `v0.1.1` through current `main`. |
 
 ## Related
 

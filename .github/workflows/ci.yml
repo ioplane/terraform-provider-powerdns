@@ -192,15 +192,20 @@ jobs:
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: "0.11.33" # pin: UV_VERSION
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.0"
+          cache: false
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@v3.52.0 # pin: TASK_VERSION
       - name: ruff
         run: |
-          uv tool run ruff@0.16.0 check scripts/       # pin: RUFF_VERSION
-          uv tool run ruff@0.16.0 format --check scripts/
-      # ty is pre-1.0. A ty-only failure is reviewed, not obeyed — the same
-      # standing the Taskfile gives it, for the same reason.
+          uv run --locked ruff check scripts/ test/scripts/
+          uv run --locked ruff format --check scripts/ test/scripts/
       - name: ty
-        continue-on-error: true
-        run: uv tool run ty@0.0.64 check scripts/ # pin: TY_VERSION
+        run: uv run --locked --group e2e ty check scripts/ test/scripts/
+      - name: pytest
+        run: uv run --locked pytest
 
   # task tf:fmt:check, task docs:check
   terraform:
@@ -227,6 +232,7 @@ jobs:
         run: |
           curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/tf.zip \
             "https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_linux_amd64.zip" # pin: TERRAFORM_VERSION
+          echo "d25ce7b6902013ad905db3d2eab0be4cd905887fe88b81a6171b8d5503c31f3d  /tmp/tf.zip" | sha256sum -c - # pin: TERRAFORM_LINUX_AMD64_SHA256
           sudo unzip -o -d /usr/local/bin /tmp/tf.zip
       - run: terraform fmt -check -recursive examples
       - run: go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0 # pin: TFPLUGINDOCS_VERSION
@@ -253,10 +259,12 @@ jobs:
         run: |
           sc=https://github.com/koalaman/shellcheck/releases/download/v0.11.0 # pin: SHELLCHECK_VERSION
           curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/sc.tar.xz "$sc/shellcheck-v0.11.0.linux.x86_64.tar.xz"
+          echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  /tmp/sc.tar.xz" | sha256sum -c - # pin: SHELLCHECK_LINUX_AMD64_SHA256
           tar -xJf /tmp/sc.tar.xz -C /tmp
           sudo install -m 0755 /tmp/shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
           hd=https://github.com/hadolint/hadolint/releases/download/v2.14.0 # pin: HADOLINT_VERSION
           curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/hadolint "$hd/hadolint-Linux-x86_64"
+          echo "6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47  /tmp/hadolint" | sha256sum -c - # pin: HADOLINT_LINUX_AMD64_SHA256
           sudo install -m 0755 /tmp/hadolint /usr/local/bin/hadolint
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -268,7 +276,9 @@ jobs:
         # copied from there — an unbalanced quote in one is a user's problem.
         # -s bash, not a shebang: tfplugindocs renders these verbatim into
         # the registry pages, where a shebang would appear in the example.
-        run: shellcheck -s bash examples/resources/*/import.sh
+        run: |
+          shellcheck scripts/dev-suffix.sh
+          shellcheck -s bash examples/resources/*/import.sh
       - name: hadolint
         run: hadolint deployments/containers/Containerfile.dev
       - name: actionlint

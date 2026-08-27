@@ -19,6 +19,7 @@ on:
       # the Registry.
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-*'
+      - 'v[0-9]+.[0-9]+.[0-9]+\+*'
 
 permissions:
   contents: read
@@ -53,22 +54,20 @@ jobs:
           go-version-file: go.mod
           cache: false
 
-      - name: The signing key exists
-        # Before anything is built, not after. Discovering a missing secret at
-        # the signing step means the tag is spent: it has been pushed, the
-        # Registry may already have seen it, and the fix is a new version.
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.PASSPHRASE }}
+      - name: Import the source-tag verification key
+        # The gate needs only public verification material. The private key is
+        # withheld until the final GoReleaser job, after tag ancestry and every
+        # exact-SHA workflow result have been authenticated.
         run: |
-          missing=""
-          [ -n "${GPG_PRIVATE_KEY:-}" ] || missing="GPG_PRIVATE_KEY"
-          [ -n "${PASSPHRASE:-}" ] || missing="${missing:+$missing }PASSPHRASE"
-          if [ -n "$missing" ]; then
-            echo "::error::missing repository secret(s): $missing — the Registry rejects an unsigned SHA256SUMS"
+          gpg --batch --import .github/release-signing-key.asc
+          fingerprint="$(gpg --batch --with-colons --fingerprint 436437EC9E89665F |
+            awk -F: '$1 == "fpr" { print $10; exit }')"
+          expected=470479157AED6BD0ABA0DBD2436437EC9E89665F
+          if [ "$fingerprint" != "$expected" ]; then
+            echo "::error::release verification key fingerprint is $fingerprint, expected $expected"
             exit 1
           fi
-          echo "ok    signing secrets present"
+          echo "ok    source-tag verification key is $fingerprint"
 
       - name: Version, changelog, manifest, tag
         env:
@@ -101,9 +100,9 @@ jobs:
         run: |
           sha="$(git rev-parse HEAD)"
           status=0
-          for wf in CI Acceptance; do
+          for wf in CI Acceptance End-to-end Security; do
             concl="$(gh api "repos/${REPO}/actions/runs?head_sha=${sha}&status=completed" \
-                       --jq "[.workflow_runs[] | select(.name == \"${wf}\")] | .[0].conclusion // \"none\"")"
+                       --jq "[.workflow_runs[] | select(.name == \"${wf}\" and .head_branch == \"main\" and .event == \"push\")] | .[0].conclusion // \"none\"")"
             case "$concl" in
               success) echo "ok    ${wf} succeeded for ${sha:0:12}" ;;
               none)    echo "::error::${wf} has not completed for ${sha:0:12} — push the commit to main and let it run before tagging"; status=1 ;;
@@ -172,6 +171,12 @@ jobs:
     name: GoReleaser
     needs: [gate, test]
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    # P10-15 blocks publication until GPG_PRIVATE_KEY and PASSPHRASE have moved
+    # from repository scope into this protected environment. The sole
+    # maintainer must explicitly approve a selected release tag; self-review is
+    # therefore enabled, while administrator bypass remains disabled. Binding
+    # the job here is the code half of that boundary; settings are the other.
+    environment: release
     permissions:
       contents: write
       id-token: write

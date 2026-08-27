@@ -32,12 +32,13 @@
 A Terraform provider for the **PowerDNS family** — Authoritative Server,
 Recursor and dnsdist — on `terraform-plugin-framework`, protocol 6.
 
-> **Status: `v0.1.0` released.** Every operation of all three APIs is covered
+> **Status: `v0.1.1` released.** Every operation of all three APIs is covered
 > and the acceptance suite runs against a real five-service lab on every push
-> to `main`. Registry publication is pending; until then, install from the
-> [GitHub release](https://github.com/ioplane/terraform-provider-powerdns/releases/tag/v0.1.0)
-> or build from source. [`docs/plan.md`](docs/plan.md) records exactly where
-> everything stands.
+> to `main`. Install it from the
+> [Terraform Registry](https://registry.terraform.io/providers/ioplane/powerdns/latest)
+> or the matching
+> [GitHub release](https://github.com/ioplane/terraform-provider-powerdns/releases/tag/v0.1.1).
+> [`docs/plan.md`](docs/plan.md) records exactly where everything stands.
 
 ## Using it
 

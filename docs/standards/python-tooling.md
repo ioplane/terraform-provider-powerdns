@@ -64,6 +64,10 @@ task py             # all four
 exactly the way the Go gate does. Python that only ever runs on a developer's
 machine is still code someone else has to read.
 
+The hosted Python job installs the same pinned Task version as the development
+image before pytest. One structural test executes Task's real dry-run engine;
+parsing `Taskfile.yml` alone cannot prove shell-variable expansion semantics.
+
 ## Ruff configuration
 
 `[tool.ruff.lint] select` is an allowlist of 42 rule families, not `ALL`.
@@ -79,7 +83,8 @@ Four suppressions, each with a reason:
 | `D203`, `D213` | Mutually exclusive with the Google docstring convention selected below. |
 | `ISC001` | Conflicts with the formatter. |
 | `S603`, `S607` in `scripts/automation/` and `scripts/checks/` | `subprocess` is the point of the automation. Every call site is a fixed argument list, with no shell and no interpolated input. |
-| `S101`, `ANN001`, `ANN201`, `INP001`, `PLR2004` in `test/` | Each inverts in a test: `assert` is how pytest reports, fixtures are typed at the call site, a test directory must not be importable as a package, and the comparison value *is* the assertion. |
+| `S101`, `ANN001`, `ANN201`, `PLR2004` in `test/scripts/` | Each inverts in a test: `assert` is how pytest reports, fixtures are typed at the call site, and the comparison value *is* the assertion. `test/scripts/` is an explicit package because its structural tests share helpers across modules; this also prevents the Python standard-library `test` package from shadowing it during hosted collection. |
+| `INP001` in `test/e2e/` | The end-to-end suite is collected by pytest and remains deliberately non-package code. |
 | `ARG002` in `test/e2e/` | A fixture requested only for its side effect — a zone that has to exist before the scenario runs — is unused by name and load-bearing in fact. |
 | `PLR0913` on `scripts/automation/run.py:run` | Every parameter is a `subprocess` option a caller needs; a `**kwargs` passthrough cannot be type-checked. |
 
@@ -92,10 +97,11 @@ pretending otherwise.
 
 It is in the gate because its findings on this code base have been accurate and
 because the automation manipulates loosely typed API payloads, where a type
-checker earns its place. But a **ty-only failure is reviewed, not obeyed**: if
-`ty` reports something `ruff` does not and the code is demonstrably correct,
-the finding is recorded and the rule adjusted in `[tool.ty.rules]`, rather than
-the code contorted to satisfy a pre-release checker.
+checker earns its place. A `ty` failure is a gate failure. If the checker is
+demonstrably wrong, the finding is recorded and the rule is narrowly adjusted
+in `[tool.ty.rules]`, rather than contorting production code around a
+pre-release checker. The same blocking command runs locally and in required
+CI.
 
 If `ty` reaches a state where it blocks more than it catches, it comes out. That
 decision would be an ADR, not a quiet edit.

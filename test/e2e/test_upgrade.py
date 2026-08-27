@@ -8,7 +8,7 @@ a constraint, and the answer cannot be inferred from a suite that never changes
 version.
 
 The two builds are real. The fixture mirrors 0.1.1 built from the released tag
-and 0.1.2 built from the working tree, so the state read in the second phase was
+and 0.2.0 built from the working tree, so the state read in the second phase was
 written by different code — not by the same binary under a different number,
 which would have exercised the mechanism and proved nothing.
 """
@@ -57,7 +57,7 @@ class TestTheReleasedVersionWritesTheState:
         """Nothing later means anything if this does not hold.
 
         The lock file is removed first. A previous run of this file leaves it
-        recording 0.1.2, and Terraform will not move a lock backwards without
+        recording 0.2.0, and Terraform will not move a lock backwards without
         being asked — so without this the phase fails on the second run of the
         suite and the failure reads as an upgrade defect. What is being set up
         is a consumer who has the released version and no history, which is a
