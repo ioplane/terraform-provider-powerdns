@@ -151,7 +151,6 @@ ignore = [
     "S101",   # assert is how pytest reports
     "ANN001", # fixtures are typed by pytest at the call site
     "ANN201",
-    "INP001", # a test directory is found by pytest, not by the import system
     "PLR2004", # the comparison value is the assertion
     "S603",
     "S607",
