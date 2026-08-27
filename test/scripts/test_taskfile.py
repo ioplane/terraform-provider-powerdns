@@ -182,6 +182,12 @@ def test_local_e2e_commands_refuse_to_rewrite_the_lockfile():
 
 def test_release_requires_exact_main_push_evidence():
     """A tag may publish only after every release-relevant workflow passed."""
+    tags = RELEASE_WORKFLOW.split("    tags:\n", 1)[1].split("\n\npermissions:", 1)[0]
+    assert re.findall(r"(?m)^      - '(.*)'$", tags) == [
+        "v[0-9]+.[0-9]+.[0-9]+",
+        "v[0-9]+.[0-9]+.[0-9]+-*",
+        r"v[0-9]+.[0-9]+.[0-9]+\+*",
+    ]
     gate = workflow_job(RELEASE_WORKFLOW, "gate")
     step = workflow_step(gate, "The gate and the lab were green for this commit")
     text = "\n".join(workflow_commands(step))
