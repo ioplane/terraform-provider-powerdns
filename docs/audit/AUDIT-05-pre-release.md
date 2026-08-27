@@ -95,7 +95,7 @@ and cannot authorize its publication.
 
 The final local candidate passed the required executable checks on 2026-08-27:
 
-- `task all`, including race tests, 290 Python tests, Ruff, blocking ty,
+- `task all`, including race tests, 291 Python tests, Ruff, blocking ty,
   actionlint, zizmor, shellcheck, hadolint, Semgrep, documentation checks and
   govulncheck;
 - `task verify AUTH=5.1` and `task verify AUTH=5.0`, including all four lab
