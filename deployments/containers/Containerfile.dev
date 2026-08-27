@@ -29,7 +29,20 @@ ARG ZIZMOR_VERSION=1.28.0
 ARG TERRAFORM_VERSION=1.15.8
 ARG OPENTOFU_VERSION=1.12.5
 ARG TERRAGRUNT_VERSION=1.1.1
+ARG TERRAFORM_LINUX_AMD64_SHA256=d25ce7b6902013ad905db3d2eab0be4cd905887fe88b81a6171b8d5503c31f3d
+ARG TERRAFORM_LINUX_ARM64_SHA256=8891e9dcedc9e3b8950bc6af9d4d8af1f4cfade3062f53b9dc403a89f6ce8c9c
+ARG OPENTOFU_LINUX_AMD64_SHA256=dade9650e6b74fc7a8b986bd8717497d32f9e09cf82e479afef4977fa3085536
+ARG OPENTOFU_LINUX_ARM64_SHA256=528f4eea63452bbddb30fa4f1780b57fac8d7676f9dda0f772e847bb62c1260a
+ARG TERRAGRUNT_LINUX_AMD64_SHA256=98b0400ba1ae27120adeeb98ba97e75eba0bab0b4cbd7b8bb148d4ed29e2f823
+ARG TERRAGRUNT_LINUX_ARM64_SHA256=9662356c40130bfbcd20e88e556dfa33e487c31af153803aca85c8a299d48ab6
+ARG SHELLCHECK_LINUX_AMD64_SHA256=8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198
+ARG SHELLCHECK_LINUX_ARM64_SHA256=12b331c1d2db6b9eb13cfca64306b1b157a86eb69db83023e261eaa7e7c14588
+ARG HADOLINT_LINUX_AMD64_SHA256=6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47
+ARG HADOLINT_LINUX_ARM64_SHA256=331f1d3511b84a4f1e3d18d52fec284723e4019552f4f47b19322a53ce9a40ed
+ARG UV_LINUX_AMD64_SHA256=aa9fca823c03289fb6e3460b3dc864f3ea895cafaf9b99247701a67b17d1b018
+ARG UV_LINUX_ARM64_SHA256=9ed88a9a42de3102f9704d021ab186fdf8a69a7ad9a1d3f3486ac6b1e55d6141
 ARG NODE_MAJOR=22
+ARG NODESOURCE_GPG_SHA256=b42e0321dabdc24e892115da705cf061167eac12a317f23d329862d0aa0a271d
 ARG MARKDOWNLINT_VERSION=0.23.2
 ARG CSPELL_VERSION=10.0.1
 ARG COMMITLINT_VERSION=21.2.1
@@ -60,7 +73,20 @@ ARG ZIZMOR_VERSION
 ARG TERRAFORM_VERSION
 ARG OPENTOFU_VERSION
 ARG TERRAGRUNT_VERSION
+ARG TERRAFORM_LINUX_AMD64_SHA256
+ARG TERRAFORM_LINUX_ARM64_SHA256
+ARG OPENTOFU_LINUX_AMD64_SHA256
+ARG OPENTOFU_LINUX_ARM64_SHA256
+ARG TERRAGRUNT_LINUX_AMD64_SHA256
+ARG TERRAGRUNT_LINUX_ARM64_SHA256
+ARG SHELLCHECK_LINUX_AMD64_SHA256
+ARG SHELLCHECK_LINUX_ARM64_SHA256
+ARG HADOLINT_LINUX_AMD64_SHA256
+ARG HADOLINT_LINUX_ARM64_SHA256
+ARG UV_LINUX_AMD64_SHA256
+ARG UV_LINUX_ARM64_SHA256
 ARG NODE_MAJOR
+ARG NODESOURCE_GPG_SHA256
 ARG MARKDOWNLINT_VERSION
 ARG CSPELL_VERSION
 ARG COMMITLINT_VERSION
@@ -109,6 +135,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     install -m 0755 -d /etc/apt/keyrings \
  && curl -fsSL --proto '=https' --tlsv1.2 \
       https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key -o /tmp/nodesource.key \
+ && actual="$(sha256sum /tmp/nodesource.key)" \
+ && test "${actual%% *}" = "$NODESOURCE_GPG_SHA256" \
  && gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg /tmp/nodesource.key \
  && rm -f /tmp/nodesource.key \
  && chmod a+r /etc/apt/keyrings/nodesource.gpg \
@@ -122,12 +150,19 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # co-equal target, not an afterthought.
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
-    case "$arch" in amd64) a=amd64 ;; arm64) a=arm64 ;; *) echo "unsupported arch $arch" >&2; exit 1 ;; esac; \
+    case "$arch" in \
+      amd64) a=amd64; tf_sha="$TERRAFORM_LINUX_AMD64_SHA256"; tofu_sha="$OPENTOFU_LINUX_AMD64_SHA256"; terragrunt_sha="$TERRAGRUNT_LINUX_AMD64_SHA256" ;; \
+      arm64) a=arm64; tf_sha="$TERRAFORM_LINUX_ARM64_SHA256"; tofu_sha="$OPENTOFU_LINUX_ARM64_SHA256"; terragrunt_sha="$TERRAGRUNT_LINUX_ARM64_SHA256" ;; \
+      *) echo "unsupported arch $arch" >&2; exit 1 ;; \
+    esac; \
     curl -fsSL "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${a}.zip" -o /tmp/tf.zip; \
+    actual="$(sha256sum /tmp/tf.zip)"; test "${actual%% *}" = "$tf_sha"; \
     unzip -d /usr/local/bin /tmp/tf.zip; \
     curl -fsSL "https://github.com/opentofu/opentofu/releases/download/v${OPENTOFU_VERSION}/tofu_${OPENTOFU_VERSION}_linux_${a}.zip" -o /tmp/tofu.zip; \
+    actual="$(sha256sum /tmp/tofu.zip)"; test "${actual%% *}" = "$tofu_sha"; \
     unzip -d /usr/local/bin /tmp/tofu.zip tofu; \
     curl -fsSL "https://github.com/gruntwork-io/terragrunt/releases/download/v${TERRAGRUNT_VERSION}/terragrunt_linux_${a}" -o /usr/local/bin/terragrunt; \
+    actual="$(sha256sum /usr/local/bin/terragrunt)"; test "${actual%% *}" = "$terragrunt_sha"; \
     chmod +x /usr/local/bin/terragrunt; \
     rm -f /tmp/tf.zip /tmp/tofu.zip; \
     terraform version; tofu version; terragrunt --version
@@ -151,16 +186,20 @@ RUN --mount=type=cache,target=/tmp/go-cache \
 # actionlint silently checks less than it appears to.
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
-    case "$arch" in amd64) sc=x86_64; hd=x86_64 ;; arm64) sc=aarch64; hd=arm64 ;; \
+    case "$arch" in \
+      amd64) sc=x86_64; hd=x86_64; sc_sha="$SHELLCHECK_LINUX_AMD64_SHA256"; hadolint_sha="$HADOLINT_LINUX_AMD64_SHA256" ;; \
+      arm64) sc=aarch64; hd=arm64; sc_sha="$SHELLCHECK_LINUX_ARM64_SHA256"; hadolint_sha="$HADOLINT_LINUX_ARM64_SHA256" ;; \
       *) echo "unsupported arch $arch" >&2; exit 1 ;; esac; \
     curl -fsSL --proto '=https' --tlsv1.2 \
       "https://github.com/koalaman/shellcheck/releases/download/${SHELLCHECK_VERSION}/shellcheck-${SHELLCHECK_VERSION}.linux.${sc}.tar.xz" \
       -o /tmp/sc.tar.xz; \
+    actual="$(sha256sum /tmp/sc.tar.xz)"; test "${actual%% *}" = "$sc_sha"; \
     tar -xJf /tmp/sc.tar.xz -C /tmp; \
     install -m 0755 "/tmp/shellcheck-${SHELLCHECK_VERSION}/shellcheck" /usr/local/bin/shellcheck; \
     curl -fsSL --proto '=https' --tlsv1.2 \
       "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-Linux-${hd}" \
       -o /usr/local/bin/hadolint; \
+    actual="$(sha256sum /usr/local/bin/hadolint)"; test "${actual%% *}" = "$hadolint_sha"; \
     chmod +x /usr/local/bin/hadolint; \
     rm -rf /tmp/sc.tar.xz "/tmp/shellcheck-${SHELLCHECK_VERSION}"; \
     shellcheck --version; hadolint --version
@@ -180,12 +219,22 @@ RUN --mount=type=cache,target=/root/.npm \
 # checks. podman-py is a runtime dependency of the lab automation, so it goes
 # into the interpreter rather than the tool environment.
 RUN --mount=type=cache,target=/root/.cache/uv \
+    set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) uv_arch=x86_64; uv_sha="$UV_LINUX_AMD64_SHA256" ;; \
+      arm64) uv_arch=aarch64; uv_sha="$UV_LINUX_ARM64_SHA256" ;; \
+      *) echo "unsupported arch $arch" >&2; exit 1 ;; \
+    esac; \
     curl -fsSL --proto '=https' --tlsv1.2 \
-      "https://astral.sh/uv/${UV_VERSION}/install.sh" -o /tmp/uv-install.sh \
- && sh /tmp/uv-install.sh \
- && rm -f /tmp/uv-install.sh \
- && mv /root/.local/bin/uv /root/.local/bin/uvx /usr/local/bin/ \
- && uv --version
+      "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${uv_arch}-unknown-linux-gnu.tar.gz" \
+      -o /tmp/uv.tar.gz; \
+    actual="$(sha256sum /tmp/uv.tar.gz)"; test "${actual%% *}" = "$uv_sha"; \
+    tar -xzf /tmp/uv.tar.gz --strip-components=1 -C /usr/local/bin \
+      "uv-${uv_arch}-unknown-linux-gnu/uv" \
+      "uv-${uv_arch}-unknown-linux-gnu/uvx"; \
+    rm -f /tmp/uv.tar.gz; \
+    uv --version
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv tool install --python 3.12 "ruff==${RUFF_VERSION}" \

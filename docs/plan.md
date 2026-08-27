@@ -24,10 +24,11 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 10 — the Go 1.27 and environment modernization design is
-approved with PostgreSQL 18 required. Phase 7 and phase 8 stay open alongside
-it for their existing release and hosted-gate decisions.
-**Last updated:** 2026-08-21
+**Status:** phase 10 — pre-release reconciliation for `v0.2.0` is in progress.
+The provider and disposable PostgreSQL 18 lab are green locally; publication
+remains blocked until the remediated CI, security, release and documentation
+contracts pass the complete local gate and an exact-SHA GitHub run.
+**Last updated:** 2026-08-27
 
 ## How a sprint runs
 
@@ -1703,7 +1704,7 @@ have found it on the next push, which is later and more expensively.
 
 **Whether a new version reads an old version's state.** Every scenario until now
 applied one build to state that same build had written. The fixture now mirrors
-two: 0.1.1 built from the released tag, 0.1.2 built from the working tree, with
+two: 0.1.1 built from the released tag, 0.2.0 built from the working tree, with
 `git archive` unpacking the tag on the host — the container cannot run git,
 because `/app` is a worktree whose `.git` points at a directory that is not
 mounted. Nine scenarios follow a consumer's bump: apply, check the *lock file*
@@ -1743,7 +1744,8 @@ automatic analysis enabled, a CI analysis fails and disrupts the build.
 The workflow stands the lab up rather than running unit tests alone. Most of
 this provider is an HTTP conversation with PowerDNS, so unit coverage would
 report a number that measures the wrong tests — worse than reporting none,
-which is what the project had. Together they cover **71.6% of statements**.
+which is what the project had. The current main run covers **75.5% of
+statements**.
 
 The first version reported 68.9%:
 Go instruments only the package under test unless told otherwise, so the API
@@ -1792,8 +1794,8 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-01 | Design, version evidence and staged pull-request boundaries | `tfp-bqt.1` | ARC | — | `[x]` |
 | P10-02 | Recover dev-container build capacity after scoped approval | `tfp-bqt.2` | OPS | — | `[x]` closed after scoped cleanup and verified capacity recovery |
 | P10-03 | Go 1.27 toolchain, required analyzers, direct modules and compatibility tests | `tfp-bqt.3` | DEV | P10-01, P10-02 | `[x]` merged by PR #34; Bead closed after final reviews |
-| P10-04 | Remaining development-image tools, integrity pins and build layering | `tfp-bqt.4` | OPS | P10-01, P10-02 | `[ ]` |
-| P10-05 | Workflow containers and GitHub Actions | `tfp-bqt.5` | OPS | P10-04 | `[ ]` |
+| P10-04 | Remaining development-image tools, integrity pins and build layering | `tfp-bqt.4` | OPS | P10-01, P10-02 | `[~]` downloaded Terraform, OpenTofu, Terragrunt, shellcheck, hadolint, uv and the NodeSource key are SHA-256 verified; changed image rebuild is green, broader layering and arm64 work remain |
+| P10-05 | Workflow containers and GitHub Actions | `tfp-bqt.5` | OPS | P10-04 | `[~]` Python parity, scanner failure propagation and exact-SHA release dependencies implemented tests-first; hosted gate pending |
 | P10-06 | PostgreSQL 18.6 disposable lab migration | `tfp-bqt.6.1` | OPS | P10-01, P10-02, P10-14 | `[x]` official pinned Alpine image and tmpfs; E2E 59/59 plus Auth 5.1 and 5.0 are green locally and in PR #36, with zero residue |
 | P10-07 | PowerDNS, SeaweedFS and Forgejo image updates | `tfp-bqt.6.2` | OPS | P10-01, P10-02 | `[ ]` |
 | P10-08 | Provider-wide efficiency, duplication and idempotence audit | `tfp-bqt.7` | DEV | P10-03 | `[x]` nine packages and six direct modules inventoried; duplicate algorithms consolidated; integer backoff, modifier order and canonical multiset fixes pass local and PR #36 gates |
@@ -1801,8 +1803,9 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-10 | Historical review findings and naming invariants | `tfp-bqt.9` | QA | P10-01 | `[ ]` |
 | P10-11 | Terraform, OpenTofu and Terragrunt compatibility | `tfp-bqt.10` | QA | P10-03, P10-04, P10-06, P10-07 | `[ ]` |
 | P10-12 | Keep lab and E2E automation on the smallest executable boundary | `tfp-bqt.12` | DEV | P10-03 | `[x]` unused Go control plane and image-evidence WIP removed; tested Python lifecycle retained |
-| P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[ ]` |
+| P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[~]` independent `v0.1.1..main` audit tracked by `tfp-34v`; complete local gate is green, final independent diff review and hosted exact-SHA closure remain |
 | P10-14 | Restore linked-worktree dev-container identity consumers | `tfp-bqt.13` | DEV | P10-03 | `[x]` merged by PR #35; Bead closed after final reviews |
+| P10-15 | Protect release signing secrets in a GitHub environment | `tfp-34v.1` | OPS | P10-13 | `[~]` live environment restricts tags, requires sole-maintainer approval and forbids admin bypass; move the secrets and delete repository copies before publication |
 
 Every row updates this table in the same commit as its implementation. A
 user-visible change also updates `CHANGELOG.md` under `Unreleased`; version
@@ -1816,6 +1819,42 @@ complexity without changing provider behavior. The executable contract is now
 the small Python lifecycle plus the digest-pinned official PostgreSQL 18.6
 Alpine image. A fresh local run passed all 59 E2E cases and left zero fixture
 containers, networks, volumes or generated files.
+
+### Independent pre-release audit, 2026-08-27
+
+The audit boundary is the 14 commits and 167 changed files from Registry
+release `v0.1.1` (`c34fc02b96ed321b49a0ac10f61afbac22b582cb`) through
+`main` (`37905257aeb1dc7590f5e149eddc6611b6d70211`). Three independent
+read-only passes covered provider semantics, delivery/security orchestration,
+and public documentation. Provider code had no Critical or Important defect;
+the release surface did.
+
+The reproduced blockers were CI omitting `test/scripts/` and pytest, Security
+jobs suppressing OSV/Trivy failures, release publication ignoring E2E and
+Security, a non-compliant SemVer parser, unsigned/lightweight source tags, and
+downloaded executables installed without digest verification. Final independent
+review also caught a clean-runner GPG ordering defect: the gate now imports only
+the Registry-published public key and verifies its fingerprint, while private
+signing material remains confined to the final GoReleaser job. The public
+README, changelog, semantic contract and this plan also described old releases,
+scripts, comparison boundaries, coverage and pipeline ownership. Every
+behavioral correction has a failing test recorded before its implementation.
+Exact audit evidence and the final pass/fail decision live in
+[`AUDIT-05-pre-release.md`](audit/AUDIT-05-pre-release.md).
+
+The target is `v0.2.0`, not `v0.1.2`: the unpublished change is a
+`feat(provider)` and makes semantic comparison stricter, both of which are a
+MINOR change under the repository's binding versioning rules. `VERSION` and
+the changelog stay unreleased until a separate release commit after local and
+hosted gates pass. Publication is additionally blocked on P10-15. On
+2026-08-27 the live `release` environment was created with the authenticated
+sole maintainer as its required reviewer, `prevent_self_review=false`,
+`can_admins_bypass=false`, and the tag policy `v[0-9]*.[0-9]*.[0-9]*`.
+Self-approval is intentional because this repository has one release author;
+the manual approval remains a separate action, but is not an independent
+identity boundary. GitHub does not expose secret values, so the signing key
+and passphrase still must be re-entered as environment secrets and their
+repository-level copies deleted before any tag is created.
 
 ---
 
@@ -1944,7 +1983,7 @@ into a check rather than a resolution.
 | dnsdist support attracts rule-management requests | Repeated disappointment | Ceiling documented on the resource page with the numbers |
 | PowerDNS 5.2 ships mid-build | Pinned claims go stale | `task lab:verify` fails loudly on a version change |
 | Actions raise the Terraform floor | Older CLIs lose the provider | S6-05 gates actions, not the provider |
-| Two pipelines drift | Contradictory gates | They do not overlap: GitLab owns quality, GitHub owns release only |
+| Local and hosted gates drift | False-green pull request or release | `ci.yml` mirrors `task all`; structural tests bind parity; release requires exact-main-push CI, Acceptance, E2E and Security |
 
 ## How this document is maintained
 

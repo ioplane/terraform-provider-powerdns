@@ -21,13 +21,14 @@ Run as: python -m scripts.automation.opentofu_submission
 from __future__ import annotations
 
 import json
-import re
 import shutil
 import subprocess
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+
+from scripts.checks.semver import SEMVER
 
 NAMESPACE = "ioplane"
 PROVIDER = "powerdns"
@@ -40,13 +41,11 @@ TIMEOUT = 20.0
 # accepted by the form and rejected later, at a point far away from here.
 ACCEPTED_ALGORITHMS = {"1": "RSA", "17": "DSA"}
 
+
 # The version comes back from the registry and then goes into the path of the
 # next request. It is not attacker-controlled in any ordinary sense, but it is
 # remote data steering a URL, and a semantic version is the only shape it can
 # legitimately have.
-SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$")
-
-
 def get_json(url: str) -> dict | None:
     """GET a JSON document, returning None if it did not answer."""
     try:

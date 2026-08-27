@@ -6,14 +6,14 @@ nothing about the path a real configuration travels to reach it — remote state
 a module fetched from a remote, an engine holding a lock. Those are where a
 provider that passes every unit test still fails in somebody's pipeline.
 
-This drives that path: Terragrunt over an S3 backend on MinIO, a module fetched
+This drives that path: Terragrunt over an S3 backend on SeaweedFS, a module fetched
 over the git protocol, against the running lab. Every assertion is made twice
 where it can be — once through the API and once against what DNS actually
 answers, because an HTTP 200 proves a request was accepted, not that a name
 resolves.
 
 Usage:
-    e2e.py up        bring the fixture up: MinIO, git, the bucket, the module
+    e2e.py up        bring the fixture up: SeaweedFS, git, the bucket, the module
     e2e.py run       run the scenarios
     e2e.py down      remove the fixture
     e2e.py status    report what is running
@@ -92,7 +92,7 @@ PROVIDER_VERSION = "0.1.1"
 # builds rather than the same binary twice. Ahead of VERSION on purpose: this
 # is not a release, it is "whatever is being worked on", and the upgrade
 # scenario needs a number Terraform will resolve as newer.
-NEXT_VERSION = "0.1.2"
+NEXT_VERSION = "0.2.0"
 # The released tag PROVIDER_VERSION is built from. State written by that build
 # is what the upgrade scenario asks the current one to read — a question the
 # suite cannot answer by building HEAD twice.
@@ -281,7 +281,7 @@ def _tls_context() -> ssl.SSLContext | None:
 def http_ok(url: str, timeout: float = 3.0, *, api_key: str | None = None) -> bool:
     """Whether a loopback URL answers 200. Constants only; see lab.py.
 
-    The key is optional because MinIO's health endpoint takes none and
+    The key is optional because the S3 health endpoint takes none and
     PowerDNS answers 401 without one. Checking PowerDNS unauthenticated
     reports a running lab as absent, which is exactly what the first run of
     this script concluded.
@@ -329,7 +329,7 @@ def wait_for_s3() -> bool:
 def wait_for_forgejo() -> bool:
     """Poll Forgejo until it is serving.
 
-    Longer than MinIO's budget: it migrates its database on first start, and
+    Longer than the object store's budget: it migrates its database on first start, and
     that is slower than answering a health check on an object store.
     """
     return http_ok(f"{FORGEJO_URL}/api/healthz")
@@ -857,7 +857,7 @@ def _delete_zone(api: str, zone: str) -> None:
 def drop_managed_zones() -> None:
     """Remove what the units created, before the state describing it is gone.
 
-    The lab outlives this fixture. Deleting MinIO takes the state with it and
+    The lab outlives this fixture. Deleting the object store takes the state with it and
     leaves the zones behind, so the next `up` starts with empty state, applies,
     and meets a 409 on a zone it believes it is creating — a failure three
     commands away from its cause.

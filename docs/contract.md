@@ -229,12 +229,21 @@ deciding how to write a value:
 | `powerdns_zone.kind` | case-insensitively — the server title-cases it |
 | `powerdns_zone.name`, `catalog` | as a DNS name — case and trailing dot ignored |
 | `powerdns_zone.masters` | by address value, ignoring order |
-| `powerdns_record.name` | as a DNS name — the server lowercases it |
+| `powerdns_record.zone`, `name` | as DNS names — case and trailing dot ignored |
 | `powerdns_record.values`, type `A`/`AAAA` | by address value, ignoring order |
-| `powerdns_record.values`, other types | exactly |
+| `powerdns_record.values`, type `CNAME`/`NS`/`PTR`/`DNAME` | as DNS names, ignoring order |
+| `powerdns_record.values`, other types | by exact string value, ignoring order |
+| `powerdns_zone_metadata.zone` | as a DNS name |
+| `powerdns_zone_metadata.values` | exactly and in order |
+| `powerdns_zone.master_tsig_key_ids`, `slave_tsig_key_ids` | as canonical key names, ignoring order while preserving multiplicity |
+| `powerdns_zone_cryptokey.zone` | as a DNS name |
 | `powerdns_zone_cryptokey.key_type` | `csk` is compatible with `ksk` and `zsk` |
+| `powerdns_tsigkey.name` | as a DNS name |
 | `powerdns_network.network` | as a subnet, so an uncompressed IPv6 prefix is not a change |
+| `powerdns_view_zone.zone` | as a DNS name |
 | `powerdns_autoprimary.ip` | by address value |
+| `powerdns_autoprimary.nameserver` | as a DNS name |
+| `powerdns_recursor_zone.name` | as a DNS name |
 | `powerdns_recursor_zone.servers` | as upstreams: a bare address equals the same address with `:53` |
 | `powerdns_recursor_acl.netmasks`, `powerdns_dnsdist_acl.netmasks` | as subnets, ignoring order |
 
@@ -391,10 +400,8 @@ something that runs without being remembered.
 | The documented examples still parse and format | `terraform fmt -check`, and `tfplugindocs validate` on the generated pages | `ci.yml` |
 
 The workflows are described in [ADR 0009](adr/0009-github-actions-is-the-gate.md).
-Acceptance is not yet a pull-request gate: it starts five containers and is
-allowed ninety minutes, and it moves there once its run history says it is
-stable. Until then the promise it verifies is verified on `main` and nightly,
-not on the branch.
+Acceptance is a required pull-request gate after its stable run history was
+established. The same matrix also runs on `main`, nightly and on demand.
 
 **Actions require Terraform 1.14 or later and are not available on OpenTofu.**
 Everything else in this provider works on both engines and is tested on both;
@@ -403,8 +410,9 @@ the other engine rather than because the provider withholds it.
 
 A released version carries a `SHA256SUMS` signed with the key the Terraform
 Registry holds, and an SBOM per archive. It is also, by construction, a commit
-for which `CI` and `Acceptance` both concluded successfully: `release.yml`
-checks that before it builds anything, and refuses a tag that is not on `main`
-or whose generated documentation has drifted from the schema. A Registry
+for which `CI`, `Acceptance`, `End-to-end` and `Security` all concluded
+successfully on the exact `main` push: `release.yml` checks that before it
+builds anything, and refuses a tag that is not on `main` or whose generated
+documentation has drifted from the schema. A Registry
 version cannot be amended once published, which is why those questions are
 asked before the artefacts exist rather than after.

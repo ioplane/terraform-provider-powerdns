@@ -28,7 +28,7 @@
 
     // Go identifiers, standard library and terraform-plugin-framework.
     "Errorf", "Println", "Godoc", "Docstrings", "gofmt", "goimports", "iface",
-    "netip", "stdlib", "synctest", "tfsdk", "providerserver", "knownvalue", "plancheck",
+    "netip", "stdlib", "synctest", "tfsdk", "tftypes", "providerserver", "knownvalue", "plancheck",
     "statecheck", "cerr", "verr", "upgrader", "changetype", "codegen",
     "diffable", "unparseable", "formedness", "misindented", "webservice",
 

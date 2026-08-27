@@ -13,7 +13,7 @@ The mapping between commit type, changelog section and version bump is in
 
 - `test/e2e` — the path a consumer's configuration travels, which the
   acceptance suite never touched: Terragrunt over an S3 backend on SeaweedFS, the
-  module fetched over HTTP from a private Forgejo repository, against the
+  module fetched over HTTPS from a private Forgejo repository, against the
   running lab. Fifty-nine scenarios across ten units on pytest, asking through the interfaces a consumer uses — boto3
   for the bucket, dnspython for what DNS answers, psycopg for what the backend
   stored — rather than by parsing `dig` and `psql`. It also runs on OpenTofu,
@@ -46,7 +46,7 @@ The mapping between commit type, changelog section and version bump is in
   the URL was printed in every log line naming the module and carried in the
   process list of every `git` it spawned. A scenario asserts the URL stays
   free of it.
-- `check-pins.sh` asks the registry over HTTP instead of asking a container
+- `scripts/checks/pins.py` asks the registry over HTTPS instead of asking a container
   client. skopeo consults local storage, mirrors and caches, and resolved a
   digest that the registry answers 404 for — the pin read as verified locally
   and failed in CI, and the checker sided with the machine that was wrong. It
@@ -69,7 +69,7 @@ The mapping between commit type, changelog section and version bump is in
   merges, branches deleted after merge, secret scanning and push protection on,
   topics and homepage set.
 
-- `scripts/check-badges.sh` verifies the phase counter in `docs/plan.md` the
+- `scripts/checks/badges.py` verifies the phase counter in `docs/plan.md` the
   same way it verifies the task counter: the badge must agree with the number
   of phase headings marked `[x]`. The task counter was derived from the tables
   after the first audit found it had rotted; the counter beside it was left
@@ -91,14 +91,14 @@ The mapping between commit type, changelog section and version bump is in
   registry's templates refuse submissions made anywhere but the issue form UI,
   so this shortens the manual step rather than replacing it.
 
-- `.github/workflows/sonarcloud.yml` — SonarQube Cloud as a CI analysis with
+- `.github/workflows/coverage.yml` — SonarQube Cloud as a CI analysis with
   real coverage, alongside the automatic analysis the project had been running
   under. Automatic analysis cannot report Go coverage at all. SonarSource's
   documentation warns that the two modes conflict, and automatic analysis was
   already off in this project — so there was never a second analysis, and the
   `SonarCloud Code Analysis` check that appears alongside the job is the app
   reporting the CI run rather than a competing one. The job stands the lab up and
-  measures unit *and* acceptance tests together — 71.6% of statements, with
+  measures unit *and* acceptance tests together — 75.5% of statements, with
   `-coverpkg=./internal/...` so the API clients exercised through the provider
   are credited for it — because
   most of this provider's logic is an HTTP conversation with PowerDNS and unit
@@ -134,6 +134,25 @@ The mapping between commit type, changelog section and version bump is in
   correct by default, and the reason the migration failed its own lint on all
   twenty-one jobs. The label is listed exactly rather than by wildcard: a
   misspelled one is still an error, which is the point of the check.
+- CI now runs the same locked Python gate as `task py`, including Ruff, blocking
+  ty diagnostics and all tests under `test/scripts/`; its shellcheck job also
+  covers the worktree identity helper. Security scanning propagates OSV and
+  Trivy findings instead of uploading SARIF and returning success.
+- Every downloaded Terraform, OpenTofu, Terragrunt, shellcheck, hadolint and uv
+  asset, plus the NodeSource repository key, is verified against a pinned
+  SHA-256 digest before it is installed in the development image or a workflow.
+- A release requires successful `CI`, `Acceptance`, `End-to-end` and `Security`
+  runs from the exact `main` push being tagged. Its version parser implements
+  SemVer 2.0.0 exactly, and an existing source tag must be annotated and carry
+  a valid signature. The early gate verifies that signature with the committed
+  Registry-published public key; the final GoReleaser job is bound to a
+  `release` environment. Publication remains blocked until its private signing
+  material has moved out of repository scope and that environment's selected
+  tag policy and sole-maintainer approval are active. The release checker also rejects copied
+  provider constraints that exclude the release minor.
+- Transitive `golang.org/x/mod`, `x/crypto`, `x/net`, `x/text` and `x/tools`
+  dependencies move to their fixed compatible versions; the local OSV and
+  govulncheck gates report no affected package.
 
 - The gate's nine checks are Python, not shell. 961 lines of bash under
   `scripts/` became `scripts/checks/`, one module per check, imported by
@@ -159,7 +178,7 @@ The mapping between commit type, changelog section and version bump is in
   actionlint hands it every `run:` block in a workflow.
 
 - End-to-end coverage of a provider upgrade against existing state. The fixture
-  mirrors two builds — 0.1.1 from the released tag and 0.1.2 from the working
+  mirrors two builds — 0.1.1 from the released tag and 0.2.0 from the working
   tree — so the state read in the second phase was written by different code.
   Nine scenarios: the released build applies, the lock file proves which build
   ran, `init -upgrade` moves it, the plan is empty, nothing is scheduled for
@@ -236,7 +255,7 @@ The mapping between commit type, changelog section and version bump is in
   `internal/client/pdns`) and a paralleltest exclusion for a `test/acceptance/`
   directory that does not exist — the exclusion is by the `_acc_test.go`
   suffix; `verified-identifiers.md` named `scripts/check-action-pins.sh`, which
-  was renamed to `check-pins.sh` when it grew image checks; and
+  was replaced by `scripts/checks/pins.py` when the checks moved to Python; and
   `naming-conventions.md` listed `scripts/check-changelog.sh` and
   `scripts/check-version.sh` as the enforcement for two rules that are in fact
   enforced, by `scripts/check-release.sh`.

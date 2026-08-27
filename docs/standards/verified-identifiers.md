@@ -10,7 +10,7 @@
 <div align="center">
 
 [![status normative](https://shieldcn.dev/badge/status-normative-cf222e.svg?variant=secondary)](../README.md)
-![enforced check-pins.sh](https://shieldcn.dev/badge/enforced-check--pins.sh-0969da.svg?variant=secondary)
+![enforced pins.py](https://shieldcn.dev/badge/enforced-pins.py-0969da.svg?variant=secondary)
 ![enforced see the table](https://shieldcn.dev/badge/enforced-see_the_table-3fb950.svg?variant=secondary)
 
 </div>

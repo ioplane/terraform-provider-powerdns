@@ -92,10 +92,11 @@ pretending otherwise.
 
 It is in the gate because its findings on this code base have been accurate and
 because the automation manipulates loosely typed API payloads, where a type
-checker earns its place. But a **ty-only failure is reviewed, not obeyed**: if
-`ty` reports something `ruff` does not and the code is demonstrably correct,
-the finding is recorded and the rule adjusted in `[tool.ty.rules]`, rather than
-the code contorted to satisfy a pre-release checker.
+checker earns its place. A `ty` failure is a gate failure. If the checker is
+demonstrably wrong, the finding is recorded and the rule is narrowly adjusted
+in `[tool.ty.rules]`, rather than contorting production code around a
+pre-release checker. The same blocking command runs locally and in required
+CI.
 
 If `ty` reaches a state where it blocks more than it catches, it comes out. That
 decision would be an ADR, not a quiet edit.

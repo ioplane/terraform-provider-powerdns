@@ -6,7 +6,7 @@
 # from a private forge, and a lock. Those are where a provider that passes
 # every unit test still fails in somebody's pipeline.
 #
-# Not on pull requests. It starts seven containers and applies eight
+# Not on pull requests. It starts seven containers and applies ten
 # Terragrunt units; making every pull request wait on that buys a slow gate,
 # and until it has a run history it would buy an unreliable one as well. It
 # runs on main, nightly, and on demand — the same staged introduction
@@ -72,9 +72,11 @@ jobs:
           set -euo pipefail
           curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/tf.zip \
             "https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_linux_amd64.zip" # pin: TERRAFORM_VERSION
+          echo "d25ce7b6902013ad905db3d2eab0be4cd905887fe88b81a6171b8d5503c31f3d  /tmp/tf.zip" | sha256sum -c - # pin: TERRAFORM_LINUX_AMD64_SHA256
           sudo unzip -o -d /usr/local/bin /tmp/tf.zip
           curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/tofu.zip \
             "https://github.com/opentofu/opentofu/releases/download/v1.12.5/tofu_1.12.5_linux_amd64.zip" # pin: OPENTOFU_VERSION
+          echo "dade9650e6b74fc7a8b986bd8717497d32f9e09cf82e479afef4977fa3085536  /tmp/tofu.zip" | sha256sum -c - # pin: OPENTOFU_LINUX_AMD64_SHA256
           sudo unzip -o -d /usr/local/bin /tmp/tofu.zip tofu
 
       # Terragrunt 1.x, and the version matters rather than being a formality:
@@ -86,6 +88,7 @@ jobs:
           set -euo pipefail
           curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/terragrunt \
             "https://github.com/gruntwork-io/terragrunt/releases/download/v1.1.1/terragrunt_linux_amd64" # pin: TERRAGRUNT_VERSION
+          echo "98b0400ba1ae27120adeeb98ba97e75eba0bab0b4cbd7b8bb148d4ed29e2f823  /tmp/terragrunt" | sha256sum -c - # pin: TERRAGRUNT_LINUX_AMD64_SHA256
           sudo install -m 0755 /tmp/terragrunt /usr/local/bin/terragrunt
           terragrunt --version
 

@@ -103,6 +103,23 @@ func TestIPAddress(t *testing.T) {
 	}
 }
 
+func TestRecordContent(t *testing.T) {
+	t.Parallel()
+
+	for _, recordType := range []string{"CNAME", "NS", "PTR", "DNAME"} {
+		if !normalise.RecordContent(recordType, "Target.Example", "target.example.") {
+			t.Errorf("%s target did not compare as a canonical DNS name", recordType)
+		}
+		if normalise.RecordContent(recordType, "target.example.", "other.example.") {
+			t.Errorf("%s targets with different names compared equal", recordType)
+		}
+	}
+
+	if normalise.RecordContent("TXT", `"v=spf1  -all"`, `"v=spf1 -all"`) {
+		t.Error("TXT content with different whitespace compared equal")
+	}
+}
+
 // TestUpstreamServer covers the Recursor's port default, recorded from
 // rec-5.4.4: an upstream given as 192.0.2.53 reads back 192.0.2.53:53.
 func TestUpstreamServer(t *testing.T) {

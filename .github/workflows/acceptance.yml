@@ -87,6 +87,7 @@ jobs:
         run: |
           curl -fsSL --proto '=https' --tlsv1.2 -o /tmp/tf.zip \
             "https://releases.hashicorp.com/terraform/1.15.8/terraform_1.15.8_linux_amd64.zip" # pin: TERRAFORM_VERSION
+          echo "d25ce7b6902013ad905db3d2eab0be4cd905887fe88b81a6171b8d5503c31f3d  /tmp/tf.zip" | sha256sum -c - # pin: TERRAFORM_LINUX_AMD64_SHA256
           sudo unzip -o -d /usr/local/bin /tmp/tf.zip
           echo "TF_ACC_TERRAFORM_PATH=/usr/local/bin/terraform" >> "$GITHUB_ENV"
 

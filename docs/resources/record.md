@@ -28,9 +28,9 @@ resource "powerdns_record" "www" {
   values = ["192.0.2.1", "192.0.2.2", "192.0.2.3"]
 }
 
-# Address values are compared numerically, so an IPv6 address written
-# uncompressed is not a change. Every other type is compared exactly, because a
-# TXT record's quoting is significant.
+# Address values are compared numerically, and DNS targets such as CNAME are
+# compared as names. Remaining content is exact, so a TXT record's quoting and
+# whitespace are significant. Value order is ignored for every type.
 resource "powerdns_record" "spf" {
   zone   = powerdns_zone.example.id
   name   = "example.com."
@@ -67,7 +67,7 @@ resource "powerdns_record" "staged" {
 - `name` (String) The owner name, fully qualified. PowerDNS lowercases it, so `WWW.example.com.` and `www.example.com.` are the same name and do not produce a diff.
 - `ttl` (Number) Time to live, in seconds. One TTL applies to the whole set: DNS has no per-record TTL within an RRSet.
 - `type` (String) The record type, such as `A`, `AAAA`, `MX` or `TXT`.
-- `values` (List of String) The record values, one per record in the set. Address values are compared numerically, so an IPv6 address written uncompressed does not produce a permanent diff; every other type is compared exactly, because a TXT record's quoting is significant.
+- `values` (List of String) The record values, one per record in the set. Address values are compared numerically, so an IPv6 address written uncompressed does not produce a permanent diff. CNAME, NS, PTR and DNAME targets are compared as DNS names. Remaining content is compared exactly, because a TXT record's quoting is significant. Order is ignored.
 - `zone` (String) The zone holding this RRSet.
 
 ### Optional

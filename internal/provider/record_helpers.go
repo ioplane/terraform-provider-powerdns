@@ -143,8 +143,9 @@ func recordDiagnostic(action string, rrset auth.RRSet, err error) diag.Diagnosti
 type recordValuesModifier struct{}
 
 func (recordValuesModifier) Description(_ context.Context) string {
-	return "address values are compared numerically and order is ignored; " +
-		"every other type is compared exactly"
+	return "address values are compared numerically; CNAME, NS, PTR and DNAME " +
+		"targets are compared as DNS names; remaining values are compared exactly; " +
+		"order is ignored for every type"
 }
 
 func (m recordValuesModifier) MarkdownDescription(ctx context.Context) string {

@@ -15,7 +15,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestRegisteredTypeNamesAreUniqueAndCanonical(t *testing.T) {
@@ -119,21 +121,21 @@ func TestSemanticPlanModifiersPrecedeReplacement(t *testing.T) {
 	t.Parallel()
 
 	provider := &powerdnsProvider{}
-	expected := map[string]struct{ planned, current string }{
-		"powerdns_zone.name":               {"Example.COM", "example.com."},
-		"powerdns_record.zone":             {"Example.COM", "example.com."},
-		"powerdns_record.name":             {"WWW.Example.COM", "www.example.com."},
-		"powerdns_zone_metadata.zone":      {"Example.COM", "example.com."},
-		"powerdns_zone_cryptokey.zone":     {"Example.COM", "example.com."},
-		"powerdns_zone_cryptokey.key_type": {"ksk", "csk"},
-		"powerdns_tsigkey.name":            {"Transfer", "transfer."},
-		"powerdns_view_zone.zone":          {"Example.COM", "example.com."},
-		"powerdns_network.network":         {"192.0.2.4/24", "192.0.2.0/24"},
-		"powerdns_autoprimary.ip":          {"2001:0db8::1", "2001:db8::1"},
-		"powerdns_autoprimary.nameserver":  {"NS1.Example.COM", "ns1.example.com."},
-		"powerdns_recursor_zone.name":      {"Example.COM", "example.com."},
+	expected := map[string]semanticReplacementValues{
+		"powerdns_zone.name":               {"Example.COM", "example.com.", "other.example."},
+		"powerdns_record.zone":             {"Example.COM", "example.com.", "other.example."},
+		"powerdns_record.name":             {"WWW.Example.COM", "www.example.com.", "api.example.com."},
+		"powerdns_zone_metadata.zone":      {"Example.COM", "example.com.", "other.example."},
+		"powerdns_zone_cryptokey.zone":     {"Example.COM", "example.com.", "other.example."},
+		"powerdns_zone_cryptokey.key_type": {"csk", "ksk", "zsk"},
+		"powerdns_tsigkey.name":            {"Transfer", "transfer.", "other."},
+		"powerdns_view_zone.zone":          {"Example.COM", "example.com.", "other.example."},
+		"powerdns_network.network":         {"192.0.2.4/24", "192.0.2.0/24", "198.51.100.0/24"},
+		"powerdns_autoprimary.ip":          {"2001:0db8::1", "2001:db8::1", "2001:db8::2"},
+		"powerdns_autoprimary.nameserver":  {"NS1.Example.COM", "ns1.example.com.", "ns2.example.com."},
+		"powerdns_recursor_zone.name":      {"Example.COM", "example.com.", "other.example."},
 	}
-	remaining := make(map[string]struct{ planned, current string }, len(expected))
+	remaining := make(map[string]semanticReplacementValues, len(expected))
 	maps.Copy(remaining, expected)
 
 	for _, factory := range provider.Resources(context.Background()) {
@@ -167,6 +169,7 @@ func TestSemanticPlanModifiersPrecedeReplacement(t *testing.T) {
 					metadata.TypeName, name, semantic, replacement)
 			}
 			assertSemanticPreventsReplacement(t, identifier, stringAttribute.PlanModifiers[semantic], values)
+			assertSemanticReplacementChain(t, identifier, stringAttribute.PlanModifiers, values)
 		}
 	}
 
@@ -175,11 +178,17 @@ func TestSemanticPlanModifiersPrecedeReplacement(t *testing.T) {
 	}
 }
 
+type semanticReplacementValues struct {
+	planned string
+	current string
+	changed string
+}
+
 func assertSemanticPreventsReplacement(
 	t *testing.T,
 	identifier string,
 	modifier planmodifier.String,
-	values struct{ planned, current string },
+	values semanticReplacementValues,
 ) {
 	t.Helper()
 	planned := types.StringValue(values.planned)
@@ -197,6 +206,51 @@ func assertSemanticPreventsReplacement(
 		t.Errorf("%s: semantic modifier left %v instead of state %v; replacement would trigger",
 			identifier, response.PlanValue, current)
 	}
+}
+
+func assertSemanticReplacementChain(
+	t *testing.T,
+	identifier string,
+	modifiers []planmodifier.String,
+	values semanticReplacementValues,
+) {
+	t.Helper()
+
+	if runStringModifierChain(t, identifier, modifiers, values.planned, values.current) {
+		t.Errorf("%s: equivalent spelling required replacement", identifier)
+	}
+	if !runStringModifierChain(t, identifier, modifiers, values.changed, values.current) {
+		t.Errorf("%s: genuine change did not require replacement", identifier)
+	}
+}
+
+func runStringModifierChain(
+	t *testing.T,
+	identifier string,
+	modifiers []planmodifier.String,
+	planned string,
+	current string,
+) bool {
+	t.Helper()
+
+	plannedValue := types.StringValue(planned)
+	currentValue := types.StringValue(current)
+	request := planmodifier.StringRequest{
+		ConfigValue: plannedValue,
+		PlanValue:   plannedValue,
+		StateValue:  currentValue,
+		Plan:        tfsdk.Plan{Raw: tftypes.NewValue(tftypes.String, planned)},
+		State:       tfsdk.State{Raw: tftypes.NewValue(tftypes.String, current)},
+	}
+	response := planmodifier.StringResponse{PlanValue: plannedValue}
+	for _, modifier := range modifiers {
+		request.PlanValue = response.PlanValue
+		modifier.PlanModifyString(context.Background(), request, &response)
+		if response.Diagnostics.HasError() {
+			t.Fatalf("%s: modifier chain returned diagnostics: %v", identifier, response.Diagnostics)
+		}
+	}
+	return response.RequiresReplace
 }
 
 func modifierIndexes(modifiers []planmodifier.String) (int, int) {

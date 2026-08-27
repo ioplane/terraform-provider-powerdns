@@ -4,7 +4,7 @@
 
 **Bead:** `tfp-bqt.7`
 
-**Status:** approved and integrated in `dev` by PR #36 candidate
+**Status:** approved and integrated in `main` by PR #36
 
 ## Scope and method
 
@@ -147,10 +147,14 @@ zero residue after teardown.
 
 The final candidate passes `task all`, both complete `task verify` matrices
 (PowerDNS Authoritative 5.1 and 5.0), and the 59-case E2E suite. The runtime
-stacks and generated fixture files are absent after teardown. PR #36 verifies
-the same commit with CI run `33019977870`, Acceptance `33019977884`, Security
-`33019977865`, Coverage `33019977923`, Dependency review `33019977859`, and
-End-to-end `33019799418`; every required job completed successfully. The local
-release dry run then built and verified all 13 provider archives and the
-registry manifest. The top-level release check correctly remains fail-closed
-until the future `0.1.2` release moves `VERSION` and `[Unreleased]` together.
+stacks and generated fixture files are absent after teardown. PR #36 verified
+its head `2bfc4238dcbcecc3b71619ec6376e8a6efc0aaa2` with CI run `33019977870`,
+Acceptance `33019977884`, Security `33019977865`, Coverage `33019977923`,
+Dependency review `33019977859`, and End-to-end `33019799418`. After merge,
+the exact `main` commit `37905257aeb1dc7590f5e149eddc6611b6d70211` separately
+passed CI `33050786698`, Acceptance `33050786739`, Coverage `33050786692`,
+End-to-end `33050786785`, Security `33050786948`, and Scorecard `33050786774`.
+The local release dry run then built and verified all 13 provider archives and
+the registry manifest. The top-level release check correctly remains
+fail-closed until the future `0.2.0` release moves `VERSION`, `[Unreleased]` and
+the copied provider constraints together.

@@ -10,9 +10,9 @@ resource "powerdns_record" "www" {
   values = ["192.0.2.1", "192.0.2.2", "192.0.2.3"]
 }
 
-# Address values are compared numerically, so an IPv6 address written
-# uncompressed is not a change. Every other type is compared exactly, because a
-# TXT record's quoting is significant.
+# Address values are compared numerically, and DNS targets such as CNAME are
+# compared as names. Remaining content is exact, so a TXT record's quoting and
+# whitespace are significant. Value order is ignored for every type.
 resource "powerdns_record" "spf" {
   zone   = powerdns_zone.example.id
   name   = "example.com."
