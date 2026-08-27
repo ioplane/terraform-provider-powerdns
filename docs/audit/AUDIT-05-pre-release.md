@@ -4,8 +4,8 @@
 
 **Bead:** `tfp-34v`
 
-**Status:** remediation merged and exact-SHA gates verified; isolated release
-cut awaiting its own hosted gates and signed tag
+**Status:** completed; `v0.2.0` published from the verified release cut and
+available from GitHub and the Terraform Registry
 
 ## Boundary and method
 
@@ -39,9 +39,10 @@ uses MINOR for this class of compatibility change. `v0.1.2` would therefore be
 an incorrect release.
 
 The remediation kept `VERSION` at `0.1.1` and the changelog under
-`[Unreleased]`. This separate release commit moves them to `0.2.0` only after
-the audited main gates passed; the annotated signed tag and publication remain
-later, fail-closed steps.
+`[Unreleased]`. The separate release cut moved them to `0.2.0` only after the
+audited main gates passed. Its own pull-request and exact-main gates then
+passed before the annotated signed tag was created and publication was
+approved.
 
 ## Independent findings
 
@@ -116,12 +117,13 @@ The final local candidate passed the required executable checks on 2026-08-27:
 
 The pre-cut `task release:check VERSION_ARG=0.2.0` proved the release-only
 boundary by failing on the old `VERSION`, missing changelog section, copied
-`0.1.x` constraints and dirty review tree. This release cut changes
-`VERSION`, the changelog, README, provider example, generated Registry index
-and Terragrunt standard to `0.2.0`/`~> 0.2` together. The `v0.2.0` tag remains
-absent until the clean committed tree passes the complete release check;
-released changelog sections remain unchanged and protocol 6 still matches the
-manifest.
+`0.1.x` constraints and dirty review tree. The release cut changed `VERSION`,
+the changelog, README, provider example, generated Registry index and
+Terragrunt standard to `0.2.0`/`~> 0.2` together. The clean final candidate
+`d93c3b28c95088117b60f724a5a97f5d61e5e44d` then passed `task all` and the
+complete release check: 13 archives and their manifest were bound to that
+commit, released changelog sections remained unchanged and protocol 6 matched
+the manifest.
 
 The release-cut orchestration review also reconciled live code-scanning alert
 `GO-2026-5932`. The module is present for `x/crypto/sha3`, but the affected
@@ -129,17 +131,47 @@ The release-cut orchestration review also reconciled live code-scanning alert
 `go mod why` likewise reports that the main module does not need that package.
 The exact exception and reason are committed in `osv-scanner.toml`, and a
 regression test prevents an unexplained or broader ignore. Hosted Security on
-the final release-cut SHA must confirm the intended alert state before merge.
+the merged release SHA confirmed the intended state; code-scanning alert #26
+became `fixed` without dismissal at `2026-08-27T11:30:47Z`.
 
 ## Release decision
 
-Publication is fail-closed. Independent provider, orchestration and
-documentation reviews approved the remediation, PR #37 merged it, and the
-exact main SHA passed CI, Acceptance, End-to-end and Security. The protected
-`release` environment has the selected tag policy, the authenticated sole
-maintainer as its required reviewer, `prevent_self_review=false` and
-`can_admins_bypass=false`; both GPG secrets are environment-scoped and the
-repository copies are absent. This release-cut pull request must pass its own
-hosted gates before an annotated signed `v0.2.0` tag is created. Environment
+The release gates remained fail-closed through every transition. Independent
+provider, orchestration and documentation reviews found no Critical or
+Important release blocker, PR #37 merged the remediation, and the exact
+audited main SHA passed CI, Acceptance, End-to-end and Security. The release
+cut then passed fresh local gates and three independent exact-SHA reviews at
+`d93c3b28c95088117b60f724a5a97f5d61e5e44d`; PR #38 passed its hosted gates
+and squash-merged as
+`4906861204e0a607f44ad23f609a633442d1d159`.
+
+That exact main SHA passed Acceptance `33067618977`, CI `33067618991`,
+Coverage `33067618978`, End-to-end `33067618969`, Scorecard `33067618961` and
+Security `33067618995`. End-to-end teardown completed successfully. The
+annotated `v0.2.0` tag object
+`6e01734e4ffdf43dd138e841481f6e7ccca66f77` targets that commit and passed the
+repository's committed-key signature verification. Release run `33068049669`
+passed its gate, repeat tests and protected-environment GoReleaser job after
+the manual approval.
+
+The resulting GitHub release contains 29 assets. Independent download
+verification matched all 13 archive checksums, the Registry manifest and the
+detached checksums signature. The Terraform Registry now serves `0.2.0` with
+protocol `6.0` and all 13 declared platforms.
+
+One non-blocking P2 review thread was posted after PR #38 merged and before the
+tag was created. The checked-in security test pins the exact
+`GO-2026-5932` exception and reason, while `govulncheck` remains the executable
+reachability gate; it does not yet execute the separately cited
+`go list -deps -test ./...` package-closure assertion. Bead `tfp-bqt.9.1`
+tracks that additional oracle and the unresolved thread explicitly. The
+finding does not change the verified release dependency closure or the zero
+reachable-vulnerability result, but it remains open rather than being
+silently promoted to completed work.
+
+The protected `release` environment has the selected tag policy, the
+authenticated sole maintainer as its required reviewer,
+`prevent_self_review=false` and `can_admins_bypass=false`; both GPG secrets
+are environment-scoped and the repository copies are absent. Environment
 self-approval is the only workable manual publication gate for this
 single-author repository and is explicitly not an independent review.
