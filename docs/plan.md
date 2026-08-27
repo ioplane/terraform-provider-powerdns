@@ -24,11 +24,11 @@ its execution record. **A task's status changes in the commit that does the
 work**, never retrospectively — a plan updated afterwards is a report, not a
 control.
 
-**Status:** phase 10 — the isolated `v0.2.0` release cut is in progress. The
-provider, disposable PostgreSQL 18 lab, local gates and exact-SHA GitHub runs
-are green. Signing material is confined to the protected `release`
-environment; publication still requires this release commit's hosted gates,
-the annotated signed tag and the environment approval.
+**Status:** phase 10 — `v0.2.0` is published from exact main commit
+`4906861204e0a607f44ad23f609a633442d1d159`. Local, pull-request, exact-main,
+release, acceptance, E2E and security gates are green; the signed GitHub
+release and Terraform Registry package expose protocol 6.0 on 13 platforms.
+The remaining phase-10 rows continue independently of the completed release.
 **Last updated:** 2026-08-27
 
 ## How a sprint runs
@@ -1796,7 +1796,7 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-02 | Recover dev-container build capacity after scoped approval | `tfp-bqt.2` | OPS | — | `[x]` closed after scoped cleanup and verified capacity recovery |
 | P10-03 | Go 1.27 toolchain, required analyzers, direct modules and compatibility tests | `tfp-bqt.3` | DEV | P10-01, P10-02 | `[x]` merged by PR #34; Bead closed after final reviews |
 | P10-04 | Remaining development-image tools, integrity pins and build layering | `tfp-bqt.4` | OPS | P10-01, P10-02 | `[~]` downloaded Terraform, OpenTofu, Terragrunt, shellcheck, hadolint, uv and the NodeSource key are SHA-256 verified; changed image rebuild is green, broader layering and arm64 work remain |
-| P10-05 | Workflow containers and GitHub Actions | `tfp-bqt.5` | OPS | P10-04 | `[~]` Python parity, scanner failure propagation and exact-SHA release dependencies implemented tests-first; hosted gate pending |
+| P10-05 | Workflow containers and GitHub Actions | `tfp-bqt.5` | OPS | P10-04 | `[~]` Python parity, scanner failure propagation and exact-SHA release dependencies are implemented and hosted-green; broader container work remains |
 | P10-06 | PostgreSQL 18.6 disposable lab migration | `tfp-bqt.6.1` | OPS | P10-01, P10-02, P10-14 | `[x]` official pinned Alpine image and tmpfs; E2E 59/59 plus Auth 5.1 and 5.0 are green locally and in PR #36, with zero residue |
 | P10-07 | PowerDNS, SeaweedFS and Forgejo image updates | `tfp-bqt.6.2` | OPS | P10-01, P10-02 | `[ ]` |
 | P10-08 | Provider-wide efficiency, duplication and idempotence audit | `tfp-bqt.7` | DEV | P10-03 | `[x]` nine packages and six direct modules inventoried; duplicate algorithms consolidated; integer backoff, modifier order and canonical multiset fixes pass local and PR #36 gates |
@@ -1804,7 +1804,7 @@ pins resolve; vulnerability, secret, licence and documentation gates are green.
 | P10-10 | Historical review findings and naming invariants | `tfp-bqt.9` | QA | P10-01 | `[ ]` |
 | P10-11 | Terraform, OpenTofu and Terragrunt compatibility | `tfp-bqt.10` | QA | P10-03, P10-04, P10-06, P10-07 | `[ ]` |
 | P10-12 | Keep lab and E2E automation on the smallest executable boundary | `tfp-bqt.12` | DEV | P10-03 | `[x]` unused Go control plane and image-evidence WIP removed; tested Python lifecycle retained |
-| P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[~]` independent `v0.1.1..main` audit tracked by `tfp-34v`; release cut documents the unreachable `GO-2026-5932` module-level exception and must pass exact-SHA hosted closure before tagging |
+| P10-13 | Documentation reconciliation and release-grade gate | `tfp-bqt.11` | PM | P10-05…P10-12 | `[~]` `v0.2.0` exact-SHA local, hosted, release and Registry closure is complete; final modernization reconciliation still depends on the open P10-05…P10-12 rows |
 | P10-14 | Restore linked-worktree dev-container identity consumers | `tfp-bqt.13` | DEV | P10-03 | `[x]` merged by PR #35; Bead closed after final reviews |
 | P10-15 | Protect release signing secrets in a GitHub environment | `tfp-34v.1` | OPS | P10-13 | `[x]` protected environment owns both signing secrets; repository copies are absent; tag policy, sole-maintainer approval and no-admin-bypass are live |
 
@@ -1860,6 +1860,17 @@ the manual approval remains a separate action, but is not an independent
 identity boundary. Both signing secrets are environment-scoped and their
 repository-level copies are absent. No `v0.2.0` tag existed when this release
 cut began.
+
+The final candidate `d93c3b28c95088117b60f724a5a97f5d61e5e44d` passed
+fresh local `task all`, `task release:check VERSION_ARG=0.2.0` and three
+independent exact-SHA reviews before PR #38. It squash-merged as
+`4906861204e0a607f44ad23f609a633442d1d159`; that exact main SHA then passed
+CI, Acceptance, Coverage, End-to-end, Scorecard and Security. Alert #26 for
+the unreachable `GO-2026-5932` package became `fixed` without dismissal. The
+annotated signed tag object `6e01734e4ffdf43dd138e841481f6e7ccca66f77`
+targets that commit, protected release run `33068049669` passed, and the
+published GitHub release exposes 29 verified assets. Terraform Registry
+`0.2.0` serves protocol 6.0 on all 13 declared platforms.
 
 ---
 
