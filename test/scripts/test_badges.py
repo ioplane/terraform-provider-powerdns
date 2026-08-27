@@ -7,6 +7,7 @@ an outage or a hand-edited plan.
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -214,3 +215,14 @@ def test_an_untracked_markdown_file_is_not_a_claim(tmp_path):
     # it — the fallback is deliberately permissive, and the assertion here is
     # that the git path is what runs in the repository itself.
     assert markdown_files(tmp_path) == [tmp_path / "scratch.md"]
+
+
+def test_a_tracked_markdown_file_deleted_in_the_worktree_is_not_read(tmp_path):
+    """The pre-commit gate must run while tracked deletions are still unstaged."""
+    document = tmp_path / "obsolete.md"
+    document.write_text("obsolete\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "add", document.name], check=True)
+    document.unlink()
+
+    assert markdown_files(tmp_path) == []

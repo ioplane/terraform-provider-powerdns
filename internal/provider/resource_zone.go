@@ -111,10 +111,10 @@ func (r *zoneResource) Schema(
 					"because PowerDNS stores the canonical form.",
 				Required: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					planmodify.SemanticString(
 						"compared as a DNS name: case and a trailing dot do not matter",
 						normalise.DNSName),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"kind": schema.StringAttribute{
@@ -143,7 +143,7 @@ func (r *zoneResource) Schema(
 				PlanModifiers: []planmodifier.List{
 					planmodify.SemanticSet(
 						"compared by address value, ignoring order",
-						normalise.IPAddress),
+						normalise.IPAddressKey),
 				},
 			},
 			"nameservers": schema.ListAttribute{
@@ -244,7 +244,7 @@ func (r *zoneResource) Schema(
 				PlanModifiers: []planmodifier.List{
 					planmodify.SemanticSet(
 						"compared as canonical key names, ignoring order",
-						normalise.TSIGKeyID),
+						normalise.TSIGKeyIDKey),
 					listplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -257,7 +257,7 @@ func (r *zoneResource) Schema(
 				PlanModifiers: []planmodifier.List{
 					planmodify.SemanticSet(
 						"compared as canonical key names, ignoring order",
-						normalise.TSIGKeyID),
+						normalise.TSIGKeyIDKey),
 					listplanmodifier.UseStateForUnknown(),
 				},
 			},

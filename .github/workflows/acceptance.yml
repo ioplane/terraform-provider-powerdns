@@ -127,4 +127,4 @@ jobs:
 
       - name: Tear down
         if: always()
-        run: uv run --locked python -m scripts.automation.lab down --auth "${{ matrix.auth }}" || true
+        run: uv run --locked python -m scripts.automation.lab down --auth "${{ matrix.auth }}"

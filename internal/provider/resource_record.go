@@ -104,9 +104,9 @@ func (r *recordResource) Schema(
 				MarkdownDescription: "The zone holding this RRSet.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					planmodify.SemanticString(
 						"compared as a DNS name", normalise.DNSName),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"name": schema.StringAttribute{
@@ -115,10 +115,10 @@ func (r *recordResource) Schema(
 					"and do not produce a diff.",
 				Required: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					planmodify.SemanticString(
 						"compared as a DNS name: case and a trailing dot do not matter",
 						normalise.RecordName),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"type": schema.StringAttribute{

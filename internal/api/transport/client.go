@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"time"
 
@@ -241,7 +240,7 @@ func readServerMessage(body io.Reader) string {
 
 // sleepBackoff waits before retry attempt n (1-based), honouring cancellation.
 func sleepBackoff(ctx context.Context, attempt int) error {
-	delay := min(time.Duration(math.Pow(2, float64(attempt-1)))*backoffBase, backoffCap)
+	delay := backoffDelay(attempt)
 
 	timer := time.NewTimer(delay)
 	defer timer.Stop()
@@ -252,4 +251,12 @@ func sleepBackoff(ctx context.Context, attempt int) error {
 	case <-timer.C:
 		return nil
 	}
+}
+
+func backoffDelay(attempt int) time.Duration {
+	delay := backoffBase
+	for retry := 1; retry < attempt && delay < backoffCap; retry++ {
+		delay = min(delay*2, backoffCap)
+	}
+	return delay
 }

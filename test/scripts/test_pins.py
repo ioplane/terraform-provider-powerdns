@@ -129,6 +129,12 @@ def test_a_from_with_a_bare_tag_is_floating(tmp_path):
     assert "golang:1.26" in problems[0]
 
 
+def test_scratch_is_a_reserved_empty_base_not_a_floating_registry_image(tmp_path):
+    """The OCI scratch stage has no registry object and therefore no digest."""
+    (tmp_path / "Containerfile.lab").write_text("FROM scratch\n")
+    assert unpinned_from(tmp_path) == []
+
+
 def test_the_reference_patterns_are_anchored_to_known_registries():
     """An arbitrary host would make every colon-bearing string an image."""
     assert re.search(

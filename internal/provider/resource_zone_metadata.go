@@ -91,9 +91,9 @@ func (r *zoneMetadataResource) Schema(
 				MarkdownDescription: "The zone this metadata belongs to.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					planmodify.SemanticString(
 						"compared as a DNS name", normalise.DNSName),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"kind": schema.StringAttribute{

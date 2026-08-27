@@ -104,9 +104,9 @@ func (r *viewZoneResource) Schema(
 				MarkdownDescription: "The zone to place in the view.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					planmodify.SemanticString(
 						"compared as a DNS name", normalise.DNSName),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 		},

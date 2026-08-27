@@ -171,39 +171,39 @@ func TestTSIGKeyID(t *testing.T) {
 	}
 }
 
-func TestStringSet(t *testing.T) {
+func TestStringMultiset(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name       string
 		configured []string
 		actual     []string
-		cmp        func(a, b string) bool
+		key        func(string) string
 		want       bool
 	}{
 		{
 			"order does not matter",
 			[]string{"192.0.2.1", "192.0.2.2"},
 			[]string{"192.0.2.2", "192.0.2.1"},
-			normalise.IPAddress, true,
+			normalise.IPAddressKey, true,
 		},
 		{
 			"reordered and respelled",
 			[]string{"2001:db8:0:0::1", "192.0.2.1"},
 			[]string{"192.0.2.1", "2001:db8::1"},
-			normalise.IPAddress, true,
+			normalise.IPAddressKey, true,
 		},
 		{
 			"a missing entry is a difference",
 			[]string{"192.0.2.1", "192.0.2.2"},
 			[]string{"192.0.2.1"},
-			normalise.IPAddress, false,
+			normalise.IPAddressKey, false,
 		},
 		{
 			"an extra entry is a difference",
 			[]string{"192.0.2.1"},
 			[]string{"192.0.2.1", "192.0.2.2"},
-			normalise.IPAddress, false,
+			normalise.IPAddressKey, false,
 		},
 		{
 			// Same length, one entry replaced: the guard against a comparison
@@ -211,18 +211,18 @@ func TestStringSet(t *testing.T) {
 			"a substituted entry is a difference",
 			[]string{"192.0.2.1", "192.0.2.2"},
 			[]string{"192.0.2.1", "192.0.2.3"},
-			normalise.IPAddress, false,
+			normalise.IPAddressKey, false,
 		},
 		{
 			// A duplicate on one side must not match one entry twice.
 			"a duplicate does not satisfy two slots",
 			[]string{"192.0.2.1", "192.0.2.1"},
 			[]string{"192.0.2.1", "192.0.2.2"},
-			normalise.IPAddress, false,
+			normalise.IPAddressKey, false,
 		},
 		{
 			"empty lists are equal",
-			nil, nil, normalise.IPAddress, true,
+			nil, nil, normalise.IPAddressKey, true,
 		},
 	}
 
@@ -230,8 +230,8 @@ func TestStringSet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := normalise.StringSet(tt.configured, tt.actual, tt.cmp); got != tt.want {
-				t.Errorf("StringSet(%v, %v) = %v, want %v",
+			if got := normalise.StringMultiset(tt.configured, tt.actual, tt.key); got != tt.want {
+				t.Errorf("StringMultiset(%v, %v) = %v, want %v",
 					tt.configured, tt.actual, got, tt.want)
 			}
 		})

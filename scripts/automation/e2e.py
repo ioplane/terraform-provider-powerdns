@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import argparse
 import base64
-import contextlib
 import io
 import json
 import os
@@ -83,6 +82,9 @@ REVERSE_ZONE = "100.51.198.in-addr.arpa."
 FQDN = "www.e2e.example."
 PTR_NAME = "10.100.51.198.in-addr.arpa."
 HTTP_OK = 200
+HTTP_NO_CONTENT = 204
+HTTP_NOT_FOUND = 404
+HTTP_UNPROCESSABLE_ENTITY = 422
 
 PROVIDER_VERSION = "0.1.1"
 # The version the mirror publishes for the code under development, so an
@@ -236,7 +238,7 @@ class Runner:
 def compose(*args: str) -> None:
     """Run podman-compose against the end-to-end compose file."""
     run(
-        ["podman-compose", "-f", str(COMPOSE_FILE), *args],
+        ["podman-compose", "--in-pod=false", "-f", str(COMPOSE_FILE), *args],
         what=f"podman-compose {' '.join(args)}",
         timeout=PULL,
         cwd=REPO_ROOT,
@@ -758,6 +760,99 @@ ZONE_APIS = {
     "recursor": "http://127.0.0.1:18082/api/v1/servers/localhost",
 }
 
+# PowerDNS/pdns rec-5.4.4 (64c4f00f2b3d): ws-recursor.cc:418-424 raises
+# this exact message for a missing zone, and webserver.cc:194-199 serializes
+# ApiException as HTTP 422 JSON. The real E2E teardown exercises that response.
+RECURSOR_ABSENCE = {"error": "Could not find domain 'internal.e2e.example'"}
+ZONE_REQUEST_TIMEOUT = 10
+
+
+def _zone_request(
+    api: str, zone: str, *, method: str = "GET"
+) -> urllib.request.Request:
+    """Build one authenticated request for a managed fixture zone."""
+    return urllib.request.Request(  # noqa: S310
+        f"{ZONE_APIS[api]}/zones/{zone}",
+        method=method,
+        headers={"X-API-Key": API_KEY},
+    )
+
+
+def _classify_absence(api: str, zone: str, error: urllib.error.HTTPError) -> bool:
+    """Accept only the exact product-specific response for an absent zone."""
+    body = error.read()
+    if api != "recursor":
+        if error.code == HTTP_NOT_FOUND:
+            return False
+        message = (
+            f"Authoritative zone {zone} absence requires HTTP 404; "
+            f"received HTTP {error.code}"
+        )
+        raise RuntimeError(message) from error
+
+    message = (
+        f"Recursor zone {zone} absence requires HTTP 422 with exact JSON "
+        f"{RECURSOR_ABSENCE!r}"
+    )
+    if error.code != HTTP_UNPROCESSABLE_ENTITY:
+        unexpected_status = f"{message}; received HTTP {error.code}"
+        raise RuntimeError(unexpected_status) from error
+    try:
+        payload = json.loads(body)
+    except (UnicodeDecodeError, json.JSONDecodeError) as decode_error:
+        malformed = f"{message}; response was not valid JSON"
+        raise RuntimeError(malformed) from decode_error
+    if payload != RECURSOR_ABSENCE:
+        unexpected_payload = f"{message}; received {payload!r}"
+        raise RuntimeError(unexpected_payload) from error
+    return False
+
+
+def _zone_exists(api: str, zone: str) -> bool:
+    """Read a managed zone and classify only its exact absence response."""
+    request = _zone_request(api, zone)
+    try:
+        with urllib.request.urlopen(  # noqa: S310  # nosemgrep
+            request, timeout=ZONE_REQUEST_TIMEOUT
+        ) as response:
+            response.read()
+            if response.status != HTTP_OK:
+                message = (
+                    f"GET for {api} zone {zone} requires HTTP 200 or its exact "
+                    f"absence response; received HTTP {response.status}"
+                )
+                raise RuntimeError(message)
+            return True
+    except urllib.error.HTTPError as error:
+        return _classify_absence(api, zone, error)
+
+
+def _delete_zone(api: str, zone: str) -> None:
+    """Delete an existing managed zone only on exact HTTP 204 with no body."""
+    request = _zone_request(api, zone, method="DELETE")
+    try:
+        with urllib.request.urlopen(  # noqa: S310  # nosemgrep
+            request, timeout=ZONE_REQUEST_TIMEOUT
+        ) as response:
+            body = response.read()
+            status = response.status
+    except urllib.error.HTTPError as error:
+        error.read()
+        message = (
+            f"DELETE for {api} zone {zone} requires HTTP 204 with an empty body; "
+            f"received HTTP {error.code}"
+        )
+        raise RuntimeError(message) from error
+
+    if status != HTTP_NO_CONTENT:
+        message = (
+            f"DELETE for {api} zone {zone} requires HTTP 204; received HTTP {status}"
+        )
+        raise RuntimeError(message)
+    if body != b"":
+        message = f"DELETE for {api} zone {zone} requires an empty body"
+        raise RuntimeError(message)
+
 
 def drop_managed_zones() -> None:
     """Remove what the units created, before the state describing it is gone.
@@ -772,13 +867,13 @@ def drop_managed_zones() -> None:
     the reason for running it is that one of those is broken.
     """
     for api, zone in MANAGED_ZONES:
-        request = urllib.request.Request(  # noqa: S310
-            f"{ZONE_APIS[api]}/zones/{zone}",
-            method="DELETE",
-            headers={"X-API-Key": API_KEY},
-        )
-        with contextlib.suppress(OSError):
-            urllib.request.urlopen(request, timeout=10).close()  # noqa: S310  # nosemgrep
+        if _zone_exists(api, zone):
+            _delete_zone(api, zone)
+
+    for api, zone in MANAGED_ZONES:
+        if _zone_exists(api, zone):
+            message = f"managed {api} zone {zone} still exists after DELETE"
+            raise RuntimeError(message)
 
 
 def cmd_down() -> int:

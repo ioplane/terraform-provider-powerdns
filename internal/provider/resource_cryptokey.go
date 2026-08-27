@@ -106,9 +106,9 @@ func (r *cryptoKeyResource) Schema(
 				MarkdownDescription: "The zone this key signs.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					planmodify.SemanticString(
 						"compared as a DNS name", normalise.DNSName),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"key_id": schema.Int64Attribute{

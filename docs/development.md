@@ -63,11 +63,17 @@ task lab:down     # remove, including volumes
 | `pdns-lab-auth-lmdb` | `:18091` | Authoritative on LMDB — the **only** backend implementing views and networks |
 | `pdns-lab-rec` | `:18082` | Recursor with `api_dir` — without it every write returns 422 |
 | `pdns-lab-dnsdist` | `:18083` | dnsdist — the only place its two write operations exist |
-| `pdns-lab-pg` | `:15432` | backend for the first |
+| `pdns-lab-pg` | `:15432` | disposable PostgreSQL 18.6 backend for the first |
 
 Five is the minimum that covers the provider, not thoroughness. `lab:verify`
 asserts the fixture is the one the tests were written against, so a silently
 upgraded image is caught before it produces a confusing failure.
+
+PostgreSQL 18 keeps `PGDATA` below its declared `/var/lib/postgresql` volume.
+Compose overlays that destination with a 512 MiB tmpfs using
+`nosuid,nodev,noexec`, so `task lab:up` always initializes a clean cluster from
+`test/lab/schema.pgsql.sql` and cannot leave an anonymous database volume. This
+proves fresh initialization, not `pg_upgrade` or durable-data compatibility.
 
 ## The daily loop
 

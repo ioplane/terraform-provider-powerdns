@@ -75,9 +75,9 @@ func (r *networkResource) Schema(
 					"permanent diff.",
 				Required: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					planmodify.SemanticString(
 						"compared as a subnet, not as a string", normalise.CIDR),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"view": schema.StringAttribute{
