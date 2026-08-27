@@ -64,6 +64,10 @@ task py             # all four
 exactly the way the Go gate does. Python that only ever runs on a developer's
 machine is still code someone else has to read.
 
+The hosted Python job installs the same pinned Task version as the development
+image before pytest. One structural test executes Task's real dry-run engine;
+parsing `Taskfile.yml` alone cannot prove shell-variable expansion semantics.
+
 ## Ruff configuration
 
 `[tool.ruff.lint] select` is an allowlist of 42 rule families, not `ALL`.

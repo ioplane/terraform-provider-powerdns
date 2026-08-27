@@ -145,6 +145,14 @@ def variable(name: str) -> str:
 def test_required_ci_runs_the_complete_python_gate():
     """Required CI must exercise the same Python surface as local task py."""
     job = workflow_job(CI_WORKFLOW, "lint-py")
+    assert (
+        "uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0"
+    ) in job
+    assert 'go-version: "1.27.0"' in job
+    assert "cache: false" in job
+    assert workflow_commands(workflow_step(job, "Install Task")) == [
+        "go install github.com/go-task/task/v3/cmd/task@v3.52.0 # pin: TASK_VERSION"
+    ]
     assert workflow_commands(workflow_step(job, "ruff")) == [
         "uv run --locked ruff check scripts/ test/scripts/",
         "uv run --locked ruff format --check scripts/ test/scripts/",

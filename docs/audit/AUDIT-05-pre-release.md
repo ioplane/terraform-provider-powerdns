@@ -53,6 +53,7 @@ The delivery and documentation reviews found release blockers:
 | Finding | Risk | Correction |
 | --- | --- | --- |
 | CI linted only `scripts/`, treated ty as advisory and never ran pytest | new release tooling could be untested while required CI was green | run the locked `task py` surface: Ruff and blocking ty over code and tests, then pytest |
+| hosted pytest lacked the pinned Task binary used by the local gate | the real Taskfile expansion oracle passed locally but failed before execution on CI | install the development image's exact Task version in the Python job and bind it through the tool-version drift check |
 | Security discarded OSV failures and Trivy did not fail on HIGH/CRITICAL findings | known vulnerable dependencies could coexist with a green Security workflow | preserve SARIF upload while returning each scanner's real status; update affected Go modules |
 | Release required only CI and Acceptance | a tag could publish without the consumer-path E2E or Security result | require CI, Acceptance, End-to-end and Security from the exact `main` push SHA |
 | duplicated version regexes accepted invalid SemVer and a source tag could be lightweight or unsigned | an immutable Registry version could start from an invalid version or unauthenticated source tag | one strict SemVer 2.0.0 parser; require an annotated tag that passes `git verify-tag` |
