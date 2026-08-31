@@ -62,7 +62,7 @@ jobs:
       PDNS_DNSDIST_SERVER_URL: http://127.0.0.1:18083
       PDNS_API_KEY: labapikey
     steps:
-      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           # The lab pulls four images and the suite talks to them over
           # loopback; a blocking policy here would need an allow-list that
@@ -91,7 +91,7 @@ jobs:
           sudo unzip -o -d /usr/local/bin /tmp/tf.zip
           echo "TF_ACC_TERRAFORM_PATH=/usr/local/bin/terraform" >> "$GITHUB_ENV"
 
-      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.11.33" # pin: UV_VERSION
 
