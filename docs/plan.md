@@ -1989,6 +1989,17 @@ caught, both now have a script behind them, and both stayed clean without
 anyone thinking about them. That is the whole argument for turning a finding
 into a check rather than a resolution.
 
+## Fork maintenance — TSIG association revocation
+
+The `fix/clear-zone-tsig-key-ids` branch preserves explicitly empty TSIG lists
+in zone update requests. Regression request tests cover omitted, empty and
+populated lists; `TestAccZone_ClearTSIGKeyIDs` verifies association removal on
+PowerDNS 5.1.4 and an empty subsequent plan. No resource schema/state change.
+
+Verification: `go test ./...`, `go vet ./...`, and the targeted acceptance test
+pass with the digest-pinned Go 1.27.0 toolchain. The complete `task all` /
+`task verify` lab gates have not run locally; their Podman/Task tools are absent.
+
 ## Risk register
 
 | Risk | Effect | Response |

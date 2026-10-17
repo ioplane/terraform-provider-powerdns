@@ -231,3 +231,49 @@ func testAccCheckZoneDestroyed(name string) resource.TestCheckFunc {
 		return nil
 	}
 }
+
+// TestAccZone_ClearTSIGKeyIDs checks revocation on the server, not just state.
+func TestAccZone_ClearTSIGKeyIDs(t *testing.T) {
+	name := acceptanceZoneName(t, "tsig-clear")
+	checkKeys := func(want int) resource.TestCheckFunc {
+		return func(_ *terraform.State) error {
+			client, err := acceptanceAuthClient()
+			if err != nil {
+				return err
+			}
+			zone, err := client.GetZone(t.Context(), name)
+			if err != nil {
+				return err
+			}
+			if len(zone.MasterTSIGKeyIDs) != want {
+				return fmt.Errorf("server has %d TSIG associations, want %d", len(zone.MasterTSIGKeyIDs), want)
+			}
+			return nil
+		}
+	}
+	keyName := "acc-clear-" + runID
+	config := func(ids string) string {
+		return fmt.Sprintf(`
+resource "powerdns_tsigkey" "transfer" {
+  name = %q
+  algorithm = "hmac-sha256"
+}
+resource "powerdns_zone" "test" {
+  name = %q
+  kind = "Master"
+  nameservers = ["ns1.%s"]
+  master_tsig_key_ids = %s
+}
+`, keyName, name, name, ids)
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acceptancePreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviderFactories(),
+		CheckDestroy:             resource.ComposeAggregateTestCheckFunc(testAccCheckZoneDestroyed(name), testAccCheckTSIGKeyDestroyed(keyName+".")),
+		Steps: []resource.TestStep{
+			{Config: config("[powerdns_tsigkey.transfer.id]"), Check: resource.ComposeAggregateTestCheckFunc(resource.TestCheckResourceAttr("powerdns_zone.test", "master_tsig_key_ids.#", "1"), checkKeys(1))},
+			{Config: config("[]"), Check: resource.ComposeAggregateTestCheckFunc(resource.TestCheckResourceAttr("powerdns_zone.test", "master_tsig_key_ids.#", "0"), checkKeys(0))},
+			{Config: config("[]"), ConfigPlanChecks: resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()}}},
+		},
+	})
+}

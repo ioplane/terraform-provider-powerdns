@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -346,5 +347,49 @@ func TestSearchZoneByName_EscapesTheQuery(t *testing.T) {
 	}
 	if got := (*seen)[0].Query.Get("zone"); got != "a b.test." {
 		t.Errorf("zone query = %q, want %q", got, "a b.test.")
+	}
+}
+
+// TestUpdateZone_TSIGKeyLists distinguishes omission from explicit revocation.
+func TestUpdateZone_TSIGKeyLists(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name          string
+		zone          auth.Zone
+		master, slave string
+	}{
+		{name: "omitted", zone: auth.Zone{Account: "changed"}},
+		{name: "clear primary", zone: auth.Zone{MasterTSIGKeyIDs: []string{}}, master: "[]"},
+		{name: "clear secondary", zone: auth.Zone{SlaveTSIGKeyIDs: []string{}}, slave: "[]"},
+		{name: "clear both", zone: auth.Zone{MasterTSIGKeyIDs: []string{}, SlaveTSIGKeyIDs: []string{}}, master: "[]", slave: "[]"},
+		{name: "set both", zone: auth.Zone{MasterTSIGKeyIDs: []string{"primary."}, SlaveTSIGKeyIDs: []string{"secondary."}}, master: `["primary."]`, slave: `["secondary."]`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			client, seen := newRecordingClient(t)
+			if err := client.UpdateZone(t.Context(), "example.com.", tt.zone); err != nil {
+				t.Fatal(err)
+			}
+			if len(*seen) != 1 {
+				t.Fatalf("requests = %d, want 1", len(*seen))
+			}
+			request := (*seen)[0]
+			if request.Method != http.MethodPut {
+				t.Fatalf("method = %s, want PUT", request.Method)
+			}
+			var body map[string]json.RawMessage
+			if err := json.Unmarshal([]byte(request.Body), &body); err != nil {
+				t.Fatal(err)
+			}
+			for field, want := range map[string]string{"master_tsig_key_ids": tt.master, "slave_tsig_key_ids": tt.slave} {
+				if got := string(body[field]); got != want {
+					t.Errorf("%s = %s, want %s", field, got, want)
+				}
+			}
+			if tt.zone.Account != "" && string(body["account"]) != `"changed"` {
+				t.Error("unrelated account update was lost")
+			}
+		})
 	}
 }

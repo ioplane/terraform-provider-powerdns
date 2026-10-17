@@ -166,7 +166,20 @@ func (c *Client) GetZone(ctx context.Context, zoneID string) (*Zone, error) {
 // result of any normalisation.
 func (c *Client) UpdateZone(ctx context.Context, zoneID string, zone Zone) error {
 	zone.RRSets = nil
-	return c.http.Do(ctx, "update zone", http.MethodPut, zonePath(zoneID), zone, nil)
+	// A nil list means omitted; a non-nil empty list explicitly revokes all
+	// keys. Zone's omitempty fields cannot preserve that distinction alone.
+	body := struct {
+		Zone
+		MasterTSIGKeyIDs *[]string `json:"master_tsig_key_ids,omitempty"`
+		SlaveTSIGKeyIDs  *[]string `json:"slave_tsig_key_ids,omitempty"`
+	}{Zone: zone}
+	if zone.MasterTSIGKeyIDs != nil {
+		body.MasterTSIGKeyIDs = &zone.MasterTSIGKeyIDs
+	}
+	if zone.SlaveTSIGKeyIDs != nil {
+		body.SlaveTSIGKeyIDs = &zone.SlaveTSIGKeyIDs
+	}
+	return c.http.Do(ctx, "update zone", http.MethodPut, zonePath(zoneID), body, nil)
 }
 
 // PatchRRSets applies RRSet changes. PATCH /servers/localhost/zones/{id}

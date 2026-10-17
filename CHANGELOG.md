@@ -9,6 +9,12 @@ The mapping between commit type, changelog section and version bump is in
 
 ## [Unreleased]
 
+### Fixed
+
+- Explicitly empty `master_tsig_key_ids` and `slave_tsig_key_ids` now remove
+  zone TSIG associations instead of omitting the fields from the update request.
+  Unset lists remain omitted so unrelated updates preserve server settings.
+
 ## [0.2.0] — 2026-08-27
 
 ### Added
